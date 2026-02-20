@@ -1,0 +1,16 @@
+﻿{
+  "name": "Frota Pro",
+  "short_name": "FrotaPro",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef3ee",
+  "theme_color": "#18e35f",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/frota-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

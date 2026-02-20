@@ -1,0 +1,12 @@
+node_modules
+.turbo
+.pnpm-store
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage
+dist
+.next
+out
+*.log

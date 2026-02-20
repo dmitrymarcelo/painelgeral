@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f6f7f8;
+  --color-ink: #111827;
+  --color-brand: #137fec;
+  --color-brand-soft: #eaf3ff;
+  --color-brand-ink: #0e5bb6;
+  --color-danger: #f04444;
+  --color-warning: #f4ba21;
+  --color-info: #137fec;
+  --color-border: #dbe3ec;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.card {
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 1.15rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.kpi-card {
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 1.15rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgb(100 116 139);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dbe0e6;
+  border-radius: 10px;
+}

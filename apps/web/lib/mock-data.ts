@@ -1,0 +1,22 @@
+import { translations } from './i18n';
+
+export const webSidebarItems = [
+  { href: "/web/dashboard", label: translations.dashboard },
+  { href: "/web/assets", label: translations.assetManagement },
+  { href: "/web/maintenance", label: translations.workOrders },
+  { href: "/web/checklist", label: translations.checklist },
+  { href: "/web/calendar", label: translations.calendar },
+];
+
+export const mobileTabs = [
+  { href: "/app/home", label: translations.panel },
+  { href: "/app/agenda", label: translations.calendar },
+  { href: "/app/checklist", label: translations.checklist },
+];
+
+export const metrics = {
+  overdue: 8,
+  nearDue: 15,
+  compliance: 92,
+  assetsTotal: 124,
+};

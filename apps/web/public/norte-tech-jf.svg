@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="380" viewBox="0 0 900 380" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#97B4A5"/>
+      <stop offset="1" stop-color="#D4C89D"/>
+    </linearGradient>
+    <linearGradient id="norteYellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F9DD58"/>
+      <stop offset="1" stop-color="#D8B200"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="380" fill="url(#bg)"/>
+
+  <g opacity="0.22" stroke="#2F3B46" stroke-width="4">
+    <path d="M20 290 L170 140 L320 300"/>
+    <path d="M190 300 L350 110 L480 305"/>
+    <path d="M430 290 L590 130 L740 300"/>
+    <path d="M620 300 L760 120 L880 290"/>
+    <path d="M0 180 L900 120"/>
+    <path d="M20 230 L900 170"/>
+  </g>
+
+  <rect x="140" y="90" width="620" height="200" rx="36" fill="white" fill-opacity="0.95"/>
+
+  <path d="M212 122 C236 94, 278 104, 295 134 C306 154, 323 166, 338 160 C350 155, 358 145, 367 120 L368 112 L369 202 C351 227, 323 234, 293 229 C258 223, 238 201, 224 172 C214 151, 206 140, 199 136 C197 135, 196 134, 195 132 C199 128, 204 125, 212 122 Z" fill="url(#norteYellow)"/>
+
+  <text x="300" y="176" font-family="Inter, Arial, sans-serif" font-size="70" font-weight="800" fill="#223777">NORTE</text>
+  <text x="300" y="223" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="800" fill="#E0C11A">TECH</text>
+
+  <line x1="545" y1="118" x2="545" y2="260" stroke="#121212" stroke-width="5"/>
+
+  <circle cx="650" cy="190" r="80" fill="none" stroke="#136FB4" stroke-width="8"/>
+  <text x="605" y="206" font-family="Inter, Arial, sans-serif" font-size="66" font-weight="800" fill="#136FB4">J&amp;F</text>
+</svg>
