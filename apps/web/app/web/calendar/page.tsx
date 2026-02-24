@@ -338,6 +338,14 @@ export default function WebCalendarPage() {
       return;
     }
 
+    if (
+      isTodayDay(selectedDate) &&
+      isPastTimeForDate(currentYear, currentMonth, selectedDate, formTime)
+    ) {
+      alert("Nao e possivel reagendar para horario que ja passou no dia de hoje.");
+      return;
+    }
+
     const isRescheduling =
       selectedEvent.day !== selectedDate ||
       selectedEvent.month !== currentMonth ||
@@ -457,6 +465,11 @@ export default function WebCalendarPage() {
       return;
     }
 
+    if (!formJustification.trim()) {
+      alert("Preencha a JUSTIFICATIVA antes de excluir o agendamento.");
+      return;
+    }
+
     updateEvents((current) => current.filter((event) => event.id !== eventId));
     setSelectedEvent(null);
     setShowModal(false);
@@ -468,7 +481,18 @@ export default function WebCalendarPage() {
       return;
     }
 
+    const justification = window.prompt(
+      "JUSTIFICATIVA obrigatoria para mover o agendamento no calendario:",
+      "",
+    );
+    if (!justification?.trim()) {
+      dragEvent.preventDefault();
+      alert("Movimentacao bloqueada: preencha uma JUSTIFICATIVA.");
+      return;
+    }
+
     setDraggedEvent(event);
+    setFormJustification(justification.trim());
     dragEvent.dataTransfer.effectAllowed = "move";
     dragEvent.dataTransfer.setData("text/plain", event.id);
   };
@@ -501,16 +525,46 @@ export default function WebCalendarPage() {
       return;
     }
 
+    if (isTodayDay(day) && isPastTimeForDate(currentYear, currentMonth, day, draggedEvent.time)) {
+      alert("Nao e possivel mover para horario que ja passou no dia de hoje.");
+      setDraggedEvent(null);
+      setDragOverDay(null);
+      return;
+    }
+
+    if (!formJustification.trim()) {
+      alert("Movimentacao bloqueada: JUSTIFICATIVA obrigatoria.");
+      setDraggedEvent(null);
+      setDragOverDay(null);
+      return;
+    }
+
     updateEvents((current) =>
       current.map((event) =>
         event.id === draggedEvent.id
-          ? { ...event, day, month: currentMonth, year: currentYear }
+          ? {
+              ...event,
+              day,
+              month: currentMonth,
+              year: currentYear,
+              description: buildDescriptionWithJustifications(
+                parseDescriptionWithJustifications(event.description).baseDescription,
+                [
+                  ...parseDescriptionWithJustifications(event.description).entries,
+                  {
+                    timestamp: new Date().toLocaleString("pt-BR"),
+                    text: `[REAGENDAMENTO] ${formJustification.trim()}`,
+                  },
+                ],
+              ),
+            }
           : event,
       ),
     );
 
     setDraggedEvent(null);
     setDragOverDay(null);
+    setFormJustification("");
   };
 
   const handleDragEnd = () => {
@@ -766,17 +820,16 @@ export default function WebCalendarPage() {
                           const isFull =
                             !!selectedDate &&
                             !validateSlotCapacity(selectedDate, slot, selectedEvent?.id);
-                          const isPastTimeTodayForCreate =
-                            !selectedEvent &&
+                          const isPastTimeTodayForSelection =
                             !!selectedDate &&
                             isTodayDay(selectedDate) &&
                             isPastTimeForDate(currentYear, currentMonth, selectedDate, slot);
-                          const disabled = isFull || isPastTimeTodayForCreate;
+                          const disabled = isFull || isPastTimeTodayForSelection;
 
                           return (
                             <option key={slot} value={slot} disabled={disabled}>
                               {slot}
-                              {isFull ? " - Lotado" : isPastTimeTodayForCreate ? " - Horario passado" : ""}
+                              {isFull ? " - Lotado" : isPastTimeTodayForSelection ? " - Horario passado" : ""}
                             </option>
                           );
                         })}
@@ -788,17 +841,16 @@ export default function WebCalendarPage() {
                           const isFull =
                             !!selectedDate &&
                             !validateSlotCapacity(selectedDate, slot, selectedEvent?.id);
-                          const isPastTimeTodayForCreate =
-                            !selectedEvent &&
+                          const isPastTimeTodayForSelection =
                             !!selectedDate &&
                             isTodayDay(selectedDate) &&
                             isPastTimeForDate(currentYear, currentMonth, selectedDate, slot);
-                          const disabled = isFull || isPastTimeTodayForCreate;
+                          const disabled = isFull || isPastTimeTodayForSelection;
 
                           return (
                             <option key={slot} value={slot} disabled={disabled}>
                               {slot}
-                              {isFull ? " - Lotado" : isPastTimeTodayForCreate ? " - Horario passado" : ""}
+                              {isFull ? " - Lotado" : isPastTimeTodayForSelection ? " - Horario passado" : ""}
                             </option>
                           );
                         })}
