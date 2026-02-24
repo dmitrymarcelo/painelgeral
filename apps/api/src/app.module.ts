@@ -22,6 +22,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Rate limiting global configurado por env.
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -46,6 +47,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     AuditLogsModule,
   ],
   providers: [
+    // Ordem importa: throttling primeiro, depois autenticacao/autorizacao.
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

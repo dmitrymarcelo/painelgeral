@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
 
+  // Prefixo unico para manter URLs de API consistentes entre ambientes.
   app.setGlobalPrefix(process.env.API_PREFIX ?? 'api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
@@ -17,7 +18,7 @@ async function bootstrap() {
         const messages = errors.map((error) => ({
           campo: error.property,
           erros: Object.values(error.constraints ?? {}).map((msg) => {
-            // Traduzir mensagens de erro para portugues.
+            // Traduz mensagens comuns do class-validator para resposta amigavel em PT-BR.
             return msg
               .replace('must be a valid email', 'deve ser um e-mail valido')
               .replace('must be a string', 'deve ser um texto')
@@ -48,6 +49,7 @@ async function bootstrap() {
     }),
   );
 
+  // CORS aberto para ambiente local (web + app/pwa em desenvolvimento).
   app.enableCors({
     origin: true,
     credentials: true,

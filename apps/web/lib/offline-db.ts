@@ -36,6 +36,7 @@ class OfflineStore extends Dexie {
 
   constructor() {
     super("frota-pro-offline");
+    // Versionamento Dexie: manter historico de schemas evita quebrar IndexedDB local.
     this.version(1).stores({
       queue: "++id, status, createdAt, endpoint",
     });
@@ -49,6 +50,7 @@ class OfflineStore extends Dexie {
 export const offlineStore = new OfflineStore();
 
 export async function queueOfflineAction(action: Omit<OfflineAction, "id" | "createdAt" | "status" | "retries">) {
+  // Toda acao offline entra como pending para sincronizacao posterior.
   return offlineStore.queue.add({
     ...action,
     createdAt: new Date().toISOString(),
@@ -99,6 +101,7 @@ export async function updateChecklistRunStatusByKey(
   completedAt: string,
   status: ChecklistRunStatus,
 ) {
+  // Atualiza por chave funcional (checklistId + completedAt) para deduplicar execucoes.
   await offlineStore.checklistRuns
     .where("checklistId")
     .equals(checklistId)

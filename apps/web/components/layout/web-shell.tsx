@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { CarIcon, TruckIcon } from "@/components/ui/icons";
 import { translations } from "@/lib/i18n";
 
@@ -14,27 +14,58 @@ type Props = {
 
 export function WebShell({ title, subtitle, children }: Props) {
   const pathname = usePathname();
+  // Estado visual local da sidebar (nao persiste entre reloads).
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const menuItems = [
-    { href: "/web/dashboard", label: translations.dashboard },
-    { href: "/web/assets", label: translations.assetManagement },
-    { href: "/web/maintenance", label: translations.workOrders },
-    { href: "/web/checklist", label: translations.checklist },
-    { href: "/web/calendar", label: translations.calendar },
-    { href: "/web/technicians", label: "Tecnicos Responsaveis" },
+    { href: "/web/dashboard", label: translations.dashboard, icon: "🏠" },
+    { href: "/web/assets", label: translations.assetManagement, icon: "🚗" },
+    { href: "/web/maintenance", label: translations.workOrders, icon: "🛠" },
+    { href: "/web/calendar", label: translations.calendar, icon: "📅" },
   ];
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)]">
-      <div className="grid min-h-screen grid-cols-[190px_1fr]">
+      <div
+        className="grid min-h-screen"
+        style={{ gridTemplateColumns: sidebarCollapsed ? "76px 1fr" : "220px 1fr" }}
+      >
         <aside className="flex flex-col border-r border-[var(--color-border)] bg-[#f3f6fa]">
           <div className="p-4">
-            <div className="mb-6 grid place-items-center">
-              <div className="grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-[#ffd84c] bg-[#123a7d] text-white shadow-md">
-                <CarIcon className="h-7 w-7" />
+            <div className="mb-6">
+              <div className={`mb-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between gap-3"}`}>
+                <div className={`grid place-items-center rounded-full border-2 border-[#ffd84c] bg-[#123a7d] text-white shadow-md ${sidebarCollapsed ? "h-12 w-12" : "h-[56px] w-[56px]"}`}>
+                  <CarIcon className={sidebarCollapsed ? "h-5 w-5" : "h-6 w-6"} />
+                </div>
+                {!sidebarCollapsed && (
+                  <button
+                    type="button"
+                    onClick={() => setSidebarCollapsed(true)}
+                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white text-slate-500 hover:text-slate-700"
+                    aria-label="Recolher menu lateral"
+                    title="Recolher menu"
+                  >
+                    ‹
+                  </button>
+                )}
               </div>
-              <p className="mt-3 text-[10px] font-black uppercase tracking-[0.35em] text-slate-600">Frota Pro</p>
-              <div className="mt-2 h-1 w-16 rounded-full bg-[var(--color-brand)]/50"></div>
+
+              {!sidebarCollapsed ? (
+                <>
+                  <p className="text-center text-[10px] font-black uppercase tracking-[0.35em] text-slate-600">Frota Pro</p>
+                  <div className="mx-auto mt-2 h-1 w-16 rounded-full bg-[var(--color-brand)]/50"></div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(false)}
+                  className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white text-slate-500 hover:text-slate-700"
+                  aria-label="Expandir menu lateral"
+                  title="Expandir menu"
+                >
+                  ›
+                </button>
+              )}
             </div>
 
             <nav className="space-y-2">
@@ -44,13 +75,27 @@ export function WebShell({ title, subtitle, children }: Props) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`block rounded-xl px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] transition ${
+                    className={`flex h-11 items-center rounded-xl ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} text-[12px] font-black uppercase tracking-[0.08em] transition ${
                       active
                         ? "bg-[var(--color-brand)] text-white shadow-lg shadow-blue-200"
                         : "text-slate-500 hover:bg-white"
                     }`}
+                    title={item.label}
                   >
-                    {item.label}
+                    {sidebarCollapsed && (
+                      // Icones ilustrativos aparecem apenas no modo recolhido.
+                      <span
+                        className={`grid h-7 w-7 place-items-center rounded-md text-sm ${
+                          active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {item.icon}
+                      </span>
+                    )}
+                    {!sidebarCollapsed && (
+                      <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.label}</span>
+                    )}
                   </Link>
                 );
               })}
@@ -58,8 +103,8 @@ export function WebShell({ title, subtitle, children }: Props) {
           </div>
 
           <div className="mt-auto p-4">
-            <button className="w-full rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
-              Configuracoes
+            <button className={`rounded-2xl border border-[var(--color-border)] bg-white py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 ${sidebarCollapsed ? "w-full px-2" : "w-full px-4"}`} title="Configuracoes">
+              {sidebarCollapsed ? "Cfg" : "Configuracoes"}
             </button>
           </div>
         </aside>

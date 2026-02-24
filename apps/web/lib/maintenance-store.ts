@@ -72,6 +72,7 @@ const isMaintenanceEventArray = (value: unknown): value is MaintenanceEvent[] =>
 };
 
 const buildDefaultEvents = (): MaintenanceEvent[] => {
+  // Seeds locais para a UI funcionar mesmo sem API/banco.
   const now = new Date();
   const yesterday = withDaysOffset(now, -1);
   const today = withDaysOffset(now, 0);
@@ -150,6 +151,7 @@ function emitChanged() {
 }
 
 const readEvents = (): MaintenanceEvent[] => {
+  // Este store e frontend-only: persiste em localStorage e reidrata com fallback.
   if (typeof window === "undefined") {
     return sortEvents(buildDefaultEvents());
   }
@@ -183,6 +185,7 @@ const writeEvents = (events: MaintenanceEvent[]) => {
 };
 
 const mutateEvents = (updater: (events: MaintenanceEvent[]) => MaintenanceEvent[]) => {
+  // Centraliza escrita para manter ordenacao e disparar notificacao de mudanca.
   const current = readEvents();
   const next = updater(current);
   writeEvents(next);
@@ -200,6 +203,7 @@ export function saveMaintenanceEvents(events: MaintenanceEvent[]) {
 export function subscribeMaintenanceEvents(onChange: () => void) {
   if (typeof window === "undefined") return () => undefined;
 
+  // Escuta tanto mudancas de outra aba (storage) quanto da aba atual (evento custom).
   const onStorage = (event: StorageEvent) => {
     if (event.key === STORAGE_KEY) {
       onChange();
