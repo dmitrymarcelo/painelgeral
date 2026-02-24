@@ -130,6 +130,7 @@ export default function WebCalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<MaintenanceEvent | null>(null);
   const [modalReadOnly, setModalReadOnly] = useState(false);
   const [draggedEvent, setDraggedEvent] = useState<MaintenanceEvent | null>(null);
+  const [dragMoveJustification, setDragMoveJustification] = useState("");
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const [formAsset, setFormAsset] = useState("");
   const [formType] = useState<MaintenanceType>("preventive");
@@ -211,6 +212,7 @@ export default function WebCalendarPage() {
     setFormDescription("");
     setFormTime("07:30");
     setFormJustification("");
+    setDragMoveJustification("");
   };
 
   const getEventsForDay = (day: number) => {
@@ -492,7 +494,7 @@ export default function WebCalendarPage() {
     }
 
     setDraggedEvent(event);
-    setFormJustification(justification.trim());
+    setDragMoveJustification(justification.trim());
     dragEvent.dataTransfer.effectAllowed = "move";
     dragEvent.dataTransfer.setData("text/plain", event.id);
   };
@@ -510,11 +512,13 @@ export default function WebCalendarPage() {
   const handleDrop = (day: number, dragEvent: React.DragEvent) => {
     dragEvent.preventDefault();
     if (!draggedEvent) return;
+    const moveJustification = dragMoveJustification.trim();
 
     if (isPastDay(day)) {
       alert("Datas passadas estao bloqueadas para edicao.");
       setDraggedEvent(null);
       setDragOverDay(null);
+      setDragMoveJustification("");
       return;
     }
 
@@ -522,6 +526,7 @@ export default function WebCalendarPage() {
       alert("Nao e possivel mover: horario com limite de 2 agendamentos no dia.");
       setDraggedEvent(null);
       setDragOverDay(null);
+      setDragMoveJustification("");
       return;
     }
 
@@ -529,47 +534,64 @@ export default function WebCalendarPage() {
       alert("Nao e possivel mover para horario que ja passou no dia de hoje.");
       setDraggedEvent(null);
       setDragOverDay(null);
+      setDragMoveJustification("");
       return;
     }
 
-    if (!formJustification.trim()) {
+    if (!moveJustification) {
       alert("Movimentacao bloqueada: JUSTIFICATIVA obrigatoria.");
       setDraggedEvent(null);
       setDragOverDay(null);
+      setDragMoveJustification("");
       return;
     }
 
     updateEvents((current) =>
       current.map((event) =>
         event.id === draggedEvent.id
-          ? {
-              ...event,
-              day,
-              month: currentMonth,
-              year: currentYear,
-              description: buildDescriptionWithJustifications(
-                parseDescriptionWithJustifications(event.description).baseDescription,
-                [
-                  ...parseDescriptionWithJustifications(event.description).entries,
+          ? (() => {
+              const previousParts = parseDescriptionWithJustifications(event.description);
+              return {
+                ...event,
+                day,
+                month: currentMonth,
+                year: currentYear,
+                description: buildDescriptionWithJustifications(previousParts.baseDescription, [
+                  ...previousParts.entries,
                   {
                     timestamp: new Date().toLocaleString("pt-BR"),
-                    text: `[REAGENDAMENTO] ${formJustification.trim()}`,
+                    text: `[REAGENDAMENTO] ${moveJustification}`,
                   },
-                ],
-              ),
-            }
+                ]),
+              };
+            })()
           : event,
       ),
     );
 
+    if (selectedEvent?.id === draggedEvent.id) {
+      setSelectedEvent((current) =>
+        current
+          ? {
+              ...current,
+              day,
+              month: currentMonth,
+              year: currentYear,
+            }
+          : current,
+      );
+    }
+
     setDraggedEvent(null);
     setDragOverDay(null);
-    setFormJustification("");
+    setDragMoveJustification("");
+    setFormJustification(moveJustification);
   };
 
   const handleDragEnd = () => {
     setDraggedEvent(null);
     setDragOverDay(null);
+    setDragMoveJustification("");
   };
 
   const openNewOrderModal = () => {
