@@ -176,6 +176,23 @@ export default function WebCalendarPage() {
     return parseDescriptionWithJustifications(selectedEvent.description).entries;
   }, [selectedEvent]);
 
+  const selectedDateIso = useMemo(() => {
+    if (!selectedDate) return "";
+    const date = new Date(currentYear, currentMonth, selectedDate);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [currentYear, currentMonth, selectedDate]);
+
+  const minDateIso = useMemo(() => {
+    const today = getTodayStart();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, []);
+
   const goToPreviousMonth = () =>
     setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
 
@@ -464,6 +481,15 @@ export default function WebCalendarPage() {
     setShowModal(true);
   };
 
+  const handleFormDateChange = (value: string) => {
+    if (!value) return;
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return;
+
+    setCurrentDate(new Date(year, month - 1, 1));
+    setSelectedDate(day);
+  };
+
   useEffect(() => {
     const eventId = searchParams.get("eventId");
     if (!eventId || events.length === 0) return;
@@ -480,7 +506,7 @@ export default function WebCalendarPage() {
     setFormJustification("");
     setModalReadOnly(getEventIsPast(target) && target.status === "completed");
     setShowModal(true);
-  }, [events, searchParams, todayStart]);
+  }, [events, searchParams]);
 
   const selectedEventIsTodayOrPastNotCompleted =
     !!selectedEvent &&
@@ -725,15 +751,16 @@ export default function WebCalendarPage() {
 
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    {translations.maintenanceType} *
+                    DATA *
                   </label>
-                  <select
-                    value={formType}
-                    disabled
-                    className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-                  >
-                    <option value="preventive">Manutencao Preventiva</option>
-                  </select>
+                  <input
+                    type="date"
+                    disabled={modalReadOnly}
+                    value={selectedDateIso}
+                    min={minDateIso}
+                    onChange={(event) => handleFormDateChange(event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
+                  />
                 </div>
               </div>
 
