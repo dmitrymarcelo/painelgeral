@@ -15,6 +15,7 @@ type Props = {
 
 type NotificationItem = {
   id: string;
+  eventId: string;
   label: string;
   type: "urgent" | "today";
 };
@@ -43,12 +44,12 @@ export function WebShell({ title, subtitle, children }: Props) {
           const label = `${event.asset} - ${event.time}`;
 
           if (event.status !== "completed" && eventDate < todayStart) {
-            acc.push({ id: `late-${event.id}`, label: `Atrasado: ${label}`, type: "urgent" });
+            acc.push({ id: `late-${event.id}`, eventId: event.id, label: `Atrasado: ${label}`, type: "urgent" });
             return acc;
           }
 
           if (eventDate === todayStart) {
-            acc.push({ id: `today-${event.id}`, label: `Hoje: ${label}`, type: "today" });
+            acc.push({ id: `today-${event.id}`, eventId: event.id, label: `Hoje: ${label}`, type: "today" });
             return acc;
           }
 
@@ -208,7 +209,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                       notificationItems.map((item) => (
                         <Link
                           key={item.id}
-                          href="/web/calendar"
+                          href={`/web/calendar?eventId=${encodeURIComponent(item.eventId)}`}
                           onClick={() => setNotificationsOpen(false)}
                           className="block border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
                         >

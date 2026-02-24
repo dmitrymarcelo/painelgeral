@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
 import {
@@ -71,6 +72,7 @@ const getEventDayStart = (event: MaintenanceEvent) =>
   getDayStart(event.year, event.month, event.day);
 
 export default function WebCalendarPage() {
+  const searchParams = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -166,7 +168,7 @@ export default function WebCalendarPage() {
 
   const handleEventClick = (event: MaintenanceEvent, clickEvent: React.MouseEvent) => {
     clickEvent.stopPropagation();
-    const readOnly = getEventIsPast(event);
+    const readOnly = getEventIsPast(event) && event.status === "completed";
 
     setSelectedEvent(event);
     setSelectedDate(event.day);
@@ -243,8 +245,15 @@ export default function WebCalendarPage() {
       return;
     }
 
-    if (modalReadOnly || getEventIsPast(selectedEvent) || isPastDay(selectedDate)) {
-      alert("Datas passadas estao bloqueadas para edicao.");
+    const selectedEventIsPast = getEventIsPast(selectedEvent);
+    const isCompleted = selectedEvent.status === "completed";
+
+    // Regras:
+    // - passado + finalizado => bloqueado
+    // - passado + nao finalizado => pode reagendar com justificativa
+    // - criar/editar para uma nova data passada => bloqueado
+    if (modalReadOnly || isCompleted || (isPastDay(selectedDate) && !selectedEventIsPast)) {
+      alert("Edicao bloqueada para registros finalizados ou reagendamento para datas passadas.");
       return;
     }
 
@@ -253,21 +262,21 @@ export default function WebCalendarPage() {
       return;
     }
 
-    const selectedEventIsToday =
-      getEventDayStart(selectedEvent).getTime() === todayStart.getTime();
+    const selectedEventStart = getEventDayStart(selectedEvent).getTime();
+    const selectedEventNeedsJustificationWindow = selectedEventStart <= todayStart.getTime();
     const isRescheduling =
       selectedEvent.day !== selectedDate ||
       selectedEvent.month !== currentMonth ||
       selectedEvent.year !== currentYear ||
       selectedEvent.time !== formTime;
 
-    if (selectedEventIsToday && isRescheduling && !formJustification.trim()) {
-      alert("Preencha a JUSTIFICATIVA para reagendar um veiculo no dia do agendamento.");
+    if (selectedEventNeedsJustificationWindow && isRescheduling && !formJustification.trim()) {
+      alert("Preencha a JUSTIFICATIVA para reagendar agendamento atual/passado nao finalizado.");
       return;
     }
 
     const nextDescription =
-      selectedEventIsToday && isRescheduling && formJustification.trim()
+      selectedEventNeedsJustificationWindow && isRescheduling && formJustification.trim()
         ? `${formDescription.trim()}${formDescription.trim() ? "\n\n" : ""}[JUSTIFICATIVA REAGENDAMENTO ${new Date().toLocaleString("pt-BR")}]\n${formJustification.trim()}`
         : formDescription;
 
@@ -400,7 +409,28 @@ export default function WebCalendarPage() {
     setShowModal(true);
   };
 
-  const selectedEventIsToday = !!selectedEvent && getEventDayStart(selectedEvent).getTime() === todayStart.getTime();
+  useEffect(() => {
+    const eventId = searchParams.get("eventId");
+    if (!eventId || events.length === 0) return;
+
+    const target = events.find((event) => event.id === eventId);
+    if (!target) return;
+
+    setCurrentDate(new Date(target.year, target.month, 1));
+    setSelectedDate(target.day);
+    setSelectedEvent(target);
+    setFormAsset(target.asset);
+    setFormDescription(target.description);
+    setFormTime(target.time);
+    setFormJustification("");
+    setModalReadOnly(getEventIsPast(target) && target.status === "completed");
+    setShowModal(true);
+  }, [events, searchParams, todayStart]);
+
+  const selectedEventIsTodayOrPastNotCompleted =
+    !!selectedEvent &&
+    getEventDayStart(selectedEvent).getTime() <= todayStart.getTime() &&
+    selectedEvent.status !== "completed";
   const isReschedulingSelection =
     !!selectedEvent &&
     !!selectedDate &&
@@ -672,7 +702,7 @@ export default function WebCalendarPage() {
                 />
               </div>
 
-              {selectedEvent && selectedEventIsToday && (
+              {selectedEvent && selectedEventIsTodayOrPastNotCompleted && (
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
                   <label className="mb-1 block text-xs font-bold uppercase tracking-[0.12em] text-blue-800">
                     JUSTIFICATIVA {isReschedulingSelection ? "*" : ""}
@@ -686,7 +716,7 @@ export default function WebCalendarPage() {
                     placeholder="Descreva o motivo do reagendamento (ex.: indisponibilidade do veiculo, colaborador, peca, prioridade emergencial)."
                   />
                   <p className="mt-2 text-[11px] font-semibold text-blue-700">
-                    Ao alterar data/horario no dia do agendamento, a justificativa e obrigatoria.
+                    Ao alterar data/horario em agendamento atual ou passado nao finalizado, a justificativa e obrigatoria.
                   </p>
                 </div>
               )}
