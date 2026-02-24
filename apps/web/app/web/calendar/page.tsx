@@ -344,18 +344,23 @@ export default function WebCalendarPage() {
       selectedEvent.year !== currentYear ||
       selectedEvent.time !== formTime;
 
-    if (isRescheduling && !formJustification.trim()) {
-      alert("Preencha a JUSTIFICATIVA para qualquer reagendamento (data/horario).");
+    const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
+    const hasAnyChange =
+      selectedEvent.asset !== formAsset ||
+      isRescheduling ||
+      previousParts.baseDescription.trim() !== formDescription.trim();
+
+    if (hasAnyChange && !formJustification.trim()) {
+      alert("Preencha a JUSTIFICATIVA para salvar qualquer alteracao no agendamento.");
       return;
     }
 
-    const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
     const nextEntries = [...previousParts.entries];
 
-    if (isRescheduling && formJustification.trim()) {
+    if (hasAnyChange && formJustification.trim()) {
       nextEntries.push({
         timestamp: new Date().toLocaleString("pt-BR"),
-        text: formJustification.trim(),
+        text: `${isRescheduling ? "[REAGENDAMENTO] " : "[ALTERACAO] "}${formJustification.trim()}`,
       });
     }
 
@@ -396,11 +401,29 @@ export default function WebCalendarPage() {
       return;
     }
 
+    if (target.status === newStatus) return;
+
+    if (!formJustification.trim()) {
+      alert("Preencha a JUSTIFICATIVA antes de alterar o status do agendamento.");
+      return;
+    }
+
+    const previousParts = parseDescriptionWithJustifications(target.description);
+    const nextEntries = [
+      ...previousParts.entries,
+      {
+        timestamp: new Date().toLocaleString("pt-BR"),
+        text: `[STATUS ${target.status} -> ${newStatus}] ${formJustification.trim()}`,
+      },
+    ];
+    const nextDescription = buildDescriptionWithJustifications(previousParts.baseDescription, nextEntries);
+
     updateEvents((current) =>
       current.map((event) =>
         event.id === eventId
           ? {
               ...event,
+              description: nextDescription,
               status: newStatus,
               completedAt:
                 newStatus === "completed"
@@ -410,6 +433,21 @@ export default function WebCalendarPage() {
           : event,
       ),
     );
+
+    setSelectedEvent((current) =>
+      current && current.id === eventId
+        ? {
+            ...current,
+            description: nextDescription,
+            status: newStatus,
+            completedAt:
+              newStatus === "completed"
+                ? current.completedAt ?? new Date().toISOString()
+                : null,
+          }
+        : current,
+    );
+    setFormJustification("");
   };
 
   const handleDeleteEvent = (eventId: string) => {
@@ -840,7 +878,7 @@ export default function WebCalendarPage() {
                     placeholder="Descreva o motivo do reagendamento (ex.: indisponibilidade do veiculo, colaborador, peca, prioridade emergencial)."
                   />
                   <p className="mt-2 text-[11px] font-semibold text-blue-700">
-                    Ao alterar data e/ou horario em Detalhes do Agendamento, a justificativa e obrigatoria.
+                    Qualquer alteracao em Detalhes do Agendamento (dados ou status) exige justificativa.
                   </p>
                 </div>
               )}
