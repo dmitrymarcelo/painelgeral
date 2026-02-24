@@ -71,6 +71,49 @@ const getTodayStart = () => {
 const getEventDayStart = (event: MaintenanceEvent) =>
   getDayStart(event.year, event.month, event.day);
 
+type RescheduleJustificationEntry = {
+  timestamp: string;
+  text: string;
+};
+
+const JUSTIFICATION_REGEX =
+  /\[JUSTIFICATIVA REAGENDAMENTO ([^\]]+)\]\n([\s\S]*?)(?=\n{2}\[JUSTIFICATIVA REAGENDAMENTO |\s*$)/g;
+
+const parseDescriptionWithJustifications = (raw: string) => {
+  const entries: RescheduleJustificationEntry[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = JUSTIFICATION_REGEX.exec(raw)) !== null) {
+    entries.push({
+      timestamp: match[1]?.trim() ?? "",
+      text: match[2]?.trim() ?? "",
+    });
+  }
+
+  JUSTIFICATION_REGEX.lastIndex = 0;
+
+  const baseDescription = raw
+    .replace(JUSTIFICATION_REGEX, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return { baseDescription, entries };
+};
+
+const buildDescriptionWithJustifications = (
+  baseDescription: string,
+  entries: RescheduleJustificationEntry[],
+) => {
+  const sections: string[] = [];
+  if (baseDescription.trim()) sections.push(baseDescription.trim());
+
+  for (const entry of entries) {
+    sections.push(`[JUSTIFICATIVA REAGENDAMENTO ${entry.timestamp}]\n${entry.text.trim()}`);
+  }
+
+  return sections.join("\n\n");
+};
+
 export default function WebCalendarPage() {
   const searchParams = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -128,6 +171,11 @@ export default function WebCalendarPage() {
     return [...new Set([...defaultAssets, ...dynamic])];
   }, [events]);
 
+  const selectedJustificationHistory = useMemo(() => {
+    if (!selectedEvent) return [] as RescheduleJustificationEntry[];
+    return parseDescriptionWithJustifications(selectedEvent.description).entries;
+  }, [selectedEvent]);
+
   const goToPreviousMonth = () =>
     setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
 
@@ -173,7 +221,7 @@ export default function WebCalendarPage() {
     setSelectedEvent(event);
     setSelectedDate(event.day);
     setFormAsset(event.asset);
-    setFormDescription(event.description);
+    setFormDescription(parseDescriptionWithJustifications(event.description).baseDescription);
     setFormTime(event.time);
     setFormJustification("");
     setModalReadOnly(readOnly);
@@ -275,10 +323,17 @@ export default function WebCalendarPage() {
       return;
     }
 
-    const nextDescription =
-      selectedEventNeedsJustificationWindow && isRescheduling && formJustification.trim()
-        ? `${formDescription.trim()}${formDescription.trim() ? "\n\n" : ""}[JUSTIFICATIVA REAGENDAMENTO ${new Date().toLocaleString("pt-BR")}]\n${formJustification.trim()}`
-        : formDescription;
+    const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
+    const nextEntries = [...previousParts.entries];
+
+    if (selectedEventNeedsJustificationWindow && isRescheduling && formJustification.trim()) {
+      nextEntries.push({
+        timestamp: new Date().toLocaleString("pt-BR"),
+        text: formJustification.trim(),
+      });
+    }
+
+    const nextDescription = buildDescriptionWithJustifications(formDescription, nextEntries);
 
     updateEvents((current) =>
       current.map((event) =>
@@ -420,7 +475,7 @@ export default function WebCalendarPage() {
     setSelectedDate(target.day);
     setSelectedEvent(target);
     setFormAsset(target.asset);
-    setFormDescription(target.description);
+    setFormDescription(parseDescriptionWithJustifications(target.description).baseDescription);
     setFormTime(target.time);
     setFormJustification("");
     setModalReadOnly(getEventIsPast(target) && target.status === "completed");
@@ -701,6 +756,24 @@ export default function WebCalendarPage() {
                   placeholder="Detalhes adicionais..."
                 />
               </div>
+
+              {selectedEvent && selectedJustificationHistory.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
+                    Historico de justificativas de reagendamento
+                  </p>
+                  <div className="max-h-36 space-y-2 overflow-y-auto">
+                    {selectedJustificationHistory.map((entry, index) => (
+                      <div key={`${entry.timestamp}-${index}`} className="rounded-lg border border-slate-200 bg-white p-3">
+                        <p className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">
+                          {entry.timestamp}
+                        </p>
+                        <p className="mt-1 text-sm whitespace-pre-wrap text-slate-700">{entry.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {selectedEvent && selectedEventIsTodayOrPastNotCompleted && (
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
