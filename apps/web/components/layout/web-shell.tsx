@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { CarIcon, TruckIcon } from "@/components/ui/icons";
 import { translations } from "@/lib/i18n";
+import { getMaintenanceEvents, subscribeMaintenanceEvents } from "@/lib/maintenance-store";
 
 type Props = {
   title: string;
@@ -12,10 +13,18 @@ type Props = {
   children: ReactNode;
 };
 
+type NotificationItem = {
+  id: string;
+  label: string;
+  type: "urgent" | "today";
+};
+
 export function WebShell({ title, subtitle, children }: Props) {
   const pathname = usePathname();
   // Estado visual local da sidebar (nao persiste entre reloads).
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
 
   const menuItems = [
     { href: "/web/dashboard", label: translations.dashboard, icon: "🏠" },
@@ -23,6 +32,38 @@ export function WebShell({ title, subtitle, children }: Props) {
     { href: "/web/maintenance", label: translations.workOrders, icon: "🛠" },
     { href: "/web/calendar", label: translations.calendar, icon: "📅" },
   ];
+
+  useEffect(() => {
+    const refreshNotifications = () => {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+      const items = getMaintenanceEvents().reduce<NotificationItem[]>((acc, event) => {
+          const eventDate = new Date(event.year, event.month, event.day).getTime();
+          const label = `${event.asset} - ${event.time}`;
+
+          if (event.status !== "completed" && eventDate < todayStart) {
+            acc.push({ id: `late-${event.id}`, label: `Atrasado: ${label}`, type: "urgent" });
+            return acc;
+          }
+
+          if (eventDate === todayStart) {
+            acc.push({ id: `today-${event.id}`, label: `Hoje: ${label}`, type: "today" });
+            return acc;
+          }
+
+          return acc;
+        }, [])
+        .slice(0, 8);
+
+      setNotificationItems(items);
+    };
+
+    refreshNotifications();
+    return subscribeMaintenanceEvents(refreshNotifications);
+  }, []);
+
+  const notificationCount = notificationItems.length;
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)]">
@@ -125,14 +166,66 @@ export function WebShell({ title, subtitle, children }: Props) {
               </span>
             </div>
 
-            <div className="flex items-center gap-4 text-right">
-              <button className="text-slate-400">◌</button>
-              <button className="text-slate-400">•</button>
+            <div className="relative flex items-center gap-4 text-right">
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen((current) => !current)}
+                className="relative rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                title="Notificacoes"
+              >
+                Notificacoes
+                {notificationCount > 0 && (
+                  <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                    {notificationCount > 9 ? "9+" : notificationCount}
+                  </span>
+                )}
+              </button>
+              <button className="text-slate-400" title="Indicador">
+                •
+              </button>
               <div className="h-8 w-px bg-[var(--color-border)]"></div>
               <div>
                 <p className="text-xs font-black">Administrador</p>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">Gestor de operacoes</p>
               </div>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 top-12 z-30 w-[360px] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-xl">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Notificacoes</p>
+                    <button
+                      type="button"
+                      onClick={() => setNotificationsOpen(false)}
+                      className="text-xs font-bold text-slate-400 hover:text-slate-600"
+                    >
+                      fechar
+                    </button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {notificationItems.length === 0 ? (
+                      <div className="px-4 py-5 text-sm text-slate-500">Sem notificacoes no momento.</div>
+                    ) : (
+                      notificationItems.map((item) => (
+                        <Link
+                          key={item.id}
+                          href="/web/calendar"
+                          onClick={() => setNotificationsOpen(false)}
+                          className="block border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className={`mt-1 inline-block h-2 w-2 rounded-full ${
+                                item.type === "urgent" ? "bg-red-500" : "bg-blue-500"
+                              }`}
+                            />
+                            <p className="text-sm leading-snug text-slate-700">{item.label}</p>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </header>
 

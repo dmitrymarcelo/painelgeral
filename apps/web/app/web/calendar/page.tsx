@@ -83,6 +83,7 @@ export default function WebCalendarPage() {
   const [formType] = useState<MaintenanceType>("preventive");
   const [formDescription, setFormDescription] = useState("");
   const [formTime, setFormTime] = useState("07:30");
+  const [formJustification, setFormJustification] = useState("");
 
   useEffect(() => {
     const refresh = () => setEvents(getMaintenanceEvents());
@@ -135,6 +136,7 @@ export default function WebCalendarPage() {
     setFormAsset("");
     setFormDescription("");
     setFormTime("07:30");
+    setFormJustification("");
   };
 
   const getEventsForDay = (day: number) => {
@@ -171,6 +173,7 @@ export default function WebCalendarPage() {
     setFormAsset(event.asset);
     setFormDescription(event.description);
     setFormTime(event.time);
+    setFormJustification("");
     setModalReadOnly(readOnly);
     setShowModal(true);
   };
@@ -250,6 +253,24 @@ export default function WebCalendarPage() {
       return;
     }
 
+    const selectedEventIsToday =
+      getEventDayStart(selectedEvent).getTime() === todayStart.getTime();
+    const isRescheduling =
+      selectedEvent.day !== selectedDate ||
+      selectedEvent.month !== currentMonth ||
+      selectedEvent.year !== currentYear ||
+      selectedEvent.time !== formTime;
+
+    if (selectedEventIsToday && isRescheduling && !formJustification.trim()) {
+      alert("Preencha a JUSTIFICATIVA para reagendar um veiculo no dia do agendamento.");
+      return;
+    }
+
+    const nextDescription =
+      selectedEventIsToday && isRescheduling && formJustification.trim()
+        ? `${formDescription.trim()}${formDescription.trim() ? "\n\n" : ""}[JUSTIFICATIVA REAGENDAMENTO ${new Date().toLocaleString("pt-BR")}]\n${formJustification.trim()}`
+        : formDescription;
+
     updateEvents((current) =>
       current.map((event) =>
         event.id === selectedEvent.id
@@ -258,7 +279,7 @@ export default function WebCalendarPage() {
               asset: formAsset,
               type: formType,
               title: "Manutencao Preventiva",
-              description: formDescription,
+              description: nextDescription,
               technician: "Definido no checklist",
               time: formTime,
               day: selectedDate,
@@ -378,6 +399,15 @@ export default function WebCalendarPage() {
     resetForm();
     setShowModal(true);
   };
+
+  const selectedEventIsToday = !!selectedEvent && getEventDayStart(selectedEvent).getTime() === todayStart.getTime();
+  const isReschedulingSelection =
+    !!selectedEvent &&
+    !!selectedDate &&
+    (selectedEvent.day !== selectedDate ||
+      selectedEvent.month !== currentMonth ||
+      selectedEvent.year !== currentYear ||
+      selectedEvent.time !== formTime);
 
   return (
     <WebShell
@@ -642,6 +672,25 @@ export default function WebCalendarPage() {
                 />
               </div>
 
+              {selectedEvent && selectedEventIsToday && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-[0.12em] text-blue-800">
+                    JUSTIFICATIVA {isReschedulingSelection ? "*" : ""}
+                  </label>
+                  <textarea
+                    disabled={modalReadOnly}
+                    value={formJustification}
+                    onChange={(event) => setFormJustification(event.target.value)}
+                    className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
+                    rows={3}
+                    placeholder="Descreva o motivo do reagendamento (ex.: indisponibilidade do veiculo, colaborador, peca, prioridade emergencial)."
+                  />
+                  <p className="mt-2 text-[11px] font-semibold text-blue-700">
+                    Ao alterar data/horario no dia do agendamento, a justificativa e obrigatoria.
+                  </p>
+                </div>
+              )}
+
               {selectedEvent && (
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status</label>
@@ -683,7 +732,11 @@ export default function WebCalendarPage() {
                     onClick={selectedEvent ? handleUpdateEvent : handleCreateOrder}
                     className="flex-1 rounded-xl bg-[var(--color-brand)] py-3 text-sm font-black uppercase text-white"
                   >
-                    {selectedEvent ? "Salvar Alteracoes" : translations.createOrder}
+                    {selectedEvent
+                      ? isReschedulingSelection
+                        ? "Salvar e Reagendar"
+                        : "Salvar Alteracoes"
+                      : translations.createOrder}
                   </button>
                 )}
               </div>
