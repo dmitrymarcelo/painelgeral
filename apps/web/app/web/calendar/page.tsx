@@ -77,22 +77,6 @@ const isPastTimeForDate = (year: number, month: number, day: number, time: strin
   return slotDate.getTime() < Date.now();
 };
 
-const normalizeText = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-
-const extractPlateFromAssetLabel = (assetLabel: string) => {
-  const parts = assetLabel.split(" - ").map((part) => part.trim()).filter(Boolean);
-  return normalizeText(parts.length > 1 ? parts[parts.length - 1] : assetLabel);
-};
-
-const getEventDateTime = (event: MaintenanceEvent) => {
-  const [hour, minute] = event.time.split(":").map(Number);
-  return new Date(event.year, event.month, event.day, hour, minute, 0, 0);
-};
 
 type RescheduleJustificationEntry = {
   timestamp: string;
@@ -288,34 +272,6 @@ export default function WebCalendarPage() {
     return getOrdersInSlot(day, time, excludeEventId) < MAX_ORDERS_PER_SLOT;
   };
 
-  const validatePreventiveUniquenessByPlate = (
-    assetLabel: string,
-    excludeEventId?: string,
-  ) => {
-    const targetPlate = extractPlateFromAssetLabel(assetLabel);
-    const now = Date.now();
-
-    const samePlateEvents = events.filter((event) => {
-      if (excludeEventId && event.id === excludeEventId) return false;
-      return extractPlateFromAssetLabel(event.asset) === targetPlate;
-    });
-
-    const hasOpenOrInProgress = samePlateEvents.some((event) => event.status !== "completed");
-    const hasFutureSchedule = samePlateEvents.some(
-      (event) => event.status !== "completed" && getEventDateTime(event).getTime() > now,
-    );
-
-    if (hasOpenOrInProgress || hasFutureSchedule) {
-      return {
-        ok: false,
-        message:
-          "Ja existe preventiva nao finalizada para esta placa. Novo agendamento so e permitido apos finalizar os servicos e sem agendamento futuro pendente.",
-      };
-    }
-
-    return { ok: true as const };
-  };
-
   const handleCreateOrder = () => {
     if (!formAsset || !selectedDate) {
       alert("Preencha os campos obrigatorios");
@@ -334,12 +290,6 @@ export default function WebCalendarPage() {
 
     if (!validateSlotCapacity(selectedDate, formTime)) {
       alert("Este horario ja atingiu o limite de 2 agendamentos para o dia.");
-      return;
-    }
-
-    const plateValidation = validatePreventiveUniquenessByPlate(formAsset);
-    if (!plateValidation.ok) {
-      alert(plateValidation.message);
       return;
     }
 
@@ -385,12 +335,6 @@ export default function WebCalendarPage() {
 
     if (!validateSlotCapacity(selectedDate, formTime, selectedEvent.id)) {
       alert("Este horario ja atingiu o limite de 2 agendamentos para o dia.");
-      return;
-    }
-
-    const plateValidation = validatePreventiveUniquenessByPlate(formAsset, selectedEvent.id);
-    if (!plateValidation.ok) {
-      alert(plateValidation.message);
       return;
     }
 
