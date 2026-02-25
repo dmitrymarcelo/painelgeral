@@ -38,7 +38,6 @@ export function WebShell({ title, subtitle, children }: Props) {
     { href: "/web/maintenance", label: translations.workOrders, icon: "🛠" },
     { href: "/web/calendar", label: translations.calendar, icon: "📅" },
     { href: "/web/preventive-items", label: translations.preventiveItemsRegister, icon: "PM" },
-    { href: "/web/preventive-registrations", label: translations.preventiveRegistrations, icon: "PR" },
   ];
 
   useEffect(() => {
@@ -283,3 +282,4 @@ export function WebShell({ title, subtitle, children }: Props) {
     </div>
   );
 }
+

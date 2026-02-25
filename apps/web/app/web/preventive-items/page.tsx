@@ -217,6 +217,26 @@ export default function WebPreventiveItemsPage() {
     return monthValues.length > 0 ? Math.min(...monthValues) : 6;
   }, [items]);
 
+  const registrationsSummary = useMemo(() => {
+    const uniqueGroups = new Set(
+      savedRegistrations.map(
+        (registration) =>
+          `${registration.form.vehicleModel || "-"}::${registration.form.operationType || "-"}`,
+      ),
+    );
+    const totalPieces = savedRegistrations.reduce(
+      (sum, registration) => sum + (Array.isArray(registration.items) ? registration.items.length : 0),
+      0,
+    );
+    const lastUpdated = savedRegistrations[0]?.updatedAt || savedRegistrations[0]?.createdAt || null;
+    return {
+      total: savedRegistrations.length,
+      groups: uniqueGroups.size,
+      totalPieces,
+      lastUpdated,
+    };
+  }, [savedRegistrations]);
+
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_LIST_KEY);
@@ -1141,12 +1161,37 @@ export default function WebPreventiveItemsPage() {
             <div>
               <h3 className="text-xl font-black text-slate-900">Cadastros de Preventivas</h3>
               <p className="text-sm text-slate-500">
-                Registros salvos localmente agrupam a base de planos para reutilizacao e ajustes.
+                Todos os registros ficam nesta tela para edicao rapida, reaproveitamento e padronizacao.
               </p>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-600">
               {savedRegistrations.length} cadastro{savedRegistrations.length === 1 ? "" : "s"}
             </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Cadastros</p>
+              <p className="mt-1 text-2xl font-black text-slate-900">{registrationsSummary.total}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Grupos</p>
+              <p className="mt-1 text-2xl font-black text-blue-700">{registrationsSummary.groups}</p>
+              <p className="text-xs text-slate-500">Modelo + Operacao</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Pecas</p>
+              <p className="mt-1 text-2xl font-black text-slate-900">{registrationsSummary.totalPieces}</p>
+              <p className="text-xs text-slate-500">Total cadastrado</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Ultima atualizacao</p>
+              <p className="mt-1 text-sm font-black text-emerald-700">
+                {registrationsSummary.lastUpdated
+                  ? new Date(registrationsSummary.lastUpdated).toLocaleString("pt-BR")
+                  : "--"}
+              </p>
+            </div>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -1159,7 +1204,11 @@ export default function WebPreventiveItemsPage() {
             {savedRegistrations.map((registration) => (
               <div
                 key={registration.registrationId}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                className={`rounded-2xl border p-4 shadow-sm transition ${
+                  editingRegistrationId === registration.registrationId
+                    ? "border-amber-300 bg-amber-50/60"
+                    : "border-slate-200 bg-slate-50 hover:border-blue-200 hover:bg-white"
+                }`}
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
@@ -1180,18 +1229,39 @@ export default function WebPreventiveItemsPage() {
                       {registration.form.vehicleBrand} • {registration.form.vehicleType} • Centro:{" "}
                       {registration.form.centerCost || "-"}
                     </p>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+                        <p className="font-black uppercase tracking-[0.08em] text-slate-400">Pecas</p>
+                        <p className="mt-1 text-sm font-black text-slate-900">{registration.items.length}</p>
+                      </div>
+                      <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs">
+                        <p className="font-black uppercase tracking-[0.08em] text-blue-500">KM</p>
+                        <p className="mt-1 text-sm font-black text-blue-700">
+                          {(registration.triggerConfig.quilometragemKm || 0).toLocaleString("pt-BR")}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs">
+                        <p className="font-black uppercase tracking-[0.08em] text-amber-500">Horimetro</p>
+                        <p className="mt-1 text-sm font-black text-amber-700">
+                          {registration.triggerConfig.horimetroHrs || 0} h
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs">
+                        <p className="font-black uppercase tracking-[0.08em] text-emerald-500">Temporal</p>
+                        <p className="mt-1 text-sm font-black text-emerald-700">
+                          {registration.triggerConfig.temporalMeses || 0} meses
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                        Formula: {registration.form.vehicleFormula || "-"}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                        Descricao: {registration.form.vehicleDescription || "-"}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
                         Pecas: {registration.items.length}
-                      </span>
-                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
-                        KM: {registration.triggerConfig.quilometragemKm || 0}
-                      </span>
-                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
-                        Horimetro: {registration.triggerConfig.horimetroHrs || 0}h
-                      </span>
-                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
-                        Temporal: {registration.triggerConfig.temporalMeses || 0} meses
                       </span>
                     </div>
                     <p className="text-xs text-slate-400">
@@ -1203,8 +1273,18 @@ export default function WebPreventiveItemsPage() {
                   <div className="flex shrink-0 items-center gap-2">
                     <button
                       type="button"
+                      onClick={() => {
+                        setStep(1);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
+                    >
+                      Novo
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleEditRegistration(registration.registrationId)}
-                      className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-black text-blue-700 hover:bg-blue-50"
+                      className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white hover:bg-blue-700"
                     >
                       Editar
                     </button>
