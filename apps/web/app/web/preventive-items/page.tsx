@@ -58,6 +58,7 @@ const isItemComplete = (item: PreventiveItemRow) =>
 export default function WebPreventiveItemsPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [savedMessage, setSavedMessage] = useState("");
+  const [editingAppliedItemId, setEditingAppliedItemId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [items, setItems] = useState<PreventiveItemRow[]>([emptyItem()]);
   const [itemSearch, setItemSearch] = useState("");
@@ -157,6 +158,26 @@ export default function WebPreventiveItemsPage() {
     setSavedMessage("");
   };
 
+  const updateItemLifecycleField = (
+    id: string,
+    key: "usefulLifeKm" | "usefulLifeTime",
+    value: string,
+  ) => {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [key]: value,
+              // Edicao manual transforma o item em customizado, mantendo a relacao logica opcional.
+              triggerLinked: false,
+            }
+          : item,
+      ),
+    );
+    setSavedMessage("");
+  };
+
   const getExpectedValuesForItem = (item: PreventiveItemRow) => {
     const nextKm = item.inheritsKmTrigger ? triggerKm : item.usefulLifeKm;
     const timeParts: string[] = [];
@@ -188,6 +209,7 @@ export default function WebPreventiveItemsPage() {
         };
       }),
     );
+    setEditingAppliedItemId(null);
     setSavedMessage("");
   };
 
@@ -237,6 +259,7 @@ export default function WebPreventiveItemsPage() {
 
   const removeItem = (id: string) => {
     setItems((current) => (current.length > 1 ? current.filter((item) => item.id !== id) : current));
+    setEditingAppliedItemId((current) => (current === id ? null : current));
     setSavedMessage("");
   };
 
@@ -679,6 +702,8 @@ export default function WebPreventiveItemsPage() {
                     {filteredItems.map((item) => {
                       const complete = isItemComplete(item);
                       const synced = isItemSyncedWithTrigger(item);
+                      const applied = item.triggerLinked && synced;
+                      const editingApplied = editingAppliedItemId === item.id;
 
                       return (
                         <div
@@ -698,46 +723,73 @@ export default function WebPreventiveItemsPage() {
                               />
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => applyTriggerToItem(item.id)}
-                              className="rounded-xl border border-blue-200 px-3 py-3 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
-                            >
-                              Aplicar gatilho
-                            </button>
-
-                            <div className="flex items-center justify-end gap-2">
-                              <span
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                  item.triggerLinked
-                                    ? synced
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-orange-100 text-orange-700"
-                                    : "bg-slate-100 text-slate-700"
-                                }`}
-                              >
-                                {item.triggerLinked
-                                  ? synced
-                                    ? "Vinculado"
-                                    : "Vinculado (ajuste)"
-                                  : "Customizado"}
-                              </span>
-                              <span
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                  complete
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
-                              >
-                                {complete ? "Completo" : "Pendente"}
-                              </span>
+                            {applied ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="rounded-xl border border-slate-300 bg-slate-100 px-3 py-3 text-xs font-black uppercase text-slate-500"
+                                >
+                                  Aplicado
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditingAppliedItemId((current) =>
+                                      current === item.id ? null : item.id,
+                                    )
+                                  }
+                                  className="rounded-xl border border-blue-200 px-3 py-3 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
+                                >
+                                  Editar
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 type="button"
-                                onClick={() => toggleTriggerLink(item.id)}
-                                className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-black uppercase text-slate-700 hover:bg-slate-50"
+                                onClick={() => applyTriggerToItem(item.id)}
+                                className="rounded-xl border border-blue-200 px-3 py-3 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
                               >
-                                {item.triggerLinked ? "Desvincular" : "Vincular"}
+                                Aplicar gatilho
                               </button>
+                            )}
+
+                            <div className="flex items-center justify-end gap-2">
+                              {!applied && (
+                                <>
+                                  <span
+                                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                      item.triggerLinked
+                                        ? synced
+                                          ? "bg-blue-100 text-blue-700"
+                                          : "bg-orange-100 text-orange-700"
+                                        : "bg-slate-100 text-slate-700"
+                                    }`}
+                                  >
+                                    {item.triggerLinked
+                                      ? synced
+                                        ? "Vinculado"
+                                        : "Vinculado (ajuste)"
+                                      : "Customizado"}
+                                  </span>
+                                  <span
+                                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                      complete
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-amber-100 text-amber-700"
+                                    }`}
+                                  >
+                                    {complete ? "Completo" : "Pendente"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTriggerLink(item.id)}
+                                    className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-black uppercase text-slate-700 hover:bg-slate-50"
+                                  >
+                                    {item.triggerLinked ? "Desvincular" : "Vincular"}
+                                  </button>
+                                </>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => removeItem(item.id)}
@@ -749,10 +801,11 @@ export default function WebPreventiveItemsPage() {
                             </div>
                           </div>
 
+                          {(!applied || editingApplied) && (
                           <div className="mt-3 rounded-xl border border-slate-100 bg-white/80 p-3">
                             <div className="mb-2 flex flex-wrap items-center gap-2">
                               <span className="text-xs font-semibold text-slate-500">
-                                Heranca de gatilhos para esta peça:
+                                {applied ? "Editar gatilho aplicado para esta peca:" : "Heranca de gatilhos para esta peça:"}
                               </span>
                               <button
                                 type="button"
@@ -793,6 +846,15 @@ export default function WebPreventiveItemsPage() {
                               >
                                 Temporal
                               </button>
+                              {applied && editingApplied && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingAppliedItemId(null)}
+                                  className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-700"
+                                >
+                                  Fechar
+                                </button>
+                              )}
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
                               <div>
@@ -803,7 +865,7 @@ export default function WebPreventiveItemsPage() {
                                   type="number"
                                   min={0}
                                   value={item.usefulLifeKm}
-                                  onChange={(e) => updateItem(item.id, "usefulLifeKm", e.target.value)}
+                                  onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeKm", e.target.value)}
                                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                                   placeholder="20000"
                                 />
@@ -814,13 +876,14 @@ export default function WebPreventiveItemsPage() {
                                 </label>
                                 <input
                                   value={item.usefulLifeTime}
-                                  onChange={(e) => updateItem(item.id, "usefulLifeTime", e.target.value)}
+                                  onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeTime", e.target.value)}
                                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                                   placeholder="6 meses"
                                 />
                               </div>
                             </div>
                           </div>
+                          )}
                         </div>
                       );
                     })}
