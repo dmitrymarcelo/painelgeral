@@ -19,6 +19,8 @@ type ServiceRecord = {
   id: string;
   service: string;
   scheduledAt: string;
+  dueType: "KM" | "Tempo";
+  programmedDueDate: string;
   plannedKm: number;
   executedAt?: string | null;
   executedKm?: number | null;
@@ -64,6 +66,8 @@ const rows: AssetRow[] = [
         id: "srv-1",
         service: "Troca de oleo e filtros",
         scheduledAt: "2026-02-14T09:00:00",
+        dueType: "KM",
+        programmedDueDate: "2026-02-14",
         plannedKm: 123000,
         executedAt: "2026-02-15T11:10:00",
         executedKm: 124500,
@@ -78,6 +82,8 @@ const rows: AssetRow[] = [
         id: "srv-2",
         service: "Revisao de freios",
         scheduledAt: "2026-02-18T10:00:00",
+        dueType: "Tempo",
+        programmedDueDate: "2026-02-18",
         plannedKm: 124700,
         executedAt: null,
         executedKm: null,
@@ -104,6 +110,8 @@ const rows: AssetRow[] = [
         id: "srv-3",
         service: "Revisao 50k",
         scheduledAt: "2026-02-10T08:30:00",
+        dueType: "KM",
+        programmedDueDate: "2026-02-10",
         plannedKm: 50000,
         executedAt: "2026-02-12T09:00:00",
         executedKm: 51240,
@@ -119,6 +127,8 @@ const rows: AssetRow[] = [
         id: "srv-4",
         service: "Troca de pneus",
         scheduledAt: "2026-02-16T14:00:00",
+        dueType: "KM",
+        programmedDueDate: "2026-02-16",
         plannedKm: 51000,
         executedAt: null,
         executedKm: null,
@@ -144,6 +154,8 @@ const rows: AssetRow[] = [
         id: "srv-5",
         service: "Troca kit relacao",
         scheduledAt: "2026-02-17T13:00:00",
+        dueType: "KM",
+        programmedDueDate: "2026-02-17",
         plannedKm: 9300,
         executedAt: "2026-02-17T15:10:00",
         executedKm: 9550,
@@ -677,7 +689,8 @@ export default function WebAssetsPage() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 text-xs uppercase tracking-[0.16em] text-slate-500">
                     <tr>
-                      <th className="px-4 py-3">Servico</th>
+                      <th className="px-4 py-3">Tipo de vencimento</th>
+                      <th className="px-4 py-3">Data programada</th>
                       <th className="px-4 py-3">Agendamento</th>
                       <th className="px-4 py-3">Presenca</th>
                       <th className="px-4 py-3">KM programada</th>
@@ -696,8 +709,21 @@ export default function WebAssetsPage() {
                       return (
                         <tr key={service.id} className="border-t border-slate-100 align-top">
                           <td className="px-4 py-3">
-                            <p className="font-bold">{service.service}</p>
-                            <p className="text-xs text-slate-500">Tecnico: {service.technician ?? "Nao informado"}</p>
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                service.dueType === "KM"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-violet-100 text-violet-700"
+                              }`}
+                            >
+                              {service.dueType}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold">
+                              {new Date(service.programmedDueDate).toLocaleDateString("pt-BR")}
+                            </p>
+                            <p className="text-xs text-slate-500">Vencimento preventiva</p>
                           </td>
                           <td className="px-4 py-3">
                             <p>{formatDateTime(service.scheduledAt)}</p>
@@ -723,8 +749,10 @@ export default function WebAssetsPage() {
                             {service.executedKm ? formatKm(service.executedKm) : "-"}
                           </td>
                           <td className="px-4 py-3">
+                            <p className="font-bold">{service.service}</p>
+                            <p className="text-xs text-slate-500">Tecnico: {service.technician ?? "Nao informado"}</p>
                             <p
-                              className={`font-semibold ${
+                              className={`mt-1 font-semibold ${
                                 kmStatus.startsWith("Executada em atraso")
                                   ? "text-red-600"
                                   : kmStatus === "Executada no prazo"
