@@ -33,6 +33,7 @@ type FormState = {
 };
 
 const STORAGE_KEY = "frota-pro.preventive-items-registration:last";
+const STORAGE_LIST_KEY = "frota-pro.preventive-items-registrations";
 
 const emptyItem = (): PreventiveItemRow => ({
   id: crypto.randomUUID(),
@@ -350,6 +351,7 @@ export default function WebPreventiveItemsPage() {
     }
 
     const payload = {
+      registrationId: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       vehicleBindingContext: {
         vehicleModel: form.vehicleModel,
@@ -367,6 +369,14 @@ export default function WebPreventiveItemsPage() {
       items,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    try {
+      const raw = window.localStorage.getItem(STORAGE_LIST_KEY);
+      const current = raw ? (JSON.parse(raw) as unknown[]) : [];
+      const next = Array.isArray(current) ? [...current, payload] : [payload];
+      window.localStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(next));
+    } catch {
+      // Mantem pelo menos o "last" salvo, mesmo se a lista falhar.
+    }
     setSavedMessage("Plano de manutencao preventivo salvo localmente com sucesso.");
   };
 
@@ -392,7 +402,7 @@ export default function WebPreventiveItemsPage() {
   const stepperItems = [
     { num: "01", label: "Identificacao", active: step === 1, done: step > 1 },
     { num: "02", label: "Intervalos", active: step === 2, done: false },
-    { num: "03", label: "Checklist", active: false, done: false },
+    { num: "03", label: "Cadastros", active: false, done: false },
     { num: "04", label: "Revisao", active: false, done: false },
   ];
 

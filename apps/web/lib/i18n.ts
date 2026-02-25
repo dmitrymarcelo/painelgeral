@@ -53,6 +53,7 @@ export const translations = {
   checklist: 'Checklist',
   calendar: 'Calendário',
   preventiveItemsRegister: 'Cadastro de Itens de Preventiva',
+  preventiveRegistrations: 'Cadastros de Preventivas',
   reports: 'Relatórios',
   
   // Header
