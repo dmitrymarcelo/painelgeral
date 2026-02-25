@@ -8,6 +8,7 @@ type PreventiveItemRow = {
   id: string;
   partMaterial: string;
   usefulLifeKm: string;
+  usefulLifeHourmeter: string;
   usefulLifeTime: string;
   triggerLinked: boolean;
   inheritsKmTrigger: boolean;
@@ -33,6 +34,7 @@ const emptyItem = (): PreventiveItemRow => ({
   id: crypto.randomUUID(),
   partMaterial: "",
   usefulLifeKm: "",
+  usefulLifeHourmeter: "",
   usefulLifeTime: "",
   triggerLinked: true,
   inheritsKmTrigger: true,
@@ -53,7 +55,12 @@ const emptyForm = (): FormState => ({
 });
 
 const isItemComplete = (item: PreventiveItemRow) =>
-  Boolean(item.partMaterial.trim() && item.usefulLifeKm.trim() && item.usefulLifeTime.trim());
+  Boolean(
+    item.partMaterial.trim() &&
+      item.usefulLifeKm.trim() &&
+      item.usefulLifeHourmeter.trim() &&
+      item.usefulLifeTime.trim(),
+  );
 
 export default function WebPreventiveItemsPage() {
   const [step, setStep] = useState<1 | 2>(1);
@@ -160,7 +167,7 @@ export default function WebPreventiveItemsPage() {
 
   const updateItemLifecycleField = (
     id: string,
-    key: "usefulLifeKm" | "usefulLifeTime",
+    key: "usefulLifeKm" | "usefulLifeHourmeter" | "usefulLifeTime",
     value: string,
   ) => {
     setItems((current) =>
@@ -180,20 +187,23 @@ export default function WebPreventiveItemsPage() {
 
   const getExpectedValuesForItem = (item: PreventiveItemRow) => {
     const nextKm = item.inheritsKmTrigger ? triggerKm : item.usefulLifeKm;
-    const timeParts: string[] = [];
-    if (item.inheritsHourmeterTrigger) timeParts.push(`${triggerHourmeter} hrs`);
-    if (item.inheritsTemporalTrigger) timeParts.push(`${triggerTemporalMonths} meses`);
-    const nextTime = timeParts.length > 0 ? timeParts.join(" / ") : item.usefulLifeTime;
+    const nextHourmeter = item.inheritsHourmeterTrigger ? triggerHourmeter : item.usefulLifeHourmeter;
+    const nextTime = item.inheritsTemporalTrigger ? `${triggerTemporalMonths} meses` : item.usefulLifeTime;
 
     return {
       usefulLifeKm: nextKm,
+      usefulLifeHourmeter: nextHourmeter,
       usefulLifeTime: nextTime,
     };
   };
 
   const isItemSyncedWithTrigger = (item: PreventiveItemRow) => {
     const expected = getExpectedValuesForItem(item);
-    return item.usefulLifeKm === expected.usefulLifeKm && item.usefulLifeTime === expected.usefulLifeTime;
+    return (
+      item.usefulLifeKm === expected.usefulLifeKm &&
+      item.usefulLifeHourmeter === expected.usefulLifeHourmeter &&
+      item.usefulLifeTime === expected.usefulLifeTime
+    );
   };
 
   const applyTriggerToItem = (id: string) => {
@@ -204,6 +214,7 @@ export default function WebPreventiveItemsPage() {
         return {
           ...item,
           usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeHourmeter: expected.usefulLifeHourmeter,
           usefulLifeTime: expected.usefulLifeTime,
           triggerLinked: true,
         };
@@ -225,6 +236,7 @@ export default function WebPreventiveItemsPage() {
           ...item,
           triggerLinked: true,
           usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeHourmeter: expected.usefulLifeHourmeter,
           usefulLifeTime: expected.usefulLifeTime,
         };
       }),
@@ -239,6 +251,7 @@ export default function WebPreventiveItemsPage() {
         const expected = getExpectedValuesForItem(item);
         if (
           item.usefulLifeKm === expected.usefulLifeKm &&
+          item.usefulLifeHourmeter === expected.usefulLifeHourmeter &&
           item.usefulLifeTime === expected.usefulLifeTime
         ) {
           return item;
@@ -246,6 +259,7 @@ export default function WebPreventiveItemsPage() {
         return {
           ...item,
           usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeHourmeter: expected.usefulLifeHourmeter,
           usefulLifeTime: expected.usefulLifeTime,
         };
       }),
@@ -288,6 +302,13 @@ export default function WebPreventiveItemsPage() {
 
     const payload = {
       createdAt: new Date().toISOString(),
+      vehicleBindingContext: {
+        vehicleModel: form.vehicleModel,
+        vehicleBrand: form.vehicleBrand,
+        vehicleType: form.vehicleType,
+        operationType: form.operationType,
+        centerCost: form.centerCost,
+      },
       form,
       triggerConfig: {
         quilometragemKm: Number(triggerKm) || 0,
@@ -856,7 +877,7 @@ export default function WebPreventiveItemsPage() {
                                 </button>
                               )}
                             </div>
-                            <div className="grid gap-3 md:grid-cols-2">
+                            <div className="grid gap-3 md:grid-cols-3">
                               <div>
                                 <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
                                   Vida util (km) *
@@ -868,6 +889,21 @@ export default function WebPreventiveItemsPage() {
                                   onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeKm", e.target.value)}
                                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                                   placeholder="20000"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                                  Vida util (horimetro) *
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.usefulLifeHourmeter}
+                                  onChange={(e) =>
+                                    updateItemLifecycleField(item.id, "usefulLifeHourmeter", e.target.value)
+                                  }
+                                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                                  placeholder="500"
                                 />
                               </div>
                               <div>
