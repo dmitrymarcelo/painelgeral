@@ -7,6 +7,9 @@ import { translations } from "@/lib/i18n";
 type PreventiveItemRow = {
   id: string;
   partMaterial: string;
+  triggerKmValue: string;
+  triggerHourmeterValue: string;
+  triggerTemporalMonthsValue: string;
   usefulLifeKm: string;
   usefulLifeHourmeter: string;
   usefulLifeTime: string;
@@ -34,6 +37,9 @@ const STORAGE_KEY = "frota-pro.preventive-items-registration:last";
 const emptyItem = (): PreventiveItemRow => ({
   id: crypto.randomUUID(),
   partMaterial: "",
+  triggerKmValue: "20000",
+  triggerHourmeterValue: "500",
+  triggerTemporalMonthsValue: "6",
   usefulLifeKm: "",
   usefulLifeHourmeter: "",
   usefulLifeTime: "",
@@ -114,6 +120,14 @@ export default function WebPreventiveItemsPage() {
     return Math.round(kmValues.reduce((sum, value) => sum + value, 0) / kmValues.length);
   }, [items]);
 
+  const averageItemTriggerKm = useMemo(() => {
+    const values = items
+      .map((item) => Number(item.triggerKmValue))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (values.length === 0) return 0;
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  }, [items]);
+
   const estimatedInvestment = useMemo(() => {
     const base = items.length * 145;
     const opFactor = form.operationType === "Severo" ? 1.35 : form.operationType === "Leve" ? 0.9 : 1;
@@ -154,8 +168,18 @@ export default function WebPreventiveItemsPage() {
           key === "inheritsKmTrigger" ||
           key === "inheritsHourmeterTrigger" ||
           key === "inheritsTemporalTrigger";
+        const isTriggerValueKey =
+          key === "triggerKmValue" ||
+          key === "triggerHourmeterValue" ||
+          key === "triggerTemporalMonthsValue";
 
-        if (!isInheritanceKey) return nextItem;
+        if (!isInheritanceKey && !isTriggerValueKey) return nextItem;
+        if (isTriggerValueKey) {
+          return {
+            ...nextItem,
+            triggerApplied: false,
+          };
+        }
 
         const expected = getExpectedValuesForItem(nextItem);
         return {
@@ -192,9 +216,13 @@ export default function WebPreventiveItemsPage() {
   };
 
   const getExpectedValuesForItem = (item: PreventiveItemRow) => {
-    const nextKm = item.inheritsKmTrigger ? triggerKm : item.usefulLifeKm;
-    const nextHourmeter = item.inheritsHourmeterTrigger ? triggerHourmeter : item.usefulLifeHourmeter;
-    const nextTime = item.inheritsTemporalTrigger ? `${triggerTemporalMonths} meses` : item.usefulLifeTime;
+    const nextKm = item.inheritsKmTrigger ? item.triggerKmValue : item.usefulLifeKm;
+    const nextHourmeter = item.inheritsHourmeterTrigger
+      ? item.triggerHourmeterValue
+      : item.usefulLifeHourmeter;
+    const nextTime = item.inheritsTemporalTrigger
+      ? `${item.triggerTemporalMonthsValue} meses`
+      : item.usefulLifeTime;
 
     return {
       usefulLifeKm: nextKm,
@@ -277,7 +305,15 @@ export default function WebPreventiveItemsPage() {
   }, [triggerHourmeter, triggerKm, triggerTemporalMonths]);
 
   const addItem = () => {
-    setItems((current) => [...current, emptyItem()]);
+    setItems((current) => [
+      ...current,
+      {
+        ...emptyItem(),
+        triggerKmValue: triggerKm || "20000",
+        triggerHourmeterValue: triggerHourmeter || "500",
+        triggerTemporalMonthsValue: triggerTemporalMonths || "6",
+      },
+    ]);
     setSavedMessage("");
   };
 
@@ -603,105 +639,6 @@ export default function WebPreventiveItemsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6">
-                    <div className="mb-3">
-                      <h4 className="text-lg font-black text-slate-900">
-                        Gatilhos de Manutencao
-                      </h4>
-                      <p className="mt-1 text-xs text-slate-500">
-                        A revisao ocorre pelo que atingir primeiro. Valores abaixo podem ser adaptados ao projeto.
-                      </p>
-                    </div>
-
-                    <div className="grid gap-4 lg:grid-cols-3">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <div className="mb-3 flex items-center justify-between">
-                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-700">
-                            ⛽
-                          </span>
-                          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                            Frequencia
-                          </span>
-                        </div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-blue-700">
-                          Quilometragem
-                        </p>
-                        <div className="mt-2 flex items-end gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            value={triggerKm}
-                            onChange={(e) => setTriggerKm(e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black text-slate-900"
-                          />
-                          <p className="pb-1 text-lg font-black text-slate-400">KM</p>
-                        </div>
-                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                          Troque este item ao atingir aproximadamente{" "}
-                          <span className="font-bold text-slate-700">
-                            {(Number(triggerKm) || 0).toLocaleString("pt-BR")} km
-                          </span>{" "}
-                          ou antes, conforme operacao.
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <div className="mb-3 flex items-center justify-between">
-                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-700">
-                            ⏱
-                          </span>
-                          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                            Frequencia
-                          </span>
-                        </div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
-                          Horimetro
-                        </p>
-                        <div className="mt-2 flex items-end gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            value={triggerHourmeter}
-                            onChange={(e) => setTriggerHourmeter(e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black text-slate-900"
-                          />
-                          <p className="pb-1 text-lg font-black text-slate-400">HRS</p>
-                        </div>
-                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                          Ideal para maquinas/veiculos por horas. Sugestao atual:
-                          <span className="ml-1 font-bold text-slate-700">{suggestedTriggerHourmeter} hrs</span>.
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <div className="mb-3 flex items-center justify-between">
-                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
-                            📅
-                          </span>
-                          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                            Frequencia
-                          </span>
-                        </div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-emerald-700">
-                          Temporal
-                        </p>
-                        <div className="mt-2 flex items-end gap-2">
-                          <input
-                            type="number"
-                            min={1}
-                            value={triggerTemporalMonths}
-                            onChange={(e) => setTriggerTemporalMonths(e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black text-slate-900"
-                          />
-                          <p className="pb-1 text-lg font-black text-slate-400">MESES</p>
-                        </div>
-                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                          Independente do uso. Sugestao atual:
-                          <span className="ml-1 font-bold text-slate-700">{suggestedTriggerTemporalMonths} meses</span>.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -887,45 +824,133 @@ export default function WebPreventiveItemsPage() {
                                 </button>
                               )}
                             </div>
-                            <div className="grid gap-3 md:grid-cols-3">
-                              <div>
-                                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                                  Vida util (km) *
-                                </label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.usefulLifeKm}
-                                  onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeKm", e.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                                  placeholder="20000"
-                                />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                                  Vida util (horimetro) *
-                                </label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={item.usefulLifeHourmeter}
-                                  onChange={(e) =>
-                                    updateItemLifecycleField(item.id, "usefulLifeHourmeter", e.target.value)
-                                  }
-                                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                                  placeholder="500"
-                                />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                                  Vida util (tempo) *
-                                </label>
-                                <input
-                                  value={item.usefulLifeTime}
-                                  onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeTime", e.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                                  placeholder="6 meses"
-                                />
+                            <div>
+                              <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                                Gatilhos de Manutencao (individual por peca)
+                              </p>
+                              <div className="grid gap-3 lg:grid-cols-3">
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-blue-700">
+                                      Quilometragem
+                                    </span>
+                                    <span
+                                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                        item.inheritsKmTrigger
+                                          ? "bg-blue-100 text-blue-700"
+                                          : "bg-slate-100 text-slate-600"
+                                      }`}
+                                    >
+                                      {item.inheritsKmTrigger ? "Herdar" : "Manual"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-end gap-2">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={item.triggerKmValue}
+                                      onChange={(e) => updateItem(item.id, "triggerKmValue", e.target.value)}
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xl font-black text-slate-900"
+                                      placeholder="20000"
+                                    />
+                                    <span className="pb-1 text-sm font-black text-slate-400">KM</span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <label className="mb-1 block text-[10px] font-black uppercase text-slate-500">
+                                      Vida util (km) *
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={item.usefulLifeKm}
+                                      onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeKm", e.target.value)}
+                                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                      placeholder="20000"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-amber-700">
+                                      Horimetro
+                                    </span>
+                                    <span
+                                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                        item.inheritsHourmeterTrigger
+                                          ? "bg-amber-100 text-amber-700"
+                                          : "bg-slate-100 text-slate-600"
+                                      }`}
+                                    >
+                                      {item.inheritsHourmeterTrigger ? "Herdar" : "Manual"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-end gap-2">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={item.triggerHourmeterValue}
+                                      onChange={(e) => updateItem(item.id, "triggerHourmeterValue", e.target.value)}
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xl font-black text-slate-900"
+                                      placeholder="500"
+                                    />
+                                    <span className="pb-1 text-sm font-black text-slate-400">HRS</span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <label className="mb-1 block text-[10px] font-black uppercase text-slate-500">
+                                      Vida util (horimetro) *
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={item.usefulLifeHourmeter}
+                                      onChange={(e) =>
+                                        updateItemLifecycleField(item.id, "usefulLifeHourmeter", e.target.value)
+                                      }
+                                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                      placeholder="500"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-emerald-700">
+                                      Temporal
+                                    </span>
+                                    <span
+                                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                        item.inheritsTemporalTrigger
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : "bg-slate-100 text-slate-600"
+                                      }`}
+                                    >
+                                      {item.inheritsTemporalTrigger ? "Herdar" : "Manual"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-end gap-2">
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={item.triggerTemporalMonthsValue}
+                                      onChange={(e) => updateItem(item.id, "triggerTemporalMonthsValue", e.target.value)}
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xl font-black text-slate-900"
+                                      placeholder="6"
+                                    />
+                                    <span className="pb-1 text-sm font-black text-slate-400">MESES</span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <label className="mb-1 block text-[10px] font-black uppercase text-slate-500">
+                                      Vida util (tempo) *
+                                    </label>
+                                    <input
+                                      value={item.usefulLifeTime}
+                                      onChange={(e) => updateItemLifecycleField(item.id, "usefulLifeTime", e.target.value)}
+                                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                      placeholder="6 meses"
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -975,7 +1000,7 @@ export default function WebPreventiveItemsPage() {
                       Gatilho KM
                     </p>
                     <p className="mt-1 text-lg font-black text-blue-700">
-                      {Number(triggerKm) > 0 ? `${Number(triggerKm).toLocaleString("pt-BR")} KM` : "--"}
+                      {averageItemTriggerKm > 0 ? `${averageItemTriggerKm.toLocaleString("pt-BR")} KM` : "--"}
                     </p>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-3">
@@ -1069,4 +1094,5 @@ export default function WebPreventiveItemsPage() {
     </WebShell>
   );
 }
+
 
