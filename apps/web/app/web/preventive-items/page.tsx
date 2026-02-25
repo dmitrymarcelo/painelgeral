@@ -596,77 +596,54 @@ export default function WebPreventiveItemsPage() {
                   </div>
 
                   <div className="space-y-3">
-                    {filteredItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`rounded-2xl border p-4 ${isItemComplete(item) ? "border-slate-200" : "border-amber-200 bg-amber-50/40"}`}
-                      >
-                        <div className="grid gap-3 lg:grid-cols-[1.35fr_0.8fr_0.8fr_0.95fr_auto] lg:items-end">
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                              Peças/material *
-                            </label>
-                            <input
-                              value={item.partMaterial}
-                              onChange={(e) => updateItem(item.id, "partMaterial", e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                              placeholder="Ex.: Filtro de oleo, Correia, Oleo 15W40"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                              Vida util (km) *
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={item.usefulLifeKm}
-                              onChange={(e) => updateItem(item.id, "usefulLifeKm", e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                              placeholder="20000"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                              Tipo de manutencao *
-                            </label>
-                            <select
-                              value={item.maintenanceTriggerType}
-                              onChange={(e) =>
-                                updateItem(
-                                  item.id,
-                                  "maintenanceTriggerType",
-                                  e.target.value as PreventiveItemRow["maintenanceTriggerType"],
-                                )
-                              }
-                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                            >
-                              <option value="quilometragem">Quilometragem</option>
-                              <option value="horimetro">Horimetro</option>
-                              <option value="temporal">Temporal</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                              Vida util (tempo) *
-                            </label>
-                            <input
-                              value={item.usefulLifeTime}
-                              onChange={(e) => updateItem(item.id, "usefulLifeTime", e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                              placeholder="6 meses"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                isItemComplete(item)
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-amber-100 text-amber-700"
-                              }`}
-                            >
-                              {isItemComplete(item) ? "Completo" : "Pendente"}
-                            </span>
+                    {filteredItems.map((item) => {
+                      const complete = isItemComplete(item);
+                      const triggerLabel =
+                        item.maintenanceTriggerType === "quilometragem"
+                          ? "Quilometragem"
+                          : item.maintenanceTriggerType === "horimetro"
+                            ? "Horimetro"
+                            : "Temporal";
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`rounded-2xl border p-4 ${complete ? "border-slate-200" : "border-amber-200 bg-amber-50/40"}`}
+                        >
+                          <div className="grid gap-3 lg:grid-cols-[1.4fr_auto_auto_auto] lg:items-end">
+                            <div>
+                              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                                Peças/material *
+                              </label>
+                              <input
+                                value={item.partMaterial}
+                                onChange={(e) => updateItem(item.id, "partMaterial", e.target.value)}
+                                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                                placeholder="Ex.: Filtro de oleo, Correia, Oleo 15W40"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                                Gatilho
+                              </label>
+                              <select
+                                value={item.maintenanceTriggerType}
+                                onChange={(e) =>
+                                  updateItem(
+                                    item.id,
+                                    "maintenanceTriggerType",
+                                    e.target.value as PreventiveItemRow["maintenanceTriggerType"],
+                                  )
+                                }
+                                className="min-w-[170px] rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                              >
+                                <option value="quilometragem">Quilometragem</option>
+                                <option value="horimetro">Horimetro</option>
+                                <option value="temporal">Temporal</option>
+                              </select>
+                            </div>
+
                             <button
                               type="button"
                               onClick={() => applyTriggerToItem(item.id)}
@@ -674,18 +651,67 @@ export default function WebPreventiveItemsPage() {
                             >
                               Aplicar gatilho
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(item.id)}
-                              disabled={items.length === 1}
-                              className="rounded-xl border border-red-200 px-3 py-3 text-xs font-black uppercase text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Remover
-                            </button>
+
+                            <div className="flex items-center justify-end gap-2">
+                              <span
+                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                  complete
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {complete ? "Completo" : "Pendente"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id)}
+                                disabled={items.length === 1}
+                                className="rounded-xl border border-red-200 px-3 py-3 text-xs font-black uppercase text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 rounded-xl border border-slate-100 bg-white/80 p-3">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-700">
+                                Tipo de manutencao: {triggerLabel}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                Valores abaixo podem ser ajustados manualmente por peça.
+                              </span>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <div>
+                                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                                  Vida util (km) *
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.usefulLifeKm}
+                                  onChange={(e) => updateItem(item.id, "usefulLifeKm", e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                                  placeholder="20000"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                                  Vida util (tempo) *
+                                </label>
+                                <input
+                                  value={item.usefulLifeTime}
+                                  onChange={(e) => updateItem(item.id, "usefulLifeTime", e.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                                  placeholder="6 meses"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {filteredItems.length === 0 && (
                       <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
