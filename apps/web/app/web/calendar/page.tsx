@@ -933,16 +933,6 @@ export default function WebCalendarPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-4 text-xs">
-            {Object.entries(typeColors).map(([type, colors]) => (
-              <div key={type} className="flex items-center gap-2">
-                <div
-                  className={`h-3 w-3 rounded ${colors.bg
-                    .replace("bg-", "bg-")
-                    .replace("-50", "-500")}`}
-                />
-                <span>{colors.label}</span>
-              </div>
-            ))}
             {(
               [
                 ["scheduled", "Agendado"],
@@ -958,7 +948,7 @@ export default function WebCalendarPage() {
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded bg-cyan-500" />
+              <div className="h-3 w-3 rounded bg-sky-600" />
               <span>Hoje</span>
             </div>
           </div>
@@ -1000,7 +990,7 @@ export default function WebCalendarPage() {
                   } ${
                     isDragOver ? "border-blue-500 bg-blue-50" : ""
                   } ${dayIsPast ? "bg-slate-50/80 text-slate-400" : "hover:bg-slate-50"} ${
-                    dayIsToday ? "bg-cyan-50" : ""
+                    dayIsToday ? "bg-sky-100/70 ring-1 ring-inset ring-sky-200" : ""
                   }`}
                 >
                   {day && (
@@ -1008,7 +998,7 @@ export default function WebCalendarPage() {
                       <p
                         className={`mb-1 text-sm font-bold ${
                           dayIsToday
-                            ? "text-cyan-700"
+                            ? "text-sky-700"
                             : dayIsPast
                               ? "text-slate-400"
                               : "text-slate-500"
