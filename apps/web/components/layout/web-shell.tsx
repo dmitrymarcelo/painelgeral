@@ -30,6 +30,7 @@ export function WebShell({ title, subtitle, children }: Props) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
+  const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
 
   const menuItems = [
     { href: "/web/dashboard", label: translations.dashboard, icon: "🏠" },
@@ -38,6 +39,24 @@ export function WebShell({ title, subtitle, children }: Props) {
     { href: "/web/calendar", label: translations.calendar, icon: "📅" },
     { href: "/web/preventive-items", label: translations.preventiveItemsRegister, icon: "PM" },
   ];
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (raw === "true") setSidebarCollapsed(true);
+      if (raw === "false") setSidebarCollapsed(false);
+    } catch {
+      // Ignora falha de storage e usa estado padrao.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+    } catch {
+      // Ignora falha de storage.
+    }
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     const refreshNotifications = () => {
@@ -187,10 +206,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                 <TruckIcon className="h-4 w-4" />
                 {translations.backToStart}
               </Link>
-              <h1 className="text-lg font-black tracking-tight">{title}</h1>
-              <span className="rounded-full border border-[#bcd8fb] bg-[var(--color-brand-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--color-brand-ink)]">
-                {subtitle}
-              </span>
+              {/* Titulos removidos por decisao de UX: navegacao principal ja identifica a pagina. */}
             </div>
 
             <div className="relative flex items-center gap-4 text-right">
