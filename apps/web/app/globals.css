@@ -21,6 +21,24 @@ body {
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-ink);
+  font-family:
+    var(--font-sans),
+    "Segoe UI Variable Text",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
 }
 
 .card {
@@ -39,10 +57,10 @@ body {
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   color: rgb(100 116 139);
 }
 

@@ -28,12 +28,19 @@ type NotificationItem = {
 export function WebShell({ title, subtitle, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  // Estado visual local da sidebar (nao persiste entre reloads).
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
+  // Persistencia da sidebar lida de forma sincrona para evitar "abrir/fechar" ao navegar.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
   const [authSession, setAuthSession] = useState(getAuthSession());
-  const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
 
   const menuItems = [
     { href: "/web/dashboard", label: translations.dashboard, icon: "🏠" },
@@ -44,23 +51,14 @@ export function WebShell({ title, subtitle, children }: Props) {
     { href: "/web/users", label: "Usuarios de Acesso", icon: "US" },
   ];
 
-  useEffect(() => {
+  const persistSidebarCollapsed = (next: boolean) => {
+    setSidebarCollapsed(next);
     try {
-      const raw = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      if (raw === "true") setSidebarCollapsed(true);
-      if (raw === "false") setSidebarCollapsed(false);
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
     } catch {
-      // Ignora falha de storage e usa estado padrao.
+      // Ignora falha de storage e mantem estado em memoria.
     }
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
-    } catch {
-      // Ignora falha de storage.
-    }
-  }, [sidebarCollapsed]);
+  };
 
   useEffect(() => {
     const refresh = () => setAuthSession(getAuthSession());
@@ -143,7 +141,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                 {!sidebarCollapsed && (
                   <button
                     type="button"
-                    onClick={() => setSidebarCollapsed(true)}
+                    onClick={() => persistSidebarCollapsed(true)}
                     className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white text-slate-500 hover:text-slate-700"
                     aria-label="Recolher menu lateral"
                     title="Recolher menu"
@@ -161,7 +159,7 @@ export function WebShell({ title, subtitle, children }: Props) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => setSidebarCollapsed(false)}
+                  onClick={() => persistSidebarCollapsed(false)}
                   className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white text-slate-500 hover:text-slate-700"
                   aria-label="Expandir menu lateral"
                   title="Expandir menu"
@@ -205,11 +203,6 @@ export function WebShell({ title, subtitle, children }: Props) {
             </nav>
           </div>
 
-          <div className="mt-auto p-4">
-            <button className={`rounded-2xl border border-[var(--color-border)] bg-white py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 ${sidebarCollapsed ? "w-full px-2" : "w-full px-4"}`} title="Configuracoes">
-              {sidebarCollapsed ? "Cfg" : "Configuracoes"}
-            </button>
-          </div>
         </aside>
 
         <main>

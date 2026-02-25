@@ -9,6 +9,8 @@ export const webSidebarItems = [
 
 export const mobileTabs = [
   { href: "/app/home", label: translations.panel },
+  { href: "/app/assets", label: "Ativos" },
+  { href: "/app/maintenance", label: "OS" },
   { href: "/app/agenda", label: translations.calendar },
 ];
 
