@@ -46,7 +46,7 @@ const emptyItem = (): PreventiveItemRow => ({
   triggerApplied: false,
   triggerLinked: true,
   inheritsKmTrigger: true,
-  inheritsHourmeterTrigger: false,
+  inheritsHourmeterTrigger: true,
   inheritsTemporalTrigger: true,
 });
 
@@ -247,6 +247,9 @@ export default function WebPreventiveItemsPage() {
         const expected = getExpectedValuesForItem(item);
         return {
           ...item,
+          inheritsKmTrigger: true,
+          inheritsHourmeterTrigger: true,
+          inheritsTemporalTrigger: true,
           usefulLifeKm: expected.usefulLifeKm,
           usefulLifeHourmeter: expected.usefulLifeHourmeter,
           usefulLifeTime: expected.usefulLifeTime,
@@ -318,7 +321,7 @@ export default function WebPreventiveItemsPage() {
   };
 
   const removeItem = (id: string) => {
-    setItems((current) => (current.length > 1 ? current.filter((item) => item.id !== id) : current));
+    setItems((current) => current.filter((item) => item.id !== id));
     setEditingAppliedItemId((current) => (current === id ? null : current));
     setSavedMessage("");
   };
@@ -726,7 +729,6 @@ export default function WebPreventiveItemsPage() {
                               <button
                                 type="button"
                                 onClick={() => removeItem(item.id)}
-                                disabled={items.length === 1}
                                 className="relative z-10 rounded-xl border border-red-200 px-3 py-3 text-xs font-black uppercase text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Remover
