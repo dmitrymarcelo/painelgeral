@@ -10,6 +10,7 @@ type PreventiveItemRow = {
   usefulLifeKm: string;
   usefulLifeHourmeter: string;
   usefulLifeTime: string;
+  triggerApplied: boolean;
   triggerLinked: boolean;
   inheritsKmTrigger: boolean;
   inheritsHourmeterTrigger: boolean;
@@ -36,6 +37,7 @@ const emptyItem = (): PreventiveItemRow => ({
   usefulLifeKm: "",
   usefulLifeHourmeter: "",
   usefulLifeTime: "",
+  triggerApplied: false,
   triggerLinked: true,
   inheritsKmTrigger: true,
   inheritsHourmeterTrigger: false,
@@ -133,6 +135,7 @@ export default function WebPreventiveItemsPage() {
 
   const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setItems((current) => current.map((item) => ({ ...item, triggerApplied: false })));
     setSavedMessage("");
   };
 
@@ -159,6 +162,8 @@ export default function WebPreventiveItemsPage() {
           ...nextItem,
           usefulLifeKm: expected.usefulLifeKm,
           usefulLifeTime: expected.usefulLifeTime,
+          usefulLifeHourmeter: expected.usefulLifeHourmeter,
+          triggerApplied: false,
         };
       }),
     );
@@ -177,6 +182,7 @@ export default function WebPreventiveItemsPage() {
               ...item,
               [key]: value,
               // Edicao manual transforma o item em customizado, mantendo a relacao logica opcional.
+              triggerApplied: false,
               triggerLinked: false,
             }
           : item,
@@ -216,6 +222,7 @@ export default function WebPreventiveItemsPage() {
           usefulLifeKm: expected.usefulLifeKm,
           usefulLifeHourmeter: expected.usefulLifeHourmeter,
           usefulLifeTime: expected.usefulLifeTime,
+          triggerApplied: true,
           triggerLinked: true,
         };
       }),
@@ -229,11 +236,12 @@ export default function WebPreventiveItemsPage() {
       current.map((item) => {
         if (item.id !== id) return item;
         if (item.triggerLinked) {
-          return { ...item, triggerLinked: false };
+          return { ...item, triggerLinked: false, triggerApplied: false };
         }
         const expected = getExpectedValuesForItem(item);
         return {
           ...item,
+          triggerApplied: false,
           triggerLinked: true,
           usefulLifeKm: expected.usefulLifeKm,
           usefulLifeHourmeter: expected.usefulLifeHourmeter,
@@ -261,9 +269,11 @@ export default function WebPreventiveItemsPage() {
           usefulLifeKm: expected.usefulLifeKm,
           usefulLifeHourmeter: expected.usefulLifeHourmeter,
           usefulLifeTime: expected.usefulLifeTime,
+          triggerApplied: false,
         };
       }),
     );
+    setItems((current) => current.map((item) => ({ ...item, triggerApplied: false })));
   }, [triggerHourmeter, triggerKm, triggerTemporalMonths]);
 
   const addItem = () => {
@@ -723,7 +733,7 @@ export default function WebPreventiveItemsPage() {
                     {filteredItems.map((item) => {
                       const complete = isItemComplete(item);
                       const synced = isItemSyncedWithTrigger(item);
-                      const applied = item.triggerLinked && synced;
+                      const applied = item.triggerApplied && item.triggerLinked && synced;
                       const editingApplied = editingAppliedItemId === item.id;
 
                       return (
@@ -731,7 +741,7 @@ export default function WebPreventiveItemsPage() {
                           key={item.id}
                           className={`rounded-2xl border p-4 ${complete ? "border-slate-200" : "border-amber-200 bg-amber-50/40"}`}
                         >
-                          <div className="grid gap-3 lg:grid-cols-[1.4fr_auto_auto] lg:items-end">
+                          <div className="grid gap-3 lg:grid-cols-[1.4fr_auto_1fr] lg:items-end">
                             <div>
                               <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
                                 Peças/material *
@@ -775,7 +785,7 @@ export default function WebPreventiveItemsPage() {
                               </button>
                             )}
 
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
                               {!applied && (
                                 <>
                                   <span
@@ -815,7 +825,7 @@ export default function WebPreventiveItemsPage() {
                                 type="button"
                                 onClick={() => removeItem(item.id)}
                                 disabled={items.length === 1}
-                                className="rounded-xl border border-red-200 px-3 py-3 text-xs font-black uppercase text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="relative z-10 rounded-xl border border-red-200 px-3 py-3 text-xs font-black uppercase text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Remover
                               </button>
