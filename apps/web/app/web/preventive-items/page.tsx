@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
@@ -31,6 +30,26 @@ type FormState = {
   vehicleBrandStep2: string;
   vehicleTypeStep2: string;
   vehicleFormula: string;
+};
+
+type PreventiveRegistrationPayload = {
+  registrationId: string;
+  createdAt: string;
+  updatedAt?: string;
+  vehicleBindingContext: {
+    vehicleModel: string;
+    vehicleBrand: string;
+    vehicleType: string;
+    operationType: FormState["operationType"];
+    centerCost: string;
+  };
+  form: FormState;
+  triggerConfig: {
+    quilometragemKm: number;
+    horimetroHrs: number;
+    temporalMeses: number;
+  };
+  items: PreventiveItemRow[];
 };
 
 const STORAGE_KEY = "frota-pro.preventive-items-registration:last";
@@ -72,10 +91,59 @@ const isItemComplete = (item: PreventiveItemRow) =>
       item.usefulLifeTime.trim(),
   );
 
+const normalizeItem = (raw: Partial<PreventiveItemRow> | null | undefined): PreventiveItemRow => ({
+  ...emptyItem(),
+  ...(raw ?? {}),
+  id: raw?.id || crypto.randomUUID(),
+  partMaterial: raw?.partMaterial ?? "",
+  triggerKmValue: raw?.triggerKmValue ?? "20000",
+  triggerHourmeterValue: raw?.triggerHourmeterValue ?? "500",
+  triggerTemporalMonthsValue: raw?.triggerTemporalMonthsValue ?? "6",
+  usefulLifeKm: raw?.usefulLifeKm ?? "",
+  usefulLifeHourmeter: raw?.usefulLifeHourmeter ?? "",
+  usefulLifeTime: raw?.usefulLifeTime ?? "",
+  triggerApplied: Boolean(raw?.triggerApplied),
+  triggerLinked: raw?.triggerLinked ?? true,
+  inheritsKmTrigger: raw?.inheritsKmTrigger ?? true,
+  inheritsHourmeterTrigger: raw?.inheritsHourmeterTrigger ?? true,
+  inheritsTemporalTrigger: raw?.inheritsTemporalTrigger ?? true,
+});
+
+const normalizeRegistration = (raw: any): PreventiveRegistrationPayload | null => {
+  if (!raw || typeof raw !== "object") return null;
+  const form = { ...emptyForm(), ...(raw.form ?? {}) } as FormState;
+  return {
+    registrationId: String(raw.registrationId || crypto.randomUUID()),
+    createdAt: String(raw.createdAt || new Date().toISOString()),
+    updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
+    vehicleBindingContext: {
+      vehicleModel: String(raw.vehicleBindingContext?.vehicleModel ?? form.vehicleModel ?? ""),
+      vehicleBrand: String(raw.vehicleBindingContext?.vehicleBrand ?? form.vehicleBrand ?? ""),
+      vehicleType: String(raw.vehicleBindingContext?.vehicleType ?? form.vehicleType ?? ""),
+      operationType:
+        raw.vehicleBindingContext?.operationType === "Severo" ||
+        raw.vehicleBindingContext?.operationType === "Normal" ||
+        raw.vehicleBindingContext?.operationType === "Leve"
+          ? raw.vehicleBindingContext.operationType
+          : (form.operationType ?? ""),
+      centerCost: String(raw.vehicleBindingContext?.centerCost ?? form.centerCost ?? ""),
+    },
+    form,
+    triggerConfig: {
+      quilometragemKm: Number(raw.triggerConfig?.quilometragemKm) || 0,
+      horimetroHrs: Number(raw.triggerConfig?.horimetroHrs) || 0,
+      temporalMeses: Number(raw.triggerConfig?.temporalMeses) || 0,
+    },
+    items: Array.isArray(raw.items) ? raw.items.map((item: any) => normalizeItem(item)) : [],
+  };
+};
+
 export default function WebPreventiveItemsPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [savedMessage, setSavedMessage] = useState("");
   const [editingAppliedItemId, setEditingAppliedItemId] = useState<string | null>(null);
+  const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
+  const [savedRegistrations, setSavedRegistrations] = useState<PreventiveRegistrationPayload[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [items, setItems] = useState<PreventiveItemRow[]>([emptyItem()]);
   const [itemSearch, setItemSearch] = useState("");
@@ -148,6 +216,19 @@ export default function WebPreventiveItemsPage() {
       .filter((value): value is number => value != null && value > 0);
     return monthValues.length > 0 ? Math.min(...monthValues) : 6;
   }, [items]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_LIST_KEY);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      const normalized = Array.isArray(parsed)
+        ? parsed.map(normalizeRegistration).filter((value): value is PreventiveRegistrationPayload => Boolean(value))
+        : [];
+      setSavedRegistrations(normalized);
+    } catch {
+      setSavedRegistrations([]);
+    }
+  }, []);
 
   const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -351,9 +432,13 @@ export default function WebPreventiveItemsPage() {
       return;
     }
 
-    const payload = {
-      registrationId: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+    const existing = editingRegistrationId
+      ? savedRegistrations.find((registration) => registration.registrationId === editingRegistrationId)
+      : null;
+    const payload: PreventiveRegistrationPayload = {
+      registrationId: existing?.registrationId || crypto.randomUUID(),
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       vehicleBindingContext: {
         vehicleModel: form.vehicleModel,
         vehicleBrand: form.vehicleBrand,
@@ -371,18 +456,27 @@ export default function WebPreventiveItemsPage() {
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     try {
-      const raw = window.localStorage.getItem(STORAGE_LIST_KEY);
-      const current = raw ? (JSON.parse(raw) as unknown[]) : [];
-      const next = Array.isArray(current) ? [...current, payload] : [payload];
+      const next = existing
+        ? savedRegistrations.map((registration) =>
+            registration.registrationId === payload.registrationId ? payload : registration,
+          )
+        : [payload, ...savedRegistrations];
       window.localStorage.setItem(STORAGE_LIST_KEY, JSON.stringify(next));
+      setSavedRegistrations(next);
     } catch {
       // Mantem pelo menos o "last" salvo, mesmo se a lista falhar.
     }
-    setSavedMessage("Plano de manutencao preventivo salvo localmente com sucesso.");
+    setEditingRegistrationId(payload.registrationId);
+    setSavedMessage(
+      existing
+        ? "Plano de manutencao preventivo atualizado localmente com sucesso."
+        : "Plano de manutencao preventivo salvo localmente com sucesso.",
+    );
   };
 
   const resetAll = () => {
     setStep(1);
+    setEditingRegistrationId(null);
     setForm(emptyForm());
     setItems([emptyItem()]);
     setItemSearch("");
@@ -390,6 +484,20 @@ export default function WebPreventiveItemsPage() {
     setTriggerHourmeter("500");
     setTriggerTemporalMonths("6");
     setSavedMessage("");
+  };
+
+  const handleEditRegistration = (registrationId: string) => {
+    const selected = savedRegistrations.find((registration) => registration.registrationId === registrationId);
+    if (!selected) return;
+    setEditingRegistrationId(selected.registrationId);
+    setForm({ ...emptyForm(), ...selected.form });
+    setItems(selected.items.length > 0 ? selected.items.map((item) => normalizeItem(item)) : [emptyItem()]);
+    setTriggerKm(String(selected.triggerConfig.quilometragemKm || 20000));
+    setTriggerHourmeter(String(selected.triggerConfig.horimetroHrs || suggestedTriggerHourmeter));
+    setTriggerTemporalMonths(String(selected.triggerConfig.temporalMeses || suggestedTriggerTemporalMonths));
+    setStep(2);
+    setSavedMessage("Cadastro carregado para edicao.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const completedStep1Count = [
@@ -1008,14 +1116,6 @@ export default function WebPreventiveItemsPage() {
 
           <div className="flex flex-col items-start gap-2 md:items-end">
             {savedMessage && <p className="text-sm font-semibold text-emerald-700">{savedMessage}</p>}
-            {savedMessage && step === 2 && (
-              <Link
-                href="/web/preventive-registrations"
-                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700 hover:bg-emerald-100"
-              >
-                Ir para Cadastros de Preventivas
-              </Link>
-            )}
             {step === 1 ? (
               <button
                 type="button"
@@ -1033,6 +1133,85 @@ export default function WebPreventiveItemsPage() {
                 Salvar Plano de Manutencao
               </button>
             )}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-xl font-black text-slate-900">Cadastros de Preventivas</h3>
+              <p className="text-sm text-slate-500">
+                Registros salvos localmente agrupam a base de planos para reutilizacao e ajustes.
+              </p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-600">
+              {savedRegistrations.length} cadastro{savedRegistrations.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {savedRegistrations.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
+                Nenhum cadastro salvo ainda. Finalize um plano acima para ele aparecer aqui.
+              </div>
+            )}
+
+            {savedRegistrations.map((registration) => (
+              <div
+                key={registration.registrationId}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-black text-slate-900">
+                        {registration.form.vehicleModel || "Modelo nao informado"}
+                      </p>
+                      <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                        {registration.form.operationType || "Operacao"}
+                      </span>
+                      {editingRegistrationId === registration.registrationId && (
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+                          Em edicao
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {registration.form.vehicleBrand} • {registration.form.vehicleType} • Centro:{" "}
+                      {registration.form.centerCost || "-"}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
+                        Pecas: {registration.items.length}
+                      </span>
+                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
+                        KM: {registration.triggerConfig.quilometragemKm || 0}
+                      </span>
+                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
+                        Horimetro: {registration.triggerConfig.horimetroHrs || 0}h
+                      </span>
+                      <span className="rounded-full bg-white px-2 py-1 border border-slate-200">
+                        Temporal: {registration.triggerConfig.temporalMeses || 0} meses
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Salvo em{" "}
+                      {new Date(registration.updatedAt || registration.createdAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditRegistration(registration.registrationId)}
+                      className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-black text-blue-700 hover:bg-blue-50"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </div>
