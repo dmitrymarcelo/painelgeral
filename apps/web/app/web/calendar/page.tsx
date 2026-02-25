@@ -70,6 +70,53 @@ const parseAssetLabel = (label: string) => {
   return { model: label, plate: label };
 };
 
+const statusChipColors: Record<
+  MaintenanceStatus,
+  {
+    eventBg: string;
+    eventBorder: string;
+    eventText: string;
+    dot: string;
+    badge: string;
+  }
+> = {
+  scheduled: {
+    eventBg: "bg-blue-50",
+    eventBorder: "border-l-blue-500",
+    eventText: "text-blue-700",
+    dot: "bg-blue-500",
+    badge: "bg-blue-100 text-blue-700",
+  },
+  in_progress: {
+    eventBg: "bg-amber-50",
+    eventBorder: "border-l-amber-500",
+    eventText: "text-amber-700",
+    dot: "bg-amber-500",
+    badge: "bg-amber-100 text-amber-700",
+  },
+  tolerance: {
+    eventBg: "bg-orange-50",
+    eventBorder: "border-l-orange-500",
+    eventText: "text-orange-700",
+    dot: "bg-orange-500",
+    badge: "bg-orange-100 text-orange-700",
+  },
+  no_show: {
+    eventBg: "bg-rose-50",
+    eventBorder: "border-l-rose-600",
+    eventText: "text-rose-700",
+    dot: "bg-rose-600",
+    badge: "bg-rose-100 text-rose-700",
+  },
+  completed: {
+    eventBg: "bg-emerald-50",
+    eventBorder: "border-l-emerald-500",
+    eventText: "text-emerald-700",
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-100 text-emerald-700",
+  },
+};
+
 const CENTER_COST_BY_PLATE: Record<string, string> = {
   "ABC-1234": "Operacoes Campo",
   "XYZ-9876": "Logistica Norte",
@@ -161,6 +208,8 @@ export default function WebCalendarPage() {
   const [modalReadOnly, setModalReadOnly] = useState(false);
   const [draggedEvent, setDraggedEvent] = useState<MaintenanceEvent | null>(null);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [monthPickerYear, setMonthPickerYear] = useState(new Date().getFullYear());
   const [formAsset, setFormAsset] = useState("");
   const [formType] = useState<MaintenanceType>("preventive");
   const [formDescription, setFormDescription] = useState("");
@@ -240,6 +289,11 @@ export default function WebCalendarPage() {
 
   const goToNextMonth = () =>
     setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+
+  const goToMonthYear = (monthIndex: number, year: number) => {
+    setCurrentDate(new Date(year, monthIndex, 1));
+    setMonthPickerOpen(false);
+  };
 
   const resetForm = () => {
     setFormAsset("");
@@ -803,9 +857,64 @@ export default function WebCalendarPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h3 className="text-2xl font-black">
-                {months[currentMonth]} {currentYear}
-              </h3>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMonthPickerYear(currentYear);
+                    setMonthPickerOpen((current) => !current);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black hover:bg-slate-50"
+                  title="Selecionar mes e ano"
+                >
+                  <span>
+                    {months[currentMonth]} {currentYear}
+                  </span>
+                  <span className="text-sm text-slate-500">▼</span>
+                </button>
+
+                {monthPickerOpen && (
+                  <div className="absolute left-0 top-14 z-20 w-[320px] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+                    <div className="mb-3 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setMonthPickerYear((year) => year - 1)}
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold hover:bg-slate-50"
+                      >
+                        ◀
+                      </button>
+                      <p className="text-sm font-black">{monthPickerYear}</p>
+                      <button
+                        type="button"
+                        onClick={() => setMonthPickerYear((year) => year + 1)}
+                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold hover:bg-slate-50"
+                      >
+                        ▶
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {months.map((monthLabel, monthIndex) => {
+                        const active = monthIndex === currentMonth && monthPickerYear === currentYear;
+                        return (
+                          <button
+                            key={`${monthLabel}-${monthPickerYear}`}
+                            type="button"
+                            onClick={() => goToMonthYear(monthIndex, monthPickerYear)}
+                            className={`rounded-xl px-2 py-2 text-xs font-bold transition ${
+                              active
+                                ? "bg-[var(--color-brand)] text-white"
+                                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {monthLabel.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={goToNextMonth}
                 className="rounded-xl border border-slate-200 p-2 hover:bg-slate-100"
@@ -832,6 +941,20 @@ export default function WebCalendarPage() {
                     .replace("-50", "-500")}`}
                 />
                 <span>{colors.label}</span>
+              </div>
+            ))}
+            {(
+              [
+                ["scheduled", "Agendado"],
+                ["in_progress", "Em andamento"],
+                ["tolerance", "Em tolerancia"],
+                ["no_show", "Nao Compareceu"],
+                ["completed", "Concluido"],
+              ] as Array<[MaintenanceStatus, string]>
+            ).map(([status, label]) => (
+              <div key={status} className="flex items-center gap-2">
+                <div className={`h-3 w-3 rounded ${statusChipColors[status].dot}`} />
+                <span>{label}</span>
               </div>
             ))}
             <div className="flex items-center gap-2">
@@ -897,6 +1020,8 @@ export default function WebCalendarPage() {
                       <div className="space-y-1">
                         {dayEvents.slice(0, 3).map((event) => {
                           const eventIsPast = getEventIsPast(event);
+                          const effectiveStatus = getEffectiveMaintenanceStatus(event);
+                          const statusColors = statusChipColors[effectiveStatus];
                           return (
                             <div
                               key={event.id}
@@ -904,7 +1029,7 @@ export default function WebCalendarPage() {
                               onDragStart={(dragEvent) => handleDragStart(event, dragEvent)}
                               onDragEnd={handleDragEnd}
                               onClick={(clickEvent) => handleEventClick(event, clickEvent)}
-                              className={`truncate rounded border-l-2 ${typeColors[event.type].border} ${typeColors[event.type].bg} px-1 py-0.5 text-[10px] font-medium ${typeColors[event.type].text} ${
+                              className={`truncate rounded border-l-2 ${statusColors.eventBorder} ${statusColors.eventBg} px-1 py-0.5 text-[10px] font-medium ${statusColors.eventText} ${
                                 eventIsPast
                                   ? "cursor-default opacity-70"
                                   : "cursor-move hover:opacity-80"
@@ -931,9 +1056,20 @@ export default function WebCalendarPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black">
-                {selectedEvent ? "Detalhes do Agendamento" : translations.createMaintenanceOrder}
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-black">
+                  {selectedEvent ? "Detalhes do Agendamento" : translations.createMaintenanceOrder}
+                </h2>
+                {selectedEvent && (
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                      statusChipColors[getEffectiveMaintenanceStatus(selectedEvent)].badge
+                    }`}
+                  >
+                    {getStatusLabel(getEffectiveMaintenanceStatus(selectedEvent))}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => {
                   setShowModal(false);
