@@ -45,9 +45,9 @@ const typeColors: Record<
   { bg: string; border: string; text: string; label: string }
 > = {
   preventive: {
-    bg: "bg-blue-50",
-    border: "border-l-blue-500",
-    text: "text-blue-700",
+    bg: "bg-slate-50",
+    border: "border-l-slate-500",
+    text: "text-slate-700",
     label: "Preventiva",
   },
 };
@@ -958,7 +958,7 @@ export default function WebCalendarPage() {
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded bg-emerald-500" />
+              <div className="h-3 w-3 rounded bg-cyan-500" />
               <span>Hoje</span>
             </div>
           </div>
@@ -1000,7 +1000,7 @@ export default function WebCalendarPage() {
                   } ${
                     isDragOver ? "border-blue-500 bg-blue-50" : ""
                   } ${dayIsPast ? "bg-slate-50/80 text-slate-400" : "hover:bg-slate-50"} ${
-                    dayIsToday ? "bg-emerald-50" : ""
+                    dayIsToday ? "bg-cyan-50" : ""
                   }`}
                 >
                   {day && (
@@ -1008,7 +1008,7 @@ export default function WebCalendarPage() {
                       <p
                         className={`mb-1 text-sm font-bold ${
                           dayIsToday
-                            ? "text-emerald-700"
+                            ? "text-cyan-700"
                             : dayIsPast
                               ? "text-slate-400"
                               : "text-slate-500"
