@@ -9,6 +9,7 @@ type PreventiveItemRow = {
   partMaterial: string;
   usefulLifeKm: string;
   usefulLifeTime: string;
+  maintenanceTriggerType: "quilometragem" | "horimetro" | "temporal";
 };
 
 type FormState = {
@@ -30,6 +31,7 @@ const emptyItem = (): PreventiveItemRow => ({
   partMaterial: "",
   usefulLifeKm: "",
   usefulLifeTime: "",
+  maintenanceTriggerType: "quilometragem",
 });
 
 const emptyForm = (): FormState => ({
@@ -53,6 +55,9 @@ export default function WebPreventiveItemsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [items, setItems] = useState<PreventiveItemRow[]>([emptyItem()]);
   const [itemSearch, setItemSearch] = useState("");
+  const [triggerKm, setTriggerKm] = useState("20000");
+  const [triggerHourmeter, setTriggerHourmeter] = useState("500");
+  const [triggerTemporalMonths, setTriggerTemporalMonths] = useState("6");
 
   const canAdvanceToStep2 = useMemo(
     () =>
@@ -99,10 +104,9 @@ export default function WebPreventiveItemsPage() {
     return Math.round(base * opFactor);
   }, [items.length, form.operationType]);
 
-  const triggerKm = averageUsefulLifeKm || 20000;
-  const triggerHourmeter =
+  const suggestedTriggerHourmeter =
     form.operationType === "Severo" ? 350 : form.operationType === "Leve" ? 700 : 500;
-  const triggerTemporalMonths = useMemo(() => {
+  const suggestedTriggerTemporalMonths = useMemo(() => {
     const monthValues = items
       .map((item) => item.usefulLifeTime.toLowerCase())
       .map((text) => {
@@ -120,6 +124,34 @@ export default function WebPreventiveItemsPage() {
 
   const updateItem = (id: string, key: keyof PreventiveItemRow, value: string) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
+    setSavedMessage("");
+  };
+
+  const applyTriggerToItem = (id: string) => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== id) return item;
+        if (item.maintenanceTriggerType === "quilometragem") {
+          return {
+            ...item,
+            usefulLifeKm: triggerKm,
+            usefulLifeTime: item.usefulLifeTime || `${triggerTemporalMonths} meses`,
+          };
+        }
+        if (item.maintenanceTriggerType === "horimetro") {
+          return {
+            ...item,
+            usefulLifeKm: item.usefulLifeKm || "0",
+            usefulLifeTime: `${triggerHourmeter} hrs`,
+          };
+        }
+        return {
+          ...item,
+          usefulLifeTime: `${triggerTemporalMonths} meses`,
+          usefulLifeKm: item.usefulLifeKm || triggerKm,
+        };
+      }),
+    );
     setSavedMessage("");
   };
 
@@ -170,6 +202,9 @@ export default function WebPreventiveItemsPage() {
     setForm(emptyForm());
     setItems([emptyItem()]);
     setItemSearch("");
+    setTriggerKm("20000");
+    setTriggerHourmeter("500");
+    setTriggerTemporalMonths("6");
     setSavedMessage("");
   };
 
@@ -458,15 +493,19 @@ export default function WebPreventiveItemsPage() {
                           Quilometragem
                         </p>
                         <div className="mt-2 flex items-end gap-2">
-                          <p className="text-4xl font-black text-slate-900">
-                            {triggerKm.toLocaleString("pt-BR")}
-                          </p>
+                          <input
+                            type="number"
+                            min={0}
+                            value={triggerKm}
+                            onChange={(e) => setTriggerKm(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black text-slate-900"
+                          />
                           <p className="pb-1 text-lg font-black text-slate-400">KM</p>
                         </div>
                         <p className="mt-3 text-xs leading-relaxed text-slate-500">
                           Troque este item ao atingir aproximadamente{" "}
                           <span className="font-bold text-slate-700">
-                            {triggerKm.toLocaleString("pt-BR")} km
+                            {(Number(triggerKm) || 0).toLocaleString("pt-BR")} km
                           </span>{" "}
                           ou antes, conforme operacao.
                         </p>
@@ -485,11 +524,18 @@ export default function WebPreventiveItemsPage() {
                           Horimetro
                         </p>
                         <div className="mt-2 flex items-end gap-2">
-                          <p className="text-4xl font-black text-slate-900">{triggerHourmeter}</p>
+                          <input
+                            type="number"
+                            min={0}
+                            value={triggerHourmeter}
+                            onChange={(e) => setTriggerHourmeter(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black text-slate-900"
+                          />
                           <p className="pb-1 text-lg font-black text-slate-400">HRS</p>
                         </div>
                         <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                          Ideal para maquinas ou veiculos com uso por horas. Ajuste pelo tipo de operacao.
+                          Ideal para maquinas/veiculos por horas. Sugestao atual:
+                          <span className="ml-1 font-bold text-slate-700">{suggestedTriggerHourmeter} hrs</span>.
                         </p>
                       </div>
 
@@ -506,11 +552,18 @@ export default function WebPreventiveItemsPage() {
                           Temporal
                         </p>
                         <div className="mt-2 flex items-end gap-2">
-                          <p className="text-4xl font-black text-slate-900">{triggerTemporalMonths}</p>
+                          <input
+                            type="number"
+                            min={1}
+                            value={triggerTemporalMonths}
+                            onChange={(e) => setTriggerTemporalMonths(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-2xl font-black text-slate-900"
+                          />
                           <p className="pb-1 text-lg font-black text-slate-400">MESES</p>
                         </div>
                         <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                          Independente do uso, realizar a troca pelo limite de tempo definido.
+                          Independente do uso. Sugestao atual:
+                          <span className="ml-1 font-bold text-slate-700">{suggestedTriggerTemporalMonths} meses</span>.
                         </p>
                       </div>
                     </div>
@@ -548,7 +601,7 @@ export default function WebPreventiveItemsPage() {
                         key={item.id}
                         className={`rounded-2xl border p-4 ${isItemComplete(item) ? "border-slate-200" : "border-amber-200 bg-amber-50/40"}`}
                       >
-                        <div className="grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.8fr_auto] lg:items-end">
+                        <div className="grid gap-3 lg:grid-cols-[1.35fr_0.8fr_0.8fr_0.95fr_auto] lg:items-end">
                           <div>
                             <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
                               Peças/material *
@@ -575,6 +628,26 @@ export default function WebPreventiveItemsPage() {
                           </div>
                           <div>
                             <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                              Tipo de manutencao *
+                            </label>
+                            <select
+                              value={item.maintenanceTriggerType}
+                              onChange={(e) =>
+                                updateItem(
+                                  item.id,
+                                  "maintenanceTriggerType",
+                                  e.target.value as PreventiveItemRow["maintenanceTriggerType"],
+                                )
+                              }
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                            >
+                              <option value="quilometragem">Quilometragem</option>
+                              <option value="horimetro">Horimetro</option>
+                              <option value="temporal">Temporal</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
                               Vida util (tempo) *
                             </label>
                             <input
@@ -594,6 +667,13 @@ export default function WebPreventiveItemsPage() {
                             >
                               {isItemComplete(item) ? "Completo" : "Pendente"}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => applyTriggerToItem(item.id)}
+                              className="rounded-xl border border-blue-200 px-3 py-3 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
+                            >
+                              Aplicar gatilho
+                            </button>
                             <button
                               type="button"
                               onClick={() => removeItem(item.id)}
@@ -648,7 +728,7 @@ export default function WebPreventiveItemsPage() {
                       Gatilho KM
                     </p>
                     <p className="mt-1 text-lg font-black text-blue-700">
-                      {averageUsefulLifeKm ? `${averageUsefulLifeKm.toLocaleString("pt-BR")} KM` : "--"}
+                      {Number(triggerKm) > 0 ? `${Number(triggerKm).toLocaleString("pt-BR")} KM` : "--"}
                     </p>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-3">
