@@ -99,6 +99,20 @@ export default function WebPreventiveItemsPage() {
     return Math.round(base * opFactor);
   }, [items.length, form.operationType]);
 
+  const triggerKm = averageUsefulLifeKm || 20000;
+  const triggerHourmeter =
+    form.operationType === "Severo" ? 350 : form.operationType === "Leve" ? 700 : 500;
+  const triggerTemporalMonths = useMemo(() => {
+    const monthValues = items
+      .map((item) => item.usefulLifeTime.toLowerCase())
+      .map((text) => {
+        const match = text.match(/(\d+)/);
+        return match ? Number(match[1]) : null;
+      })
+      .filter((value): value is number => value != null && value > 0);
+    return monthValues.length > 0 ? Math.min(...monthValues) : 6;
+  }, [items]);
+
   const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
     setSavedMessage("");
@@ -419,6 +433,88 @@ export default function WebPreventiveItemsPage() {
                       />
                     </div>
                   </div>
+
+                  <div className="mt-6">
+                    <div className="mb-3">
+                      <h4 className="text-lg font-black text-slate-900">
+                        Gatilhos de Manutencao
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-500">
+                        A revisao ocorre pelo que atingir primeiro. Valores abaixo podem ser adaptados ao projeto.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-100 text-blue-700">
+                            ⛽
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                            Frequencia
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-blue-700">
+                          Quilometragem
+                        </p>
+                        <div className="mt-2 flex items-end gap-2">
+                          <p className="text-4xl font-black text-slate-900">
+                            {triggerKm.toLocaleString("pt-BR")}
+                          </p>
+                          <p className="pb-1 text-lg font-black text-slate-400">KM</p>
+                        </div>
+                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                          Troque este item ao atingir aproximadamente{" "}
+                          <span className="font-bold text-slate-700">
+                            {triggerKm.toLocaleString("pt-BR")} km
+                          </span>{" "}
+                          ou antes, conforme operacao.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-700">
+                            ⏱
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                            Frequencia
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
+                          Horimetro
+                        </p>
+                        <div className="mt-2 flex items-end gap-2">
+                          <p className="text-4xl font-black text-slate-900">{triggerHourmeter}</p>
+                          <p className="pb-1 text-lg font-black text-slate-400">HRS</p>
+                        </div>
+                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                          Ideal para maquinas ou veiculos com uso por horas. Ajuste pelo tipo de operacao.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
+                            📅
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                            Frequencia
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-emerald-700">
+                          Temporal
+                        </p>
+                        <div className="mt-2 flex items-end gap-2">
+                          <p className="text-4xl font-black text-slate-900">{triggerTemporalMonths}</p>
+                          <p className="pb-1 text-lg font-black text-slate-400">MESES</p>
+                        </div>
+                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                          Independente do uso, realizar a troca pelo limite de tempo definido.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -646,4 +742,3 @@ export default function WebPreventiveItemsPage() {
     </WebShell>
   );
 }
-
