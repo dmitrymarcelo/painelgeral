@@ -50,23 +50,9 @@ const isItemComplete = (item: PreventiveItemRow) =>
 export default function WebPreventiveItemsPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [savedMessage, setSavedMessage] = useState("");
-  const [itemSearch, setItemSearch] = useState("");
-  const [itemCompletenessFilter, setItemCompletenessFilter] = useState<"all" | "complete" | "pending">("all");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [items, setItems] = useState<PreventiveItemRow[]>([emptyItem()]);
-
-  const stepMeta = [
-    {
-      id: 1 as const,
-      title: "Identificacao do Veiculo",
-      subtitle: "Modelo, marca, tipo, operacao e centro de custo",
-    },
-    {
-      id: 2 as const,
-      title: "Formula e Itens Preventivos",
-      subtitle: "Formula tecnica e lista de pecas/material com vida util",
-    },
-  ];
+  const [itemSearch, setItemSearch] = useState("");
 
   const canAdvanceToStep2 = useMemo(
     () =>
@@ -93,44 +79,25 @@ export default function WebPreventiveItemsPage() {
     [form, items],
   );
 
-  const completedStep1Fields = useMemo(
-    () =>
-      [
-        form.vehicleModel,
-        form.vehicleBrand,
-        form.vehicleType,
-        form.operationType,
-        form.centerCost,
-      ].filter((value) => String(value).trim()).length,
-    [form],
-  );
-
-  const averageUsefulLifeKm = useMemo(() => {
-    const values = items
-      .map((item) => Number(item.usefulLifeKm))
-      .filter((value) => Number.isFinite(value) && value > 0);
-    if (values.length === 0) return 0;
-    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-  }, [items]);
-
   const filteredItems = useMemo(() => {
     const needle = itemSearch.trim().toLowerCase();
-    return items.filter((item) => {
-      const matchesSearch =
-        !needle ||
-        item.partMaterial.toLowerCase().includes(needle) ||
-        item.usefulLifeKm.toLowerCase().includes(needle) ||
-        item.usefulLifeTime.toLowerCase().includes(needle);
+    if (!needle) return items;
+    return items.filter((item) => item.partMaterial.toLowerCase().includes(needle));
+  }, [items, itemSearch]);
 
-      const complete = isItemComplete(item);
-      const matchesCompleteness =
-        itemCompletenessFilter === "all" ||
-        (itemCompletenessFilter === "complete" && complete) ||
-        (itemCompletenessFilter === "pending" && !complete);
+  const averageUsefulLifeKm = useMemo(() => {
+    const kmValues = items
+      .map((item) => Number(item.usefulLifeKm))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (kmValues.length === 0) return 0;
+    return Math.round(kmValues.reduce((sum, value) => sum + value, 0) / kmValues.length);
+  }, [items]);
 
-      return matchesSearch && matchesCompleteness;
-    });
-  }, [itemCompletenessFilter, itemSearch, items]);
+  const estimatedInvestment = useMemo(() => {
+    const base = items.length * 145;
+    const opFactor = form.operationType === "Severo" ? 1.35 : form.operationType === "Leve" ? 0.9 : 1;
+    return Math.round(base * opFactor);
+  }, [items.length, form.operationType]);
 
   const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -171,7 +138,7 @@ export default function WebPreventiveItemsPage() {
 
   const handleSave = () => {
     if (!canSave) {
-      alert("Preencha os campos obrigatorios da etapa 2 e todos os itens.");
+      alert("Preencha os campos obrigatorios da etapa 2 e todos os itens obrigatorios.");
       return;
     }
 
@@ -181,527 +148,500 @@ export default function WebPreventiveItemsPage() {
       items,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    setSavedMessage("Cadastro de itens de preventiva salvo localmente com sucesso.");
+    setSavedMessage("Plano de manutencao preventivo salvo localmente com sucesso.");
   };
 
   const resetAll = () => {
     setStep(1);
     setForm(emptyForm());
     setItems([emptyItem()]);
-    setSavedMessage("");
     setItemSearch("");
-    setItemCompletenessFilter("all");
+    setSavedMessage("");
   };
 
+  const completedStep1Count = [
+    form.vehicleModel,
+    form.vehicleBrand,
+    form.vehicleType,
+    form.operationType,
+    form.centerCost,
+  ].filter((value) => String(value).trim()).length;
+
+  const stepperItems = [
+    { num: "01", label: "Identificacao", active: step === 1, done: step > 1 },
+    { num: "02", label: "Intervalos", active: step === 2, done: false },
+    { num: "03", label: "Checklist", active: false, done: false },
+    { num: "04", label: "Revisao", active: false, done: false },
+  ];
+
   return (
-    <WebShell title={translations.preventiveItemsRegister} subtitle="Cadastro em 2 etapas">
-      <div className="space-y-5">
-        <div className="card p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <WebShell title={translations.preventiveItemsRegister} subtitle="Plano preventivo">
+      <div className="space-y-6">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-5">
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">
-                Cadastro de Itens de Preventiva
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                Configuracoes &gt; Planos de Manutencao &gt; Novo Plano
+              </p>
+              <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-900">
+                Cadastro de Planos de Manutencao
               </h2>
-              <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                Monte o plano preventivo por veiculo com dados de identificacao, formula tecnica e
-                itens de pecas/material com vida util por quilometragem e tempo.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                {form.operationType && (
-                  <span className="rounded-full bg-blue-100 px-3 py-1 font-bold text-blue-700">
-                    Operacao: {form.operationType}
-                  </span>
-                )}
-                {form.vehicleType && (
-                  <span className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-700">
-                    Tipo: {form.vehicleType}
-                  </span>
-                )}
-                {form.centerCost && (
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 font-bold text-emerald-700">
-                    Centro: {form.centerCost}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => alert("Importacao de modelos sera conectada ao backend/API depois.")}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
-              >
-                Importar Modelo
-              </button>
-              <button
-                type="button"
-                onClick={resetAll}
-                className="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-600"
-              >
-                Novo Plano de Veiculo
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="card p-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Etapa 1</p>
-            <p className="mt-2 text-3xl font-black text-slate-900">{completedStep1Fields}/5</p>
-            <p className="mt-1 text-xs text-slate-500">Campos preenchidos</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Itens preventivos</p>
-            <p className="mt-2 text-3xl font-black text-slate-900">{items.length}</p>
-            <p className="mt-1 text-xs text-slate-500">Linhas cadastradas</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Vida util media (KM)</p>
-            <p className="mt-2 text-3xl font-black text-slate-900">
-              {averageUsefulLifeKm ? averageUsefulLifeKm.toLocaleString("pt-BR") : "--"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Media entre itens com KM preenchido</p>
-          </div>
-          <div className="card p-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pronto para salvar</p>
-            <p className={`mt-2 text-3xl font-black ${canSave ? "text-emerald-700" : "text-amber-600"}`}>
-              {canSave ? "SIM" : "NAO"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Validacao final da etapa 2</p>
-          </div>
-        </div>
-
-        <div className="card p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                Fluxo de cadastro
-              </p>
-              <h3 className="mt-1 text-base font-black">
-                {stepMeta.find((item) => item.id === step)?.title}
-              </h3>
-              <p className="text-sm text-slate-500">
-                {stepMeta.find((item) => item.id === step)?.subtitle}
+              <p className="mt-2 text-base text-slate-500">
+                Crie uma rotina inteligente para disponibilidade da frota sem perder os itens
+                obrigatorios de preventiva.
               </p>
             </div>
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black uppercase text-slate-600">
-              Etapa {step} de 2
-            </span>
-          </div>
 
-          <div className="mt-4">
-            <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-[var(--color-brand)] transition-all duration-300 ease-out"
-                style={{ width: step === 1 ? "50%" : "100%" }}
-              />
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              {stepMeta.map((meta) => {
-                const active = meta.id === step;
-                const completed = meta.id < step;
-                return (
+            <div className="grid gap-3 md:grid-cols-4">
+              {stepperItems.map((item, index) => (
+                <div key={item.num} className="relative">
+                  {index < stepperItems.length - 1 && (
+                    <div className="absolute left-[58%] top-5 hidden h-[2px] w-[90%] bg-slate-200 md:block" />
+                  )}
                   <button
-                    key={meta.id}
                     type="button"
                     onClick={() => {
-                      if (meta.id === 1 || canAdvanceToStep2) setStep(meta.id);
+                      if (item.num === "01") setStep(1);
+                      if (item.num === "02" && canAdvanceToStep2) {
+                        syncStep1ToStep2();
+                        setStep(2);
+                      }
                     }}
-                    className={`rounded-2xl border p-4 text-left transition ${
-                      active
-                        ? "border-[var(--color-brand)] bg-[var(--color-brand-soft)]/25 shadow-sm"
-                        : completed
-                          ? "border-emerald-200 bg-emerald-50/70"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
-                    }`}
+                    className="relative z-10 flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left"
                   >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`mt-0.5 grid h-8 w-8 place-items-center rounded-full text-xs font-black ${
-                          active
-                            ? "bg-[var(--color-brand)] text-white"
-                            : completed
-                              ? "bg-emerald-600 text-white"
-                              : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-                        {completed ? "OK" : meta.id}
-                      </div>
-                      <div>
-                        <p className="text-sm font-black">{meta.title}</p>
-                        <p className="mt-1 text-xs text-slate-500">{meta.subtitle}</p>
-                      </div>
+                    <span
+                      className={`grid h-10 w-10 place-items-center rounded-full text-sm font-black ${
+                        item.done
+                          ? "bg-emerald-100 text-emerald-700 ring-2 ring-emerald-300"
+                          : item.active
+                            ? "bg-blue-100 text-blue-700 ring-2 ring-blue-300"
+                            : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {item.done ? "OK" : item.num}
+                    </span>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-700">
+                        {item.label}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {item.num === "01"
+                          ? "Base do veiculo"
+                          : item.num === "02"
+                            ? "Formula + itens"
+                            : "Etapa futura"}
+                      </p>
                     </div>
                   </button>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {step === 1 && (
-          <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
-            <div className="card p-5">
-              <h3 className="text-lg font-black">Etapa 1 - Identificacao do Veiculo e Operacao</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Defina as informacoes-base que serao usadas no plano preventivo.
-              </p>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Modelo do Veiculo *
-                  </label>
-                  <input
-                    value={form.vehicleModel}
-                    onChange={(e) => updateForm("vehicleModel", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                    placeholder="Ex.: Hilux SRX 2.8"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Marca do Veiculo *
-                  </label>
-                  <input
-                    value={form.vehicleBrand}
-                    onChange={(e) => updateForm("vehicleBrand", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                    placeholder="Ex.: Toyota"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Tipo de Veiculo *
-                  </label>
-                  <input
-                    value={form.vehicleType}
-                    onChange={(e) => updateForm("vehicleType", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                    placeholder="Ex.: Utilitario"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Tipo de operacao *
-                  </label>
-                  <select
-                    value={form.operationType}
-                    onChange={(e) =>
-                      updateForm("operationType", e.target.value as FormState["operationType"])
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="Severo">Severo</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Leve">Leve</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Centro de custo *
-                  </label>
-                  <input
-                    value={form.centerCost}
-                    onChange={(e) => updateForm("centerCost", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                    placeholder="Ex.: Operacoes Campo"
-                  />
-                </div>
+        <section className="grid gap-5 xl:grid-cols-[1.9fr_0.95fr]">
+          <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Etapa 1</p>
+                <p className="mt-2 text-3xl font-black">{completedStep1Count}/5</p>
+                <p className="text-xs text-slate-500">Campos base preenchidos</p>
               </div>
-
-              <div className="mt-6 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="rounded-xl bg-[var(--color-brand)] px-5 py-3 text-sm font-black uppercase text-white"
-                >
-                  Avancar para Etapa 2
-                </button>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Itens</p>
+                <p className="mt-2 text-3xl font-black">{items.length}</p>
+                <p className="text-xs text-slate-500">Pecas / materiais</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">KM Medio</p>
+                <p className="mt-2 text-3xl font-black">
+                  {averageUsefulLifeKm ? averageUsefulLifeKm.toLocaleString("pt-BR") : "--"}
+                </p>
+                <p className="text-xs text-slate-500">Vida util media (km)</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Status</p>
+                <p className={`mt-2 text-2xl font-black ${canSave ? "text-emerald-700" : "text-amber-600"}`}>
+                  {canSave ? "Pronto" : "Em construcao"}
+                </p>
+                <p className="text-xs text-slate-500">Validacao do plano</p>
               </div>
             </div>
 
-            <div className="space-y-5">
-              <div className="card p-5">
-                <h4 className="text-sm font-black uppercase tracking-[0.12em] text-slate-600">
-                  Preview do plano
-                </h4>
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-slate-500">Modelo</span>
-                    <span className="font-semibold text-slate-800">{form.vehicleModel || "-"}</span>
+            {step === 1 && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900">Configuracoes Base</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Campos obrigatorios da Etapa 1 para identificar o veiculo e a operacao.
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-slate-500">Marca</span>
-                    <span className="font-semibold text-slate-800">{form.vehicleBrand || "-"}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-slate-500">Tipo</span>
-                    <span className="font-semibold text-slate-800">{form.vehicleType || "-"}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-slate-500">Operacao</span>
-                    <span className="font-semibold text-slate-800">{form.operationType || "-"}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-slate-500">Centro de custo</span>
-                    <span className="font-semibold text-slate-800">{form.centerCost || "-"}</span>
-                  </div>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase text-blue-700">
+                    Etapa 01
+                  </span>
                 </div>
-              </div>
 
-              <div className="card p-5">
-                <h4 className="text-sm font-black uppercase tracking-[0.12em] text-slate-600">
-                  Regras de cadastro
-                </h4>
-                <div className="mt-3 space-y-2 text-xs text-slate-600">
-                  <p>Todos os campos da etapa 1 sao obrigatorios para avancar.</p>
-                  <p>Marca e tipo sao reaproveitados automaticamente na etapa 2.</p>
-                  <p>O centro de custo define a alocacao do plano preventivo.</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                      Modelo do Veiculo *
+                    </label>
+                    <input
+                      value={form.vehicleModel}
+                      onChange={(e) => updateForm("vehicleModel", e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      placeholder="Ex.: Volvo FH 540 6x4"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                      Marca do Veiculo *
+                    </label>
+                    <input
+                      value={form.vehicleBrand}
+                      onChange={(e) => updateForm("vehicleBrand", e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      placeholder="Ex.: Volvo"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                      Tipo de Veiculo *
+                    </label>
+                    <input
+                      value={form.vehicleType}
+                      onChange={(e) => updateForm("vehicleType", e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      placeholder="Ex.: Caminhao"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                      Tipo de operacao *
+                    </label>
+                    <select
+                      value={form.operationType}
+                      onChange={(e) =>
+                        updateForm("operationType", e.target.value as FormState["operationType"])
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Severo">Severo</option>
+                      <option value="Normal">Normal</option>
+                      <option value="Leve">Leve</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                      Centro de custo *
+                    </label>
+                    <input
+                      value={form.centerCost}
+                      onChange={(e) => updateForm("centerCost", e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      placeholder="Ex.: Logistica Sul / Operacoes Campo"
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {step === 2 && (
-          <>
-            <div className="card p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-black">Etapa 2 - Formula e Itens Preventivos</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Defina a formula do veiculo e os itens preventivos com vida util por KM/tempo.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black uppercase text-slate-600"
-                >
-                  Voltar para Etapa 1
-                </button>
-              </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Descricao do veiculo *
-                  </label>
-                  <textarea
-                    value={form.vehicleDescription}
-                    onChange={(e) => updateForm("vehicleDescription", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                    rows={3}
-                    placeholder="Descreva aplicacao, configuracao, caracteristicas e observacoes."
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Marca do Veiculo *
-                  </label>
-                  <input
-                    value={form.vehicleBrandStep2}
-                    onChange={(e) => updateForm("vehicleBrandStep2", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Tipo de Veiculo *
-                  </label>
-                  <input
-                    value={form.vehicleTypeStep2}
-                    onChange={(e) => updateForm("vehicleTypeStep2", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Formula de veiculo *
-                  </label>
-                  <textarea
-                    value={form.vehicleFormula}
-                    onChange={(e) => updateForm("vehicleFormula", e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-mono"
-                    rows={3}
-                    placeholder="Ex.: km_base x fator_operacao + intervalo_tempo"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="card p-4">
-              <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Buscar item (peca/material)
-                  </label>
-                  <input
-                    value={itemSearch}
-                    onChange={(e) => setItemSearch(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                    placeholder="Ex.: filtro, oleo, correia..."
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                    Status do item
-                  </label>
-                  <select
-                    value={itemCompletenessFilter}
-                    onChange={(e) =>
-                      setItemCompletenessFilter(e.target.value as "all" | "complete" | "pending")
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                  >
-                    <option value="all">Todos</option>
-                    <option value="complete">Completos</option>
-                    <option value="pending">Pendentes</option>
-                  </select>
-                </div>
-                <div className="flex items-end">
+                <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    onClick={addItem}
-                    className="w-full rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase text-white"
+                    onClick={handleNext}
+                    className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
                   >
-                    Adicionar item
+                    Continuar para Intervalos
                   </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="card overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <div>
-                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-slate-700">
-                    Itens Preventivos
-                  </h4>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Cadastre pecas/material com vida util por KM e por tempo.
-                  </p>
+            {step === 2 && (
+              <>
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-900">Configuracao de Intervalos</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Campos obrigatorios da Etapa 2 e formula tecnica do veiculo.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase text-blue-700">
+                      Etapa 02
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                        Descricao do veiculo *
+                      </label>
+                      <textarea
+                        value={form.vehicleDescription}
+                        onChange={(e) => updateForm("vehicleDescription", e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                        rows={3}
+                        placeholder="Descricao detalhada do veiculo, uso e observacoes."
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                        Marca do Veiculo *
+                      </label>
+                      <input
+                        value={form.vehicleBrandStep2}
+                        onChange={(e) => updateForm("vehicleBrandStep2", e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                        Tipo de Veiculo *
+                      </label>
+                      <input
+                        value={form.vehicleTypeStep2}
+                        onChange={(e) => updateForm("vehicleTypeStep2", e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                        Formula de veiculo *
+                      </label>
+                      <textarea
+                        value={form.vehicleFormula}
+                        onChange={(e) => updateForm("vehicleFormula", e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm"
+                        rows={3}
+                        placeholder="Ex.: km_base x fator_operacao + intervalo_tempo"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-                  {filteredItems.length} item(ns)
-                </span>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Pecas/material</th>
-                      <th className="px-4 py-3">Vida util (km)</th>
-                      <th className="px-4 py-3">Vida util (tempo)</th>
-                      <th className="px-4 py-3 text-right">Acao</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredItems.map((item) => {
-                      const complete = isItemComplete(item);
-                      return (
-                        <tr
-                          key={item.id}
-                          className={`border-t border-slate-100 ${complete ? "bg-white" : "bg-amber-50/40"}`}
-                        >
-                          <td className="px-4 py-3">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                      <h4 className="text-xl font-black text-slate-900">Pecas e Insumos Obrigatorios</h4>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Itens obrigatorios da preventiva: peca/material + vida util (km) + vida util (tempo).
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <input
+                        value={itemSearch}
+                        onChange={(e) => setItemSearch(e.target.value)}
+                        className="w-64 rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                        placeholder="Buscar peca/material..."
+                      />
+                      <button
+                        type="button"
+                        onClick={addItem}
+                        className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
+                      >
+                        Adicionar Peca
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {filteredItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`rounded-2xl border p-4 ${isItemComplete(item) ? "border-slate-200" : "border-amber-200 bg-amber-50/40"}`}
+                      >
+                        <div className="grid gap-3 lg:grid-cols-[1.5fr_0.8fr_0.8fr_auto] lg:items-end">
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                              Peças/material *
+                            </label>
                             <input
                               value={item.partMaterial}
                               onChange={(e) => updateItem(item.id, "partMaterial", e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                              placeholder="Ex.: Filtro de oleo"
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                              placeholder="Ex.: Filtro de oleo, Correia, Oleo 15W40"
                             />
-                          </td>
-                          <td className="px-4 py-3">
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                              Vida util (km) *
+                            </label>
                             <input
                               type="number"
                               min={0}
                               value={item.usefulLifeKm}
                               onChange={(e) => updateItem(item.id, "usefulLifeKm", e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                              placeholder="Ex.: 10000"
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                              placeholder="20000"
                             />
-                          </td>
-                          <td className="px-4 py-3">
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                              Vida util (tempo) *
+                            </label>
                             <input
                               value={item.usefulLifeTime}
                               onChange={(e) => updateItem(item.id, "usefulLifeTime", e.target.value)}
-                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                              placeholder="Ex.: 6 meses"
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                              placeholder="6 meses"
                             />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <span
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                  complete
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
-                              >
-                                {complete ? "Completo" : "Pendente"}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeItem(item.id)}
-                                disabled={items.length === 1}
-                                className="rounded-lg border border-red-200 px-3 py-2 text-xs font-black uppercase text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                Remover
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                isItemComplete(item)
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {isItemComplete(item) ? "Completo" : "Pendente"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeItem(item.id)}
+                              disabled={items.length === 1}
+                              className="rounded-xl border border-red-200 px-3 py-3 text-xs font-black uppercase text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
                     {filteredItems.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-6 text-center text-sm text-slate-500">
-                          Nenhum item encontrado com os filtros selecionados.
-                        </td>
-                      </tr>
+                      <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                        Nenhum item encontrado para o filtro informado.
+                      </div>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <aside className="space-y-5">
+            <div className="rounded-3xl bg-gradient-to-br from-blue-600 to-blue-500 p-5 text-white shadow-lg">
+              <p className="text-sm font-black uppercase tracking-[0.12em] opacity-90">Dica Pro</p>
+              <p className="mt-3 text-sm leading-relaxed">
+                Para operacao <strong>{form.operationType || "Normal"}</strong>, priorize itens com
+                vida util combinada (KM + tempo) para reduzir falhas por ociosidade e uso severo.
+              </p>
+              <p className="mt-3 text-xs opacity-90">
+                Exemplo: filtros, lubrificantes e correias devem considerar o que ocorrer primeiro.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-sm font-black uppercase tracking-[0.12em] text-slate-500">
+                Resumo do Planejamento
+              </p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-xs text-slate-400">Configuracao principal</p>
+                  <p className="font-bold text-slate-900">
+                    {(form.vehicleModel || "Modelo")} • {(form.vehicleType || "Tipo")}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      Gatilho KM
+                    </p>
+                    <p className="mt-1 text-lg font-black text-blue-700">
+                      {averageUsefulLifeKm ? `${averageUsefulLifeKm.toLocaleString("pt-BR")} KM` : "--"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      Pecas
+                    </p>
+                    <p className="mt-1 text-lg font-black text-slate-900">{items.length} Itens</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-dashed border-slate-200 pt-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    Investimento est.
+                  </p>
+                  <p className="mt-1 text-3xl font-black text-blue-700">
+                    R$ {estimatedInvestment.toLocaleString("pt-BR")}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="card p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                    Resumo do cadastro
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    {items.length} item(ns) cadastrados para {form.vehicleModel || "veiculo"}.
-                  </p>
-                  {savedMessage && (
-                    <p className="mt-1 text-sm font-semibold text-emerald-700">{savedMessage}</p>
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black uppercase text-slate-600"
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-black text-slate-900">Checklist de Validacao</p>
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                  Passo {step === 1 ? "01" : "02"}
+                </span>
+              </div>
+              <div className="mt-4 space-y-2">
+                {[
+                  {
+                    label: "Campos base obrigatorios preenchidos",
+                    ok: canAdvanceToStep2,
+                  },
+                  {
+                    label: "Formula de veiculo definida",
+                    ok: Boolean(form.vehicleFormula.trim()),
+                  },
+                  {
+                    label: "Itens com KM e tempo cadastrados",
+                    ok: items.length > 0 && items.every(isItemComplete),
+                  },
+                ].map((check) => (
+                  <div
+                    key={check.label}
+                    className={`rounded-xl border px-3 py-2 text-sm ${
+                      check.ok
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        : "border-slate-200 bg-slate-50 text-slate-600"
+                    }`}
                   >
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    className="rounded-xl bg-[var(--color-brand)] px-5 py-3 text-sm font-black uppercase text-white"
-                  >
-                    Salvar cadastro
-                  </button>
-                </div>
+                    {check.ok ? "OK" : "Pendente"} - {check.label}
+                  </div>
+                ))}
               </div>
             </div>
-          </>
-        )}
+          </aside>
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+          <button
+            type="button"
+            onClick={() => (step === 2 ? setStep(1) : resetAll())}
+            className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+          >
+            {step === 2 ? "Voltar" : "Limpar Cadastro"}
+          </button>
+
+          <div className="flex flex-col items-start gap-2 md:items-end">
+            {savedMessage && <p className="text-sm font-semibold text-emerald-700">{savedMessage}</p>}
+            {step === 1 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
+              >
+                Continuar para Intervalos
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
+              >
+                Salvar Plano de Manutencao
+              </button>
+            )}
+          </div>
+        </section>
       </div>
     </WebShell>
   );
