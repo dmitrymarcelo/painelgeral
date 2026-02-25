@@ -601,29 +601,68 @@ export default function WebPreventiveItemsPage() {
         <section className="grid gap-5 xl:grid-cols-[1.9fr_0.95fr]">
           <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Etapa 1</p>
-                <p className="mt-2 text-3xl font-black">{completedStep1Count}/5</p>
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Etapa 1</p>
+                  <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                    Base
+                  </span>
+                </div>
+                <p className="mt-2 text-3xl font-black text-slate-900">{completedStep1Count}/5</p>
                 <p className="text-xs text-slate-500">Campos base preenchidos</p>
+                <div className="mt-3 h-2 rounded-full bg-slate-200">
+                  <div
+                    className="h-2 rounded-full bg-blue-500 transition-all"
+                    style={{ width: `${Math.min(100, Math.round((completedStep1Count / 5) * 100))}%` }}
+                  />
+                </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Itens</p>
-                <p className="mt-2 text-3xl font-black">{items.length}</p>
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Itens</p>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                    Plano
+                  </span>
+                </div>
+                <p className="mt-2 text-3xl font-black text-slate-900">{items.length}</p>
                 <p className="text-xs text-slate-500">Pecas / materiais</p>
+                <p className="mt-2 text-xs font-semibold text-slate-600">
+                  {items.filter(isItemComplete).length} completos • {items.filter((item) => !isItemComplete(item)).length} pendentes
+                </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">KM Medio</p>
-                <p className="mt-2 text-3xl font-black">
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-blue-50 to-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">KM Medio</p>
+                  <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                    Gatilho
+                  </span>
+                </div>
+                <p className="mt-2 text-3xl font-black text-blue-700">
                   {averageUsefulLifeKm ? averageUsefulLifeKm.toLocaleString("pt-BR") : "--"}
                 </p>
                 <p className="text-xs text-slate-500">Vida util media (km)</p>
+                <p className="mt-2 text-xs font-semibold text-blue-700/80">
+                  Referencia atual: {averageItemTriggerKm ? `${averageItemTriggerKm.toLocaleString("pt-BR")} km` : "--"}
+                </p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Status</p>
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Status</p>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                      canSave ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {canSave ? "OK" : "Ajuste"}
+                  </span>
+                </div>
                 <p className={`mt-2 text-2xl font-black ${canSave ? "text-emerald-700" : "text-amber-600"}`}>
                   {canSave ? "Pronto" : "Em construcao"}
                 </p>
                 <p className="text-xs text-slate-500">Validacao do plano</p>
+                <p className="mt-2 text-xs font-semibold text-slate-600">
+                  {canSave ? "Pode salvar o plano" : "Faltam campos obrigatorios"}
+                </p>
               </div>
             </div>
 
@@ -631,6 +670,9 @@ export default function WebPreventiveItemsPage() {
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                      Etapa 01 • Identificacao
+                    </p>
                     <h3 className="text-2xl font-black text-slate-900">Configuracoes Base</h3>
                     <p className="mt-1 text-sm text-slate-500">
                       Campos obrigatorios da Etapa 1 para identificar o veiculo e a operacao.
@@ -705,7 +747,29 @@ export default function WebPreventiveItemsPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                      Resumo rapido da etapa
+                    </p>
+                    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                      {completedStep1Count}/5 preenchidos
+                    </span>
+                  </div>
+                  <div className="grid gap-2 text-xs md:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      Modelo: <span className="font-bold text-slate-900">{form.vehicleModel || "-"}</span>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      Operacao: <span className="font-bold text-slate-900">{form.operationType || "-"}</span>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      Centro: <span className="font-bold text-slate-900">{form.centerCost || "-"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
                   <button
                     type="button"
                     onClick={handleNext}
@@ -722,6 +786,9 @@ export default function WebPreventiveItemsPage() {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                        Etapa 02 • Intervalos e formula
+                      </p>
                       <h3 className="text-2xl font-black text-slate-900">Configuracao de Intervalos</h3>
                       <p className="mt-1 text-sm text-slate-500">
                         Campos obrigatorios da Etapa 2 e formula tecnica do veiculo.
@@ -784,6 +851,9 @@ export default function WebPreventiveItemsPage() {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                     <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                        Itens vinculados ao plano
+                      </p>
                       <h4 className="text-xl font-black text-slate-900">Pecas e Insumos Obrigatorios</h4>
                       <p className="mt-1 text-sm text-slate-500">
                         Itens obrigatorios da preventiva: peca/material + vida util (km) + vida util (tempo).
@@ -1036,8 +1106,13 @@ export default function WebPreventiveItemsPage() {
           </div>
 
           <aside className="space-y-5">
-            <div className="rounded-3xl bg-gradient-to-br from-blue-600 to-blue-500 p-5 text-white shadow-lg">
-              <p className="text-sm font-black uppercase tracking-[0.12em] opacity-90">Dica Pro</p>
+            <div className="rounded-3xl border border-blue-300/30 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-5 text-white shadow-lg">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-black uppercase tracking-[0.12em] opacity-90">Dica Pro</p>
+                <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em]">
+                  Operacao {form.operationType || "Normal"}
+                </span>
+              </div>
               <p className="mt-3 text-sm leading-relaxed">
                 Para operacao <strong>{form.operationType || "Normal"}</strong>, priorize itens com
                 vida util combinada (KM + tempo) para reduzir falhas por ociosidade e uso severo.
@@ -1060,7 +1135,7 @@ export default function WebPreventiveItemsPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-slate-50 p-3">
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                       Gatilho KM
                     </p>
@@ -1068,11 +1143,30 @@ export default function WebPreventiveItemsPage() {
                       {averageItemTriggerKm > 0 ? `${averageItemTriggerKm.toLocaleString("pt-BR")} KM` : "--"}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
                       Pecas
                     </p>
                     <p className="mt-1 text-lg font-black text-slate-900">{items.length} Itens</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      Horimetro ref.
+                    </p>
+                    <p className="mt-1 text-lg font-black text-amber-700">
+                      {Number(triggerHourmeter) || suggestedTriggerHourmeter} HRS
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      Temporal ref.
+                    </p>
+                    <p className="mt-1 text-lg font-black text-emerald-700">
+                      {Number(triggerTemporalMonths) || suggestedTriggerTemporalMonths} meses
+                    </p>
                   </div>
                 </div>
 
@@ -1120,6 +1214,16 @@ export default function WebPreventiveItemsPage() {
                     {check.ok ? "OK" : "Pendente"} - {check.label}
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Proximo passo</p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {step === 1
+                    ? "Preencha os campos base e avance para configurar formula e itens."
+                    : canSave
+                      ? "Plano validado. Salve e gerencie os registros na mesma pagina."
+                      : "Finalize formula e itens obrigatorios para habilitar o salvamento."}
+                </p>
               </div>
             </div>
           </aside>
