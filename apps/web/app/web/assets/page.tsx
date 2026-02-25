@@ -31,6 +31,7 @@ type AssetRow = {
   type: string;
   code: string;
   model: string;
+  centerCost: string;
   lastKm: number;
   currentKm: number;
   nextKm: number;
@@ -53,6 +54,7 @@ const rows: AssetRow[] = [
     type: "Caminhao",
     code: "XYZ-9876",
     model: "Volvo FH 540",
+    centerCost: "Logistica Norte",
     lastKm: 110000,
     currentKm: 124500,
     nextKm: 125000,
@@ -92,6 +94,7 @@ const rows: AssetRow[] = [
     type: "Utilitario",
     code: "ABC-1234",
     model: "Toyota Hilux",
+    centerCost: "Operacoes Campo",
     lastKm: 40000,
     currentKm: 51240,
     nextKm: 60000,
@@ -131,6 +134,7 @@ const rows: AssetRow[] = [
     type: "Motocicleta",
     code: "MOT-2024",
     model: "Honda CB 500X",
+    centerCost: "Suporte Tecnico",
     lastKm: 1000,
     currentKm: 9550,
     nextKm: 10000,
@@ -157,6 +161,8 @@ const rows: AssetRow[] = [
 const formatKm = (value: number) => `${value.toLocaleString("pt-BR")} KM`;
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+const formatDateOnly = (value?: string | null) =>
+  value ? new Date(value).toLocaleDateString("pt-BR") : "-";
 
 const getServiceAttendanceStatus = (service: ServiceRecord) => {
   if (service.executedAt) return "Compareceu";
@@ -203,11 +209,98 @@ const loadSyncedRunsFromStorage = (): SyncedChecklistRun[] => {
   }
 };
 
+type AssetPriorityStatus = "Alta" | "Media" | "Baixa";
+type AssetSchedulingStatus =
+  | "Agendado p/ Hoje"
+  | "Agendado"
+  | "Nao Agendado"
+  | "Concluido";
+type AssetPresenceStatus = "Compareceu" | "Nao Compareceu" | "Sem registro";
+
+type AssetComputedRow = AssetRow & {
+  priorityStatus: AssetPriorityStatus;
+  schedulingStatus: AssetSchedulingStatus;
+  lastMaintenanceDate: string | null;
+  presenceStatus: AssetPresenceStatus;
+};
+
+const getEventDate = (event: MaintenanceEvent) =>
+  new Date(event.year, event.month, event.day, ...event.time.split(":").map(Number));
+
+const getPriorityStatus = (row: AssetRow): AssetPriorityStatus => {
+  const kmGap = row.nextKm - row.currentKm;
+  const latestExecutedService = row.services
+    .filter((service) => service.executedAt)
+    .sort((a, b) => new Date(b.executedAt ?? 0).getTime() - new Date(a.executedAt ?? 0).getTime())[0];
+  const daysSinceLastExecution = latestExecutedService?.executedAt
+    ? Math.floor((Date.now() - new Date(latestExecutedService.executedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  if (kmGap <= 0 || daysSinceLastExecution >= 180) return "Alta";
+  if (kmGap <= 5000 || daysSinceLastExecution >= 120) return "Media";
+  return "Baixa";
+};
+
+const getPresenceStatusFromRow = (row: AssetRow): AssetPresenceStatus => {
+  const latestBySchedule = [...row.services].sort(
+    (a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+  )[0];
+  if (!latestBySchedule) return "Sem registro";
+  const attendance = getServiceAttendanceStatus(latestBySchedule);
+  if (attendance === "Compareceu") return "Compareceu";
+  if (attendance === "Nao compareceu ao servico") return "Nao Compareceu";
+  return "Sem registro";
+};
+
+const getLastMaintenanceDateFromRow = (
+  row: AssetRow,
+  relatedEvents: MaintenanceEvent[],
+): string | null => {
+  const serviceDates = row.services
+    .map((service) => service.executedAt)
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value).getTime());
+  const completedEventDates = relatedEvents
+    .filter((event) => event.status === "completed")
+    .map((event) => getEventDate(event).getTime());
+  const latest = Math.max(0, ...serviceDates, ...completedEventDates);
+  return latest > 0 ? new Date(latest).toISOString() : null;
+};
+
+const getSchedulingStatusFromEvents = (relatedEvents: MaintenanceEvent[]): AssetSchedulingStatus => {
+  if (relatedEvents.length === 0) return "Nao Agendado";
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+
+  const hasTodayScheduled = relatedEvents.some((event) => {
+    if (event.status !== "scheduled") return false;
+    const time = getEventDate(event).getTime();
+    return time >= todayStart && time < tomorrowStart;
+  });
+  if (hasTodayScheduled) return "Agendado p/ Hoje";
+
+  const hasFutureScheduled = relatedEvents.some((event) => {
+    if (event.status !== "scheduled" && event.status !== "in_progress") return false;
+    return getEventDate(event).getTime() >= todayStart;
+  });
+  if (hasFutureScheduled) return "Agendado";
+
+  const hasCompleted = relatedEvents.some((event) => event.status === "completed");
+  return hasCompleted ? "Concluido" : "Nao Agendado";
+};
+
 export default function WebAssetsPage() {
   const [syncedRuns, setSyncedRuns] = useState<SyncedChecklistRun[]>([]);
   const [maintenanceEvents, setMaintenanceEvents] = useState<MaintenanceEvent[]>([]);
   const [selectedAssetId, setSelectedAssetId] = useState(rows[0]?.id ?? "");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [filterCenterCost, setFilterCenterCost] = useState("");
+  const [filterPlate, setFilterPlate] = useState("");
+  const [filterVehicleType, setFilterVehicleType] = useState("");
+  const [filterPriorityStatus, setFilterPriorityStatus] = useState("");
+  const [filterExecutionDate, setFilterExecutionDate] = useState("");
+  const [filterPresence, setFilterPresence] = useState("");
 
   useEffect(() => {
     const refreshSyncedRuns = () => {
@@ -264,6 +357,62 @@ export default function WebAssetsPage() {
     });
   }, [syncedRuns, maintenanceEvents]);
 
+  const rowsWithComputedColumns = useMemo<AssetComputedRow[]>(() => {
+    return rowsWithOrchestration.map((row) => {
+      const rowModel = normalizeValue(row.model);
+      const rowCode = normalizeValue(row.code);
+      const relatedEvents = maintenanceEvents.filter((event) => {
+        const eventAsset = normalizeValue(event.asset);
+        return eventAsset.includes(rowModel) || eventAsset.includes(rowCode);
+      });
+
+      return {
+        ...row,
+        priorityStatus: getPriorityStatus(row),
+        schedulingStatus: getSchedulingStatusFromEvents(relatedEvents),
+        lastMaintenanceDate: getLastMaintenanceDateFromRow(row, relatedEvents),
+        presenceStatus: getPresenceStatusFromRow(row),
+      };
+    });
+  }, [rowsWithOrchestration, maintenanceEvents]);
+
+  const filteredRows = useMemo(() => {
+    const normalizedPlateFilter = normalizeValue(filterPlate);
+
+    return rowsWithComputedColumns.filter((row) => {
+      const matchesCenterCost =
+        !filterCenterCost || normalizeValue(row.centerCost) === normalizeValue(filterCenterCost);
+      const matchesPlate =
+        !normalizedPlateFilter || normalizeValue(row.code).includes(normalizedPlateFilter);
+      const matchesVehicleType =
+        !filterVehicleType || normalizeValue(row.type) === normalizeValue(filterVehicleType);
+      const matchesPriority = !filterPriorityStatus || row.priorityStatus === filterPriorityStatus;
+      const matchesPresence = !filterPresence || row.presenceStatus === filterPresence;
+      const matchesExecutionDate =
+        !filterExecutionDate ||
+        row.services.some((service) =>
+          service.executedAt ? service.executedAt.slice(0, 10) === filterExecutionDate : false,
+        );
+
+      return (
+        matchesCenterCost &&
+        matchesPlate &&
+        matchesVehicleType &&
+        matchesPriority &&
+        matchesPresence &&
+        matchesExecutionDate
+      );
+    });
+  }, [
+    filterCenterCost,
+    filterExecutionDate,
+    filterPlate,
+    filterPresence,
+    filterPriorityStatus,
+    filterVehicleType,
+    rowsWithComputedColumns,
+  ]);
+
   const selectedAsset = useMemo(
     () => rowsWithOrchestration.find((row) => row.id === selectedAssetId) ?? rowsWithOrchestration[0],
     [rowsWithOrchestration, selectedAssetId],
@@ -298,6 +447,84 @@ export default function WebAssetsPage() {
     <WebShell title={translations.fleetAssetManagement} subtitle={translations.totalAssets}>
       <div className="space-y-5">
         <div className="card p-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Centro Custo</label>
+              <select
+                value={filterCenterCost}
+                onChange={(event) => setFilterCenterCost(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {[...new Set(rowsWithComputedColumns.map((row) => row.centerCost))].map((centerCost) => (
+                  <option key={centerCost} value={centerCost}>
+                    {centerCost}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Placa</label>
+              <input
+                value={filterPlate}
+                onChange={(event) => setFilterPlate(event.target.value)}
+                placeholder="Ex.: ABC-1234"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Tipo de veiculo</label>
+              <select
+                value={filterVehicleType}
+                onChange={(event) => setFilterVehicleType(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {[...new Set(rowsWithComputedColumns.map((row) => row.type))].map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status Prioridade</label>
+              <select
+                value={filterPriorityStatus}
+                onChange={(event) => setFilterPriorityStatus(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baixa">Baixa</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Data de execucao</label>
+              <input
+                type="date"
+                value={filterExecutionDate}
+                onChange={(event) => setFilterExecutionDate(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Presenca</label>
+              <select
+                value={filterPresence}
+                onChange={(event) => setFilterPresence(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                <option value="Compareceu">Compareceu</option>
+                <option value="Nao Compareceu">Nao Compareceu</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="card p-4">
           <div className="flex flex-wrap gap-2">
             {[
               { label: translations.all, idx: 0 },
@@ -323,15 +550,19 @@ export default function WebAssetsPage() {
               <tr>
                 <th className="px-6 py-4">{translations.assetType}</th>
                 <th className="px-6 py-4">{translations.plateId}</th>
+                <th className="px-6 py-4">Centro Custo</th>
                 <th className="px-6 py-4">{translations.modelType}</th>
-                <th className="px-6 py-4">Ultima Manutencao</th>
+                <th className="px-6 py-4">Data da ultima manutencao</th>
                 <th className="px-6 py-4">KM Atual</th>
                 <th className="px-6 py-4">{translations.next}</th>
+                <th className="px-6 py-4">Status Prioridade</th>
+                <th className="px-6 py-4">Status de Agendamento</th>
+                <th className="px-6 py-4">Presenca</th>
                 <th className="px-6 py-4">{translations.status}</th>
               </tr>
             </thead>
             <tbody>
-              {rowsWithOrchestration.map((row) => (
+              {filteredRows.map((row) => (
                 <tr
                   key={row.id}
                   onClick={() => {
@@ -339,15 +570,57 @@ export default function WebAssetsPage() {
                     setDetailsOpen(true);
                   }}
                   className={`cursor-pointer border-b border-slate-100 transition hover:bg-slate-50 ${
-                    row.id === selectedAsset.id ? "bg-[var(--color-brand-soft)]/40" : ""
+                    row.id === selectedAsset?.id ? "bg-[var(--color-brand-soft)]/40" : ""
                   }`}
                 >
                   <td className="px-6 py-4 font-semibold">{row.type}</td>
                   <td className="px-6 py-4 font-mono font-bold">{row.code}</td>
+                  <td className="px-6 py-4">{row.centerCost}</td>
                   <td className="px-6 py-4">{row.model}</td>
-                  <td className="px-6 py-4 text-slate-500">{formatKm(row.lastKm)}</td>
+                  <td className="px-6 py-4 text-slate-600">{formatDateOnly(row.lastMaintenanceDate)}</td>
                   <td className="px-6 py-4 font-bold">{formatKm(row.currentKm)}</td>
                   <td className="px-6 py-4 font-bold text-[var(--color-danger)]">{formatKm(row.nextKm)}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                        row.priorityStatus === "Alta"
+                          ? "bg-red-100 text-red-700"
+                          : row.priorityStatus === "Media"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-emerald-100 text-emerald-700"
+                      }`}
+                    >
+                      {row.priorityStatus}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                        row.schedulingStatus === "Agendado p/ Hoje"
+                          ? "bg-blue-100 text-blue-700"
+                          : row.schedulingStatus === "Agendado"
+                            ? "bg-sky-100 text-sky-700"
+                            : row.schedulingStatus === "Concluido"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {row.schedulingStatus}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                        row.presenceStatus === "Compareceu"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : row.presenceStatus === "Nao Compareceu"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {row.presenceStatus}
+                    </span>
+                  </td>
                   <td className="px-6 py-4">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
@@ -365,6 +638,13 @@ export default function WebAssetsPage() {
                   </td>
                 </tr>
               ))}
+              {filteredRows.length === 0 && (
+                <tr>
+                  <td className="px-6 py-6 text-sm text-slate-500" colSpan={11}>
+                    Nenhum registro encontrado com os filtros selecionados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

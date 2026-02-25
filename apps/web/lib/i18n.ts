@@ -48,7 +48,7 @@ export const translations = {
   nearDueStatus: 'A VENCER',
   
   // Sidebar
-  assetManagement: 'Gestão de Ativos',
+  assetManagement: 'Gestão de Preventivas',
   workOrders: 'Ordens de Serviço',
   checklist: 'Checklist',
   calendar: 'Calendário',
@@ -62,7 +62,7 @@ export const translations = {
   integratedManagement: 'Gestão Integrada',
   stoppedVehicles: 'Veículos Parados',
   pendingNautical: 'Náutica Pendente',
-  assetManagementStatus: 'Status da Gestão de Ativos',
+  assetManagementStatus: 'Status da Gestão de Preventivas',
   landFleet: 'Frota Terrestre',
   nauticalFleet: 'Frota Náutica',
   maintenanceSchedule: 'Agenda de Manutenções',
@@ -111,7 +111,7 @@ export const translations = {
   nauticalEngines: 'Motores (Náutico)',
   
   // Web Assets
-  fleetAssetManagement: 'Gestão de Ativos da Frota',
+  fleetAssetManagement: 'Gestão de Preventivas da Frota',
   totalAssets: 'Ativos Totais: 124',
   all: 'Todos',
   vehicles: 'Veículos',
