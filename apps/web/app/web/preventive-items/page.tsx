@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
@@ -402,8 +403,6 @@ export default function WebPreventiveItemsPage() {
   const stepperItems = [
     { num: "01", label: "Identificacao", active: step === 1, done: step > 1 },
     { num: "02", label: "Intervalos", active: step === 2, done: false },
-    { num: "03", label: "Cadastros", active: false, done: false },
-    { num: "04", label: "Revisao", active: false, done: false },
   ];
 
   return (
@@ -1009,6 +1008,14 @@ export default function WebPreventiveItemsPage() {
 
           <div className="flex flex-col items-start gap-2 md:items-end">
             {savedMessage && <p className="text-sm font-semibold text-emerald-700">{savedMessage}</p>}
+            {savedMessage && step === 2 && (
+              <Link
+                href="/web/preventive-registrations"
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700 hover:bg-emerald-100"
+              >
+                Ir para Cadastros de Preventivas
+              </Link>
+            )}
             {step === 1 ? (
               <button
                 type="button"
