@@ -211,29 +211,63 @@ export default function WebMaintenancePage() {
     <WebShell title={translations.serviceOrders} subtitle={translations.activityManagement}>
       <div className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <div className="kpi-card">
-            <p className="stat-label">Total de OS</p>
+          <div className="kpi-card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">Total de OS</p>
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                Geral
+              </span>
+            </div>
             <p className="text-4xl font-black">{totalOsCount}</p>
           </div>
-          <div className="kpi-card">
-            <p className="stat-label">OSs em andamento</p>
+          <div className="kpi-card border-l-4 border-l-amber-500 bg-gradient-to-b from-white to-amber-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">OSs em andamento</p>
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+                Oficina
+              </span>
+            </div>
             <p className="text-4xl font-black">{inProgressCount}</p>
           </div>
-          <div className="kpi-card">
-            <p className="stat-label">OSs agendada</p>
+          <div className="kpi-card border-l-4 border-l-sky-500 bg-gradient-to-b from-white to-sky-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">OSs agendada</p>
+              <span className="rounded-full bg-sky-100 px-2 py-1 text-[10px] font-black uppercase text-sky-700">
+                Agenda
+              </span>
+            </div>
             <p className="text-4xl font-black">{scheduledCount}</p>
           </div>
-          <div className="kpi-card">
-            <p className="stat-label">OSs pendentes</p>
+          <div className="kpi-card border-l-4 border-l-red-500 bg-gradient-to-b from-white to-rose-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">OSs pendentes</p>
+              <span className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-black uppercase text-red-700">
+                Prioridade
+              </span>
+            </div>
             <p className="text-4xl font-black">{pendingCount}</p>
           </div>
-          <div className="kpi-card">
-            <p className="stat-label">Concluidas mes</p>
+          <div className="kpi-card border-l-4 border-l-emerald-500 bg-gradient-to-b from-white to-emerald-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">Concluidas mes</p>
+              <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase text-emerald-700">
+                Resultado
+              </span>
+            </div>
             <p className="text-4xl font-black">{completedThisMonthCount}</p>
           </div>
         </div>
 
         <div className="card p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Central de Filtros</p>
+              <p className="text-sm text-slate-500">Consulte OS por responsavel, tipo, data de abertura e status.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+              {filteredRows.length}/{rows.length} OS
+            </span>
+          </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Responsavel</label>

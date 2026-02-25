@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useEffect, useState } from "react";
 import { TruckIcon } from "@/components/ui/icons";
 import { translations } from "@/lib/i18n";
+import { getAuthSession, subscribeAuthSession } from "@/lib/auth-store";
 import { mobileTabs } from "@/lib/mock-data";
 
 type Props = {
@@ -15,6 +16,20 @@ type Props = {
 
 export function MobileShell({ title, children, freeScroll = false }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [authSession, setAuthSession] = useState(getAuthSession());
+
+  useEffect(() => {
+    const refresh = () => setAuthSession(getAuthSession());
+    refresh();
+    return subscribeAuthSession(refresh);
+  }, []);
+
+  useEffect(() => {
+    if (!authSession) {
+      router.replace("/");
+    }
+  }, [authSession, router]);
 
   return (
     <div className={`flex min-h-screen justify-center bg-[#e9edf3] py-4 ${freeScroll ? "items-start" : "items-center"}`}>

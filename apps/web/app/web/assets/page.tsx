@@ -455,10 +455,70 @@ export default function WebAssetsPage() {
       });
   }, [maintenanceEvents, selectedAsset]);
 
+  const assetsSummary = useMemo(() => {
+    const total = filteredRows.length;
+    const highPriority = filteredRows.filter((row) => row.priorityStatus === "Alta").length;
+    const scheduledToday = filteredRows.filter((row) => row.schedulingStatus === "Agendado p/ Hoje").length;
+    const noShow = filteredRows.filter((row) => row.presenceStatus === "Nao Compareceu").length;
+    return { total, highPriority, scheduledToday, noShow };
+  }, [filteredRows]);
+
   return (
     <WebShell title={translations.fleetAssetManagement} subtitle={translations.totalAssets}>
       <div className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="kpi-card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">Ativos filtrados</p>
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                Lista
+              </span>
+            </div>
+            <p className="mt-2 text-4xl font-black text-slate-900">{assetsSummary.total}</p>
+            <p className="text-xs font-semibold text-slate-500">Central de filtros aplicada</p>
+          </div>
+          <div className="kpi-card border-l-4 border-l-red-500 bg-gradient-to-b from-white to-rose-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">Prioridade Alta</p>
+              <span className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-black uppercase text-red-700">
+                Acao
+              </span>
+            </div>
+            <p className="mt-2 text-4xl font-black text-red-700">{assetsSummary.highPriority}</p>
+            <p className="text-xs font-semibold text-slate-500">Risco por KM/tempo</p>
+          </div>
+          <div className="kpi-card border-l-4 border-l-blue-500 bg-gradient-to-b from-white to-blue-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">Agendados Hoje</p>
+              <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                Hoje
+              </span>
+            </div>
+            <p className="mt-2 text-4xl font-black text-blue-700">{assetsSummary.scheduledToday}</p>
+            <p className="text-xs font-semibold text-slate-500">Status de agendamento</p>
+          </div>
+          <div className="kpi-card border-l-4 border-l-amber-500 bg-gradient-to-b from-white to-amber-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">Nao Compareceu</p>
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+                Presenca
+              </span>
+            </div>
+            <p className="mt-2 text-4xl font-black text-amber-700">{assetsSummary.noShow}</p>
+            <p className="text-xs font-semibold text-slate-500">Ultimos registros filtrados</p>
+          </div>
+        </div>
+
         <div className="card p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Central de Filtros</p>
+              <p className="text-sm text-slate-500">Use filtros para consultar preventivas por status, presenca e execucao.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+              {filteredRows.length} resultado{filteredRows.length === 1 ? "" : "s"}
+            </span>
+          </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Centro Custo</label>
@@ -533,26 +593,6 @@ export default function WebAssetsPage() {
                 <option value="Nao Compareceu">Nao Compareceu</option>
               </select>
             </div>
-          </div>
-        </div>
-
-        <div className="card p-4">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: translations.all, idx: 0 },
-              { label: translations.vehicles, idx: 1 },
-              { label: translations.vessels, idx: 2 },
-              { label: translations.underMaintenance, idx: 3 },
-            ].map((chip) => (
-              <button
-                key={chip.idx}
-                className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider ${
-                  chip.idx === 0 ? "bg-[var(--color-brand)] text-white" : "bg-slate-100 text-slate-500"
-                }`}
-              >
-                {chip.label}
-              </button>
-            ))}
           </div>
         </div>
 

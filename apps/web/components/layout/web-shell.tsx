@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { CarIcon, TruckIcon } from "@/components/ui/icons";
 import { translations } from "@/lib/i18n";
+import { getAuthSession, subscribeAuthSession } from "@/lib/auth-store";
 import {
   getEffectiveMaintenanceStatus,
   getMaintenanceEvents,
@@ -26,10 +27,12 @@ type NotificationItem = {
 
 export function WebShell({ title, subtitle, children }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   // Estado visual local da sidebar (nao persiste entre reloads).
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
+  const [authSession, setAuthSession] = useState(getAuthSession());
   const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
 
   const menuItems = [
@@ -57,6 +60,18 @@ export function WebShell({ title, subtitle, children }: Props) {
       // Ignora falha de storage.
     }
   }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    const refresh = () => setAuthSession(getAuthSession());
+    refresh();
+    return subscribeAuthSession(refresh);
+  }, []);
+
+  useEffect(() => {
+    if (!authSession) {
+      router.replace("/");
+    }
+  }, [authSession, router]);
 
   useEffect(() => {
     const refreshNotifications = () => {
@@ -228,8 +243,10 @@ export function WebShell({ title, subtitle, children }: Props) {
               </button>
               <div className="h-8 w-px bg-[var(--color-border)]"></div>
               <div>
-                <p className="text-xs font-black">Administrador</p>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">Gestor de operacoes</p>
+                <p className="text-xs font-black">{authSession?.name || "Visitante"}</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">
+                  {authSession?.role || "Nao autenticado"}
+                </p>
               </div>
 
               {notificationsOpen && (
