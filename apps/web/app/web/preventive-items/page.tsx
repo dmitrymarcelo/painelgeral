@@ -9,8 +9,10 @@ type PreventiveItemRow = {
   partMaterial: string;
   usefulLifeKm: string;
   usefulLifeTime: string;
-  maintenanceTriggerType: "quilometragem" | "horimetro" | "temporal";
   triggerLinked: boolean;
+  inheritsKmTrigger: boolean;
+  inheritsHourmeterTrigger: boolean;
+  inheritsTemporalTrigger: boolean;
 };
 
 type FormState = {
@@ -32,8 +34,10 @@ const emptyItem = (): PreventiveItemRow => ({
   partMaterial: "",
   usefulLifeKm: "",
   usefulLifeTime: "",
-  maintenanceTriggerType: "quilometragem",
   triggerLinked: true,
+  inheritsKmTrigger: true,
+  inheritsHourmeterTrigger: false,
+  inheritsTemporalTrigger: true,
 });
 
 const emptyForm = (): FormState => ({
@@ -124,32 +128,50 @@ export default function WebPreventiveItemsPage() {
     setSavedMessage("");
   };
 
-  const updateItem = (id: string, key: keyof PreventiveItemRow, value: string) => {
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
+  const updateItem = <K extends keyof PreventiveItemRow>(
+    id: string,
+    key: K,
+    value: PreventiveItemRow[K],
+  ) => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== id) return item;
+        const nextItem = { ...item, [key]: value } as PreventiveItemRow;
+        if (!nextItem.triggerLinked) return nextItem;
+
+        const isInheritanceKey =
+          key === "inheritsKmTrigger" ||
+          key === "inheritsHourmeterTrigger" ||
+          key === "inheritsTemporalTrigger";
+
+        if (!isInheritanceKey) return nextItem;
+
+        const expected = getExpectedValuesForItem(nextItem);
+        return {
+          ...nextItem,
+          usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeTime: expected.usefulLifeTime,
+        };
+      }),
+    );
     setSavedMessage("");
   };
 
-  const getExpectedValuesForTrigger = (triggerType: PreventiveItemRow["maintenanceTriggerType"]) => {
-    if (triggerType === "quilometragem") {
-      return {
-        usefulLifeKm: triggerKm,
-        usefulLifeTime: `${triggerTemporalMonths} meses`,
-      };
-    }
-    if (triggerType === "horimetro") {
-      return {
-        usefulLifeKm: "0",
-        usefulLifeTime: `${triggerHourmeter} hrs`,
-      };
-    }
+  const getExpectedValuesForItem = (item: PreventiveItemRow) => {
+    const nextKm = item.inheritsKmTrigger ? triggerKm : item.usefulLifeKm;
+    const timeParts: string[] = [];
+    if (item.inheritsHourmeterTrigger) timeParts.push(`${triggerHourmeter} hrs`);
+    if (item.inheritsTemporalTrigger) timeParts.push(`${triggerTemporalMonths} meses`);
+    const nextTime = timeParts.length > 0 ? timeParts.join(" / ") : item.usefulLifeTime;
+
     return {
-      usefulLifeKm: triggerKm,
-      usefulLifeTime: `${triggerTemporalMonths} meses`,
+      usefulLifeKm: nextKm,
+      usefulLifeTime: nextTime,
     };
   };
 
   const isItemSyncedWithTrigger = (item: PreventiveItemRow) => {
-    const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+    const expected = getExpectedValuesForItem(item);
     return item.usefulLifeKm === expected.usefulLifeKm && item.usefulLifeTime === expected.usefulLifeTime;
   };
 
@@ -157,7 +179,7 @@ export default function WebPreventiveItemsPage() {
     setItems((current) =>
       current.map((item) => {
         if (item.id !== id) return item;
-        const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+        const expected = getExpectedValuesForItem(item);
         return {
           ...item,
           usefulLifeKm: expected.usefulLifeKm,
@@ -176,7 +198,7 @@ export default function WebPreventiveItemsPage() {
         if (item.triggerLinked) {
           return { ...item, triggerLinked: false };
         }
-        const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+        const expected = getExpectedValuesForItem(item);
         return {
           ...item,
           triggerLinked: true,
@@ -192,7 +214,7 @@ export default function WebPreventiveItemsPage() {
     setItems((current) =>
       current.map((item) => {
         if (!item.triggerLinked) return item;
-        const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+        const expected = getExpectedValuesForItem(item);
         if (
           item.usefulLifeKm === expected.usefulLifeKm &&
           item.usefulLifeTime === expected.usefulLifeTime
@@ -657,19 +679,13 @@ export default function WebPreventiveItemsPage() {
                     {filteredItems.map((item) => {
                       const complete = isItemComplete(item);
                       const synced = isItemSyncedWithTrigger(item);
-                      const triggerLabel =
-                        item.maintenanceTriggerType === "quilometragem"
-                          ? "Quilometragem"
-                          : item.maintenanceTriggerType === "horimetro"
-                            ? "Horimetro"
-                            : "Temporal";
 
                       return (
                         <div
                           key={item.id}
                           className={`rounded-2xl border p-4 ${complete ? "border-slate-200" : "border-amber-200 bg-amber-50/40"}`}
                         >
-                          <div className="grid gap-3 lg:grid-cols-[1.4fr_auto_auto_auto] lg:items-end">
+                          <div className="grid gap-3 lg:grid-cols-[1.4fr_auto_auto] lg:items-end">
                             <div>
                               <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
                                 Peças/material *
@@ -680,27 +696,6 @@ export default function WebPreventiveItemsPage() {
                                 className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                                 placeholder="Ex.: Filtro de oleo, Correia, Oleo 15W40"
                               />
-                            </div>
-
-                            <div>
-                              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                                Gatilho
-                              </label>
-                              <select
-                                value={item.maintenanceTriggerType}
-                                onChange={(e) =>
-                                  updateItem(
-                                    item.id,
-                                    "maintenanceTriggerType",
-                                    e.target.value as PreventiveItemRow["maintenanceTriggerType"],
-                                  )
-                                }
-                                className="min-w-[170px] rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                              >
-                                <option value="quilometragem">Quilometragem</option>
-                                <option value="horimetro">Horimetro</option>
-                                <option value="temporal">Temporal</option>
-                              </select>
                             </div>
 
                             <button
@@ -756,19 +751,48 @@ export default function WebPreventiveItemsPage() {
 
                           <div className="mt-3 rounded-xl border border-slate-100 bg-white/80 p-3">
                             <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-700">
-                                Tipo de manutencao: {triggerLabel}
+                              <span className="text-xs font-semibold text-slate-500">
+                                Heranca de gatilhos para esta peça:
                               </span>
-                              {item.triggerLinked && (
-                                <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
-                                  Herdando gatilho
-                                </span>
-                              )}
-                              <span className="text-xs text-slate-500">
-                                {item.triggerLinked
-                                  ? "Alteracoes nos gatilhos atualizam este item automaticamente."
-                                  : "Valores abaixo estao customizados para esta peca."}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.id, "inheritsKmTrigger", !item.inheritsKmTrigger)
+                                }
+                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                  item.inheritsKmTrigger
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                KM
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.id, "inheritsHourmeterTrigger", !item.inheritsHourmeterTrigger)
+                                }
+                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                  item.inheritsHourmeterTrigger
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                Horimetro
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.id, "inheritsTemporalTrigger", !item.inheritsTemporalTrigger)
+                                }
+                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                  item.inheritsTemporalTrigger
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                Temporal
+                              </button>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
                               <div>
