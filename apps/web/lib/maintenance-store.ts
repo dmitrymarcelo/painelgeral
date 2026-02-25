@@ -54,6 +54,31 @@ const compareEvents = (a: MaintenanceEvent, b: MaintenanceEvent) => {
   return a.time.localeCompare(b.time);
 };
 
+const getEventDateTime = (event: MaintenanceEvent) => {
+  const [hour, minute] = event.time.split(":").map(Number);
+  return new Date(event.year, event.month, event.day, hour, minute, 0, 0);
+};
+
+export function getEffectiveMaintenanceStatus(
+  event: MaintenanceEvent,
+  now: Date = new Date(),
+): MaintenanceStatus {
+  if (event.status !== "scheduled") return event.status;
+
+  const scheduledAt = getEventDateTime(event);
+  const sameDay =
+    scheduledAt.getFullYear() === now.getFullYear() &&
+    scheduledAt.getMonth() === now.getMonth() &&
+    scheduledAt.getDate() === now.getDate();
+
+  if (!sameDay) return event.status;
+
+  const diffMs = now.getTime() - scheduledAt.getTime();
+  if (diffMs < 0) return "scheduled";
+  if (diffMs <= 15 * 60 * 1000) return "tolerance";
+  return "no_show";
+}
+
 const sortEvents = (events: MaintenanceEvent[]) => [...events].sort(compareEvents);
 
 const normalizeText = (value: string) =>

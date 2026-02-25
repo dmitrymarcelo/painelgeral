@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
 import {
+  getEffectiveMaintenanceStatus,
   getMaintenanceEvents,
   MaintenanceEvent,
   MaintenanceStatus,
@@ -284,7 +285,7 @@ export default function WebCalendarPage() {
     setFormDescription(parseDescriptionWithJustifications(event.description).baseDescription);
     setFormTime(event.time);
     setFormJustification("");
-    setFormStatus(event.status);
+    setFormStatus(getEffectiveMaintenanceStatus(event));
     setFormCurrentMaintenanceKm(event.currentMaintenanceKm != null ? String(event.currentMaintenanceKm) : "");
     setModalReadOnly(readOnly);
     setShowModal(true);
@@ -377,7 +378,14 @@ export default function WebCalendarPage() {
       return;
     }
 
+    const isRescheduling =
+      selectedEvent.day !== selectedDate ||
+      selectedEvent.month !== currentMonth ||
+      selectedEvent.year !== currentYear ||
+      selectedEvent.time !== formTime;
+
     if (
+      isRescheduling &&
       isTodayDay(selectedDate) &&
       isPastTimeForDate(currentYear, currentMonth, selectedDate, formTime)
     ) {
@@ -385,14 +393,9 @@ export default function WebCalendarPage() {
       return;
     }
 
-    const isRescheduling =
-      selectedEvent.day !== selectedDate ||
-      selectedEvent.month !== currentMonth ||
-      selectedEvent.year !== currentYear ||
-      selectedEvent.time !== formTime;
-
     const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
-    const statusChanged = selectedEvent.status !== formStatus;
+    const selectedEffectiveStatus = getEffectiveMaintenanceStatus(selectedEvent);
+    const statusChanged = selectedEffectiveStatus !== formStatus;
     const nextKmValue = formCurrentMaintenanceKm.trim()
       ? Number(formCurrentMaintenanceKm)
       : null;
@@ -423,7 +426,7 @@ export default function WebCalendarPage() {
 
     if (hasAnyChange && formJustification.trim()) {
       const statusContext = statusChanged
-        ? ` [STATUS ${getStatusLabel(selectedEvent.status)} -> ${getStatusLabel(formStatus)}]`
+        ? ` [STATUS ${getStatusLabel(selectedEffectiveStatus)} -> ${getStatusLabel(formStatus)}]`
         : "";
       nextEntries.push({
         timestamp: new Date().toLocaleString("pt-BR"),
@@ -676,7 +679,7 @@ export default function WebCalendarPage() {
     setFormDescription(parseDescriptionWithJustifications(target.description).baseDescription);
     setFormTime(target.time);
     setFormJustification("");
-    setFormStatus(target.status);
+    setFormStatus(getEffectiveMaintenanceStatus(target));
     setFormCurrentMaintenanceKm(target.currentMaintenanceKm != null ? String(target.currentMaintenanceKm) : "");
     setModalReadOnly(getEventIsPast(target) && target.status === "completed");
     setShowModal(true);
@@ -689,7 +692,8 @@ export default function WebCalendarPage() {
         (event.schedulerName ?? "").toLowerCase().includes(filterResponsible.toLowerCase());
       const matchesCenterCost =
         !filterCenterCost || getCenterCostFromAsset(event.asset) === filterCenterCost;
-      const matchesStatus = !filterSchedulingStatus || event.status === filterSchedulingStatus;
+      const matchesStatus =
+        !filterSchedulingStatus || getEffectiveMaintenanceStatus(event) === filterSchedulingStatus;
       return matchesResponsible && matchesCenterCost && matchesStatus;
     });
   }, [events, filterCenterCost, filterResponsible, filterSchedulingStatus]);
@@ -704,11 +708,11 @@ export default function WebCalendarPage() {
 
   const kpiCounts = useMemo(
     () => ({
-      scheduled: monthFilteredEvents.filter((event) => event.status === "scheduled").length,
-      inProgress: monthFilteredEvents.filter((event) => event.status === "in_progress").length,
-      completed: monthFilteredEvents.filter((event) => event.status === "completed").length,
-      noShow: monthFilteredEvents.filter((event) => event.status === "no_show").length,
-      tolerance: monthFilteredEvents.filter((event) => event.status === "tolerance").length,
+      scheduled: monthFilteredEvents.filter((event) => getEffectiveMaintenanceStatus(event) === "scheduled").length,
+      inProgress: monthFilteredEvents.filter((event) => getEffectiveMaintenanceStatus(event) === "in_progress").length,
+      completed: monthFilteredEvents.filter((event) => getEffectiveMaintenanceStatus(event) === "completed").length,
+      noShow: monthFilteredEvents.filter((event) => getEffectiveMaintenanceStatus(event) === "no_show").length,
+      tolerance: monthFilteredEvents.filter((event) => getEffectiveMaintenanceStatus(event) === "tolerance").length,
     }),
     [monthFilteredEvents],
   );

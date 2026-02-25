@@ -5,7 +5,11 @@ import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { CarIcon, TruckIcon } from "@/components/ui/icons";
 import { translations } from "@/lib/i18n";
-import { getMaintenanceEvents, subscribeMaintenanceEvents } from "@/lib/maintenance-store";
+import {
+  getEffectiveMaintenanceStatus,
+  getMaintenanceEvents,
+  subscribeMaintenanceEvents,
+} from "@/lib/maintenance-store";
 
 type Props = {
   title: string;
@@ -17,7 +21,7 @@ type NotificationItem = {
   id: string;
   eventId: string;
   label: string;
-  type: "urgent" | "today";
+  type: "urgent" | "today" | "warning";
 };
 
 export function WebShell({ title, subtitle, children }: Props) {
@@ -41,9 +45,30 @@ export function WebShell({ title, subtitle, children }: Props) {
 
       const items = getMaintenanceEvents().reduce<NotificationItem[]>((acc, event) => {
           const eventDate = new Date(event.year, event.month, event.day).getTime();
+          const effectiveStatus = getEffectiveMaintenanceStatus(event, now);
           const label = `${event.asset} - ${event.time}`;
 
-          if (event.status !== "completed" && eventDate < todayStart) {
+          if (effectiveStatus === "no_show") {
+            acc.push({
+              id: `no-show-${event.id}`,
+              eventId: event.id,
+              label: `Nao Compareceu: ${label}`,
+              type: "urgent",
+            });
+            return acc;
+          }
+
+          if (effectiveStatus === "tolerance") {
+            acc.push({
+              id: `tolerance-${event.id}`,
+              eventId: event.id,
+              label: `Em tolerancia (15 min): ${label}`,
+              type: "warning",
+            });
+            return acc;
+          }
+
+          if (effectiveStatus !== "completed" && eventDate < todayStart) {
             acc.push({ id: `late-${event.id}`, eventId: event.id, label: `Atrasado: ${label}`, type: "urgent" });
             return acc;
           }
@@ -216,7 +241,11 @@ export function WebShell({ title, subtitle, children }: Props) {
                           <div className="flex items-start gap-2">
                             <span
                               className={`mt-1 inline-block h-2 w-2 rounded-full ${
-                                item.type === "urgent" ? "bg-red-500" : "bg-blue-500"
+                                item.type === "urgent"
+                                  ? "bg-red-500"
+                                  : item.type === "warning"
+                                    ? "bg-amber-500"
+                                    : "bg-blue-500"
                               }`}
                             />
                             <p className="text-sm leading-snug text-slate-700">{item.label}</p>
