@@ -7,6 +7,7 @@ import { translations } from "@/lib/i18n";
 import {
   getMaintenanceEvents,
   MaintenanceEvent,
+  MaintenanceStatus,
   MaintenanceType,
   saveMaintenanceEvents,
   subscribeMaintenanceEvents,
@@ -59,6 +60,34 @@ const defaultAssets = [
   "Sea Ray 250 - MAR-005",
   "Honda CB 500X - MOT-2024",
 ];
+
+const parseAssetLabel = (label: string) => {
+  const parts = label.split(" - ").map((part) => part.trim());
+  if (parts.length >= 2) {
+    return { model: parts.slice(0, -1).join(" - "), plate: parts[parts.length - 1] };
+  }
+  return { model: label, plate: label };
+};
+
+const CENTER_COST_BY_PLATE: Record<string, string> = {
+  "ABC-1234": "Operacoes Campo",
+  "XYZ-9876": "Logistica Norte",
+  "MOT-2024": "Suporte Tecnico",
+  "MAR-005": "Operacao Nautica",
+};
+
+const getCenterCostFromAsset = (asset: string) => {
+  const { plate } = parseAssetLabel(asset);
+  return CENTER_COST_BY_PLATE[plate] ?? "Nao informado";
+};
+
+const getStatusLabel = (status: MaintenanceStatus) => {
+  if (status === "scheduled") return "Agendado";
+  if (status === "in_progress") return "Em andamento";
+  if (status === "completed") return "Concluido";
+  if (status === "no_show") return "Nao Compareceu";
+  return "Em tolerancia";
+};
 
 const getDayStart = (year: number, month: number, day: number) =>
   new Date(year, month, day, 0, 0, 0, 0);
@@ -136,6 +165,11 @@ export default function WebCalendarPage() {
   const [formDescription, setFormDescription] = useState("");
   const [formTime, setFormTime] = useState("07:30");
   const [formJustification, setFormJustification] = useState("");
+  const [formStatus, setFormStatus] = useState<MaintenanceStatus>("scheduled");
+  const [formCurrentMaintenanceKm, setFormCurrentMaintenanceKm] = useState("");
+  const [filterResponsible, setFilterResponsible] = useState("");
+  const [filterCenterCost, setFilterCenterCost] = useState("");
+  const [filterSchedulingStatus, setFilterSchedulingStatus] = useState("");
 
   useEffect(() => {
     const refresh = () => setEvents(getMaintenanceEvents());
@@ -211,10 +245,12 @@ export default function WebCalendarPage() {
     setFormDescription("");
     setFormTime("07:30");
     setFormJustification("");
+    setFormStatus("scheduled");
+    setFormCurrentMaintenanceKm("");
   };
 
   const getEventsForDay = (day: number) => {
-    return events
+    return filteredCalendarEvents
       .filter(
         (event) =>
           event.day === day &&
@@ -248,6 +284,8 @@ export default function WebCalendarPage() {
     setFormDescription(parseDescriptionWithJustifications(event.description).baseDescription);
     setFormTime(event.time);
     setFormJustification("");
+    setFormStatus(event.status);
+    setFormCurrentMaintenanceKm(event.currentMaintenanceKm != null ? String(event.currentMaintenanceKm) : "");
     setModalReadOnly(readOnly);
     setShowModal(true);
   };
@@ -309,6 +347,7 @@ export default function WebCalendarPage() {
       schedulerMatricula: schedulerSession?.matricula ?? null,
       status: "scheduled",
       completedAt: null,
+      currentMaintenanceKm: null,
     };
 
     updateEvents((current) => [...current, newEvent]);
@@ -353,10 +392,27 @@ export default function WebCalendarPage() {
       selectedEvent.time !== formTime;
 
     const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
+    const statusChanged = selectedEvent.status !== formStatus;
+    const nextKmValue = formCurrentMaintenanceKm.trim()
+      ? Number(formCurrentMaintenanceKm)
+      : null;
+    const kmChanged = (selectedEvent.currentMaintenanceKm ?? null) !== nextKmValue;
     const hasAnyChange =
       selectedEvent.asset !== formAsset ||
       isRescheduling ||
-      previousParts.baseDescription.trim() !== formDescription.trim();
+      previousParts.baseDescription.trim() !== formDescription.trim() ||
+      statusChanged ||
+      kmChanged;
+
+    if (formStatus === "completed" && !formCurrentMaintenanceKm.trim()) {
+      alert("Preencha o KM atual da manutencao para concluir.");
+      return;
+    }
+
+    if (formCurrentMaintenanceKm.trim() && Number.isNaN(nextKmValue)) {
+      alert("Informe um KM atual valido.");
+      return;
+    }
 
     if (hasAnyChange && !formJustification.trim()) {
       alert("Preencha a JUSTIFICATIVA para salvar qualquer alteracao no agendamento.");
@@ -366,9 +422,12 @@ export default function WebCalendarPage() {
     const nextEntries = [...previousParts.entries];
 
     if (hasAnyChange && formJustification.trim()) {
+      const statusContext = statusChanged
+        ? ` [STATUS ${getStatusLabel(selectedEvent.status)} -> ${getStatusLabel(formStatus)}]`
+        : "";
       nextEntries.push({
         timestamp: new Date().toLocaleString("pt-BR"),
-        text: `${isRescheduling ? "[REAGENDAMENTO] " : "[ALTERACAO] "}${formJustification.trim()}`,
+        text: `${isRescheduling ? "[REAGENDAMENTO] " : "[ALTERACAO] "}${formJustification.trim()}${statusContext}`,
       });
     }
 
@@ -388,7 +447,12 @@ export default function WebCalendarPage() {
               day: selectedDate,
               month: currentMonth,
               year: currentYear,
-              completedAt: event.status === "completed" ? event.completedAt : null,
+              status: formStatus,
+              currentMaintenanceKm: nextKmValue,
+              completedAt:
+                formStatus === "completed"
+                  ? event.completedAt ?? new Date().toISOString()
+                  : null,
             }
           : event,
       ),
@@ -612,9 +676,42 @@ export default function WebCalendarPage() {
     setFormDescription(parseDescriptionWithJustifications(target.description).baseDescription);
     setFormTime(target.time);
     setFormJustification("");
+    setFormStatus(target.status);
+    setFormCurrentMaintenanceKm(target.currentMaintenanceKm != null ? String(target.currentMaintenanceKm) : "");
     setModalReadOnly(getEventIsPast(target) && target.status === "completed");
     setShowModal(true);
   }, [events, searchParams]);
+
+  const filteredCalendarEvents = useMemo(() => {
+    return events.filter((event) => {
+      const matchesResponsible =
+        !filterResponsible ||
+        (event.schedulerName ?? "").toLowerCase().includes(filterResponsible.toLowerCase());
+      const matchesCenterCost =
+        !filterCenterCost || getCenterCostFromAsset(event.asset) === filterCenterCost;
+      const matchesStatus = !filterSchedulingStatus || event.status === filterSchedulingStatus;
+      return matchesResponsible && matchesCenterCost && matchesStatus;
+    });
+  }, [events, filterCenterCost, filterResponsible, filterSchedulingStatus]);
+
+  const monthFilteredEvents = useMemo(
+    () =>
+      filteredCalendarEvents.filter(
+        (event) => event.month === currentMonth && event.year === currentYear,
+      ),
+    [filteredCalendarEvents, currentMonth, currentYear],
+  );
+
+  const kpiCounts = useMemo(
+    () => ({
+      scheduled: monthFilteredEvents.filter((event) => event.status === "scheduled").length,
+      inProgress: monthFilteredEvents.filter((event) => event.status === "in_progress").length,
+      completed: monthFilteredEvents.filter((event) => event.status === "completed").length,
+      noShow: monthFilteredEvents.filter((event) => event.status === "no_show").length,
+      tolerance: monthFilteredEvents.filter((event) => event.status === "tolerance").length,
+    }),
+    [monthFilteredEvents],
+  );
 
   const selectedEventCanRescheduleWithJustification =
     !!selectedEvent && selectedEvent.status !== "completed";
@@ -633,6 +730,65 @@ export default function WebCalendarPage() {
     >
       <div className="space-y-4">
         <div className="card p-4">
+          <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {[
+              ["Agendado", kpiCounts.scheduled],
+              ["Em andamento", kpiCounts.inProgress],
+              ["Concluido", kpiCounts.completed],
+              ["Nao Compareceu", kpiCounts.noShow],
+              ["Em tolerancia", kpiCounts.tolerance],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                  {label}
+                </p>
+                <p className="mt-1 text-2xl font-black">{value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Responsavel</label>
+              <input
+                value={filterResponsible}
+                onChange={(event) => setFilterResponsible(event.target.value)}
+                placeholder="Responsavel do agendamento"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Centro Custo</label>
+              <select
+                value={filterCenterCost}
+                onChange={(event) => setFilterCenterCost(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                {[...new Set(events.map((event) => getCenterCostFromAsset(event.asset)))].map((centerCost) => (
+                  <option key={centerCost} value={centerCost}>
+                    {centerCost}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status de agendamento</label>
+              <select
+                value={filterSchedulingStatus}
+                onChange={(event) => setFilterSchedulingStatus(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="">Todos</option>
+                <option value="scheduled">Agendado</option>
+                <option value="in_progress">Em andamento</option>
+                <option value="completed">Concluido</option>
+                <option value="no_show">Nao Compareceu</option>
+                <option value="tolerance">Em tolerancia (15 min)</option>
+              </select>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -947,19 +1103,34 @@ export default function WebCalendarPage() {
                   <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status</label>
                   <select
                     disabled={modalReadOnly}
-                    value={selectedEvent.status}
-                    onChange={(event) =>
-                      handleUpdateStatus(
-                        selectedEvent.id,
-                        event.target.value as "scheduled" | "in_progress" | "completed",
-                      )
-                    }
+                    value={formStatus}
+                    onChange={(event) => setFormStatus(event.target.value as MaintenanceStatus)}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
                   >
                     <option value="scheduled">Agendado</option>
                     <option value="in_progress">Em andamento</option>
                     <option value="completed">Concluido</option>
+                    <option value="no_show">Nao Compareceu</option>
+                    <option value="tolerance">Em tolerancia (15 min)</option>
                   </select>
+                </div>
+              )}
+
+              {selectedEvent && formStatus === "completed" && (
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                    KM atual da manutencao *
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    disabled={modalReadOnly}
+                    value={formCurrentMaintenanceKm}
+                    onChange={(event) => setFormCurrentMaintenanceKm(event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
+                    placeholder="Informe o KM atual no momento da conclusao"
+                  />
                 </div>
               )}
 

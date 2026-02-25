@@ -7,6 +7,7 @@ import {
   getMaintenanceDueDate,
   getMaintenanceEvents,
   MaintenanceEvent,
+  MaintenanceStatus,
   subscribeMaintenanceEvents,
 } from "@/lib/maintenance-store";
 
@@ -21,8 +22,8 @@ type OsRow = {
   schedulingResponsible: string;
   openedAt: string;
   mttr: string;
-  status: "scheduled" | "in_progress" | "completed";
-  statusLabel: "Agendada" | "Em andamento" | "Pendente" | "Concluida";
+  status: MaintenanceStatus;
+  statusLabel: "Agendada" | "Em andamento" | "Pendente" | "Concluida" | "Nao Compareceu" | "Em tolerancia";
   completionKind: CompletionKind;
 };
 
@@ -112,6 +113,8 @@ const getCompletionKind = (event: MaintenanceEvent): CompletionKind => {
 };
 
 const getOsStatusLabel = (event: MaintenanceEvent): OsRow["statusLabel"] => {
+  if (event.status === "no_show") return "Nao Compareceu";
+  if (event.status === "tolerance") return "Em tolerancia";
   if (event.status === "in_progress") return "Em andamento";
   if (event.status === "completed") return "Concluida";
   const dueDate = getEventDate(event).getTime();

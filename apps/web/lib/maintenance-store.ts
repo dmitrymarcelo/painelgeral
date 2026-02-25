@@ -1,7 +1,12 @@
 ﻿"use client";
 
 export type MaintenanceType = "preventive";
-export type MaintenanceStatus = "scheduled" | "in_progress" | "completed";
+export type MaintenanceStatus =
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "no_show"
+  | "tolerance";
 
 export type MaintenanceEvent = {
   id: string;
@@ -18,6 +23,7 @@ export type MaintenanceEvent = {
   schedulerMatricula?: string | null;
   status: MaintenanceStatus;
   completedAt?: string | null;
+  currentMaintenanceKm?: number | null;
 };
 
 export type MaintenanceOperationalStatus =
