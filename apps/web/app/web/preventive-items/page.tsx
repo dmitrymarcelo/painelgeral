@@ -486,12 +486,21 @@ export default function WebPreventiveItemsPage() {
     } catch {
       // Mantem pelo menos o "last" salvo, mesmo se a lista falhar.
     }
-    setEditingRegistrationId(payload.registrationId);
-    setSavedMessage(
-      existing
-        ? "Plano de manutencao preventivo atualizado localmente com sucesso."
-        : "Plano de manutencao preventivo salvo localmente com sucesso.",
-    );
+    const successMessage = existing
+      ? "Plano de manutencao preventivo atualizado localmente com sucesso."
+      : "Plano de manutencao preventivo salvo localmente com sucesso.";
+
+    // Ao finalizar um cadastro (novo ou editado), limpa o formulario para iniciar outro.
+    setEditingRegistrationId(null);
+    setEditingAppliedItemId(null);
+    setStep(1);
+    setForm(emptyForm());
+    setItems([emptyItem()]);
+    setItemSearch("");
+    setTriggerKm("20000");
+    setTriggerHourmeter("500");
+    setTriggerTemporalMonths("6");
+    setSavedMessage(successMessage);
   };
 
   const resetAll = () => {
@@ -1093,65 +1102,6 @@ export default function WebPreventiveItemsPage() {
           </div>
 
           <aside className="space-y-5">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                Resumo do Planejamento
-              </p>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <p className="text-xs text-slate-400">Configuracao principal</p>
-                  <p className="font-bold text-slate-900">
-                    {(form.vehicleModel || "Modelo")} • {(form.vehicleType || "Tipo")}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                      Gatilho KM
-                    </p>
-                    <p className="mt-1 text-lg font-black text-blue-700">
-                      {averageItemTriggerKm > 0 ? `${averageItemTriggerKm.toLocaleString("pt-BR")} KM` : "--"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                      Pecas
-                    </p>
-                    <p className="mt-1 text-lg font-black text-slate-900">{items.length} Itens</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                      Horimetro ref.
-                    </p>
-                    <p className="mt-1 text-lg font-black text-amber-700">
-                      {Number(triggerHourmeter) || suggestedTriggerHourmeter} HRS
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                      Temporal ref.
-                    </p>
-                    <p className="mt-1 text-lg font-black text-emerald-700">
-                      {Number(triggerTemporalMonths) || suggestedTriggerTemporalMonths} meses
-                    </p>
-                  </div>
-                </div>
-
-                <div className="border-t border-dashed border-slate-200 pt-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                    Investimento est.
-                  </p>
-                  <p className="mt-1 text-3xl font-black text-blue-700">
-                    R$ {estimatedInvestment.toLocaleString("pt-BR")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 p-5 text-white shadow-lg">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-black uppercase tracking-[0.12em] opacity-90">Dica Pro</p>
@@ -1271,31 +1221,6 @@ export default function WebPreventiveItemsPage() {
             </span>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Cadastros</p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{registrationsSummary.total}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Grupos</p>
-              <p className="mt-1 text-2xl font-black text-blue-700">{registrationsSummary.groups}</p>
-              <p className="text-xs text-slate-500">Modelo + Operacao</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Pecas</p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{registrationsSummary.totalPieces}</p>
-              <p className="text-xs text-slate-500">Total cadastrado</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">Ultima atualizacao</p>
-              <p className="mt-1 text-sm font-black text-emerald-700">
-                {registrationsSummary.lastUpdated
-                  ? new Date(registrationsSummary.lastUpdated).toLocaleString("pt-BR")
-                  : "--"}
-              </p>
-            </div>
-          </div>
-
           <div className="mt-4 space-y-3">
             {savedRegistrations.length === 0 && (
               <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
@@ -1373,16 +1298,6 @@ export default function WebPreventiveItemsPage() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep(1);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
-                    >
-                      Novo
-                    </button>
                     <button
                       type="button"
                       onClick={() => handleEditRegistration(registration.registrationId)}
