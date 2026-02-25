@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
 
@@ -10,6 +10,7 @@ type PreventiveItemRow = {
   usefulLifeKm: string;
   usefulLifeTime: string;
   maintenanceTriggerType: "quilometragem" | "horimetro" | "temporal";
+  triggerLinked: boolean;
 };
 
 type FormState = {
@@ -32,6 +33,7 @@ const emptyItem = (): PreventiveItemRow => ({
   usefulLifeKm: "",
   usefulLifeTime: "",
   maintenanceTriggerType: "quilometragem",
+  triggerLinked: true,
 });
 
 const emptyForm = (): FormState => ({
@@ -127,33 +129,84 @@ export default function WebPreventiveItemsPage() {
     setSavedMessage("");
   };
 
+  const getExpectedValuesForTrigger = (triggerType: PreventiveItemRow["maintenanceTriggerType"]) => {
+    if (triggerType === "quilometragem") {
+      return {
+        usefulLifeKm: triggerKm,
+        usefulLifeTime: `${triggerTemporalMonths} meses`,
+      };
+    }
+    if (triggerType === "horimetro") {
+      return {
+        usefulLifeKm: "0",
+        usefulLifeTime: `${triggerHourmeter} hrs`,
+      };
+    }
+    return {
+      usefulLifeKm: triggerKm,
+      usefulLifeTime: `${triggerTemporalMonths} meses`,
+    };
+  };
+
+  const isItemSyncedWithTrigger = (item: PreventiveItemRow) => {
+    const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+    return item.usefulLifeKm === expected.usefulLifeKm && item.usefulLifeTime === expected.usefulLifeTime;
+  };
+
   const applyTriggerToItem = (id: string) => {
     setItems((current) =>
       current.map((item) => {
         if (item.id !== id) return item;
-        if (item.maintenanceTriggerType === "quilometragem") {
-          return {
-            ...item,
-            usefulLifeKm: triggerKm,
-            usefulLifeTime: item.usefulLifeTime || `${triggerTemporalMonths} meses`,
-          };
-        }
-        if (item.maintenanceTriggerType === "horimetro") {
-          return {
-            ...item,
-            usefulLifeKm: item.usefulLifeKm || "0",
-            usefulLifeTime: `${triggerHourmeter} hrs`,
-          };
-        }
+        const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
         return {
           ...item,
-          usefulLifeTime: `${triggerTemporalMonths} meses`,
-          usefulLifeKm: item.usefulLifeKm || triggerKm,
+          usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeTime: expected.usefulLifeTime,
+          triggerLinked: true,
         };
       }),
     );
     setSavedMessage("");
   };
+
+  const toggleTriggerLink = (id: string) => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== id) return item;
+        if (item.triggerLinked) {
+          return { ...item, triggerLinked: false };
+        }
+        const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+        return {
+          ...item,
+          triggerLinked: true,
+          usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeTime: expected.usefulLifeTime,
+        };
+      }),
+    );
+    setSavedMessage("");
+  };
+
+  useEffect(() => {
+    setItems((current) =>
+      current.map((item) => {
+        if (!item.triggerLinked) return item;
+        const expected = getExpectedValuesForTrigger(item.maintenanceTriggerType);
+        if (
+          item.usefulLifeKm === expected.usefulLifeKm &&
+          item.usefulLifeTime === expected.usefulLifeTime
+        ) {
+          return item;
+        }
+        return {
+          ...item,
+          usefulLifeKm: expected.usefulLifeKm,
+          usefulLifeTime: expected.usefulLifeTime,
+        };
+      }),
+    );
+  }, [triggerHourmeter, triggerKm, triggerTemporalMonths]);
 
   const addItem = () => {
     setItems((current) => [...current, emptyItem()]);
@@ -191,6 +244,11 @@ export default function WebPreventiveItemsPage() {
     const payload = {
       createdAt: new Date().toISOString(),
       form,
+      triggerConfig: {
+        quilometragemKm: Number(triggerKm) || 0,
+        horimetroHrs: Number(triggerHourmeter) || 0,
+        temporalMeses: Number(triggerTemporalMonths) || 0,
+      },
       items,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -598,6 +656,7 @@ export default function WebPreventiveItemsPage() {
                   <div className="space-y-3">
                     {filteredItems.map((item) => {
                       const complete = isItemComplete(item);
+                      const synced = isItemSyncedWithTrigger(item);
                       const triggerLabel =
                         item.maintenanceTriggerType === "quilometragem"
                           ? "Quilometragem"
@@ -655,6 +714,21 @@ export default function WebPreventiveItemsPage() {
                             <div className="flex items-center justify-end gap-2">
                               <span
                                 className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                  item.triggerLinked
+                                    ? synced
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-orange-100 text-orange-700"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}
+                              >
+                                {item.triggerLinked
+                                  ? synced
+                                    ? "Vinculado"
+                                    : "Vinculado (ajuste)"
+                                  : "Customizado"}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                                   complete
                                     ? "bg-emerald-100 text-emerald-700"
                                     : "bg-amber-100 text-amber-700"
@@ -662,6 +736,13 @@ export default function WebPreventiveItemsPage() {
                               >
                                 {complete ? "Completo" : "Pendente"}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleTriggerLink(item.id)}
+                                className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-black uppercase text-slate-700 hover:bg-slate-50"
+                              >
+                                {item.triggerLinked ? "Desvincular" : "Vincular"}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => removeItem(item.id)}
@@ -678,8 +759,15 @@ export default function WebPreventiveItemsPage() {
                               <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-700">
                                 Tipo de manutencao: {triggerLabel}
                               </span>
+                              {item.triggerLinked && (
+                                <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                                  Herdando gatilho
+                                </span>
+                              )}
                               <span className="text-xs text-slate-500">
-                                Valores abaixo podem ser ajustados manualmente por peça.
+                                {item.triggerLinked
+                                  ? "Alteracoes nos gatilhos atualizam este item automaticamente."
+                                  : "Valores abaixo estao customizados para esta peca."}
                               </span>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
@@ -848,3 +936,4 @@ export default function WebPreventiveItemsPage() {
     </WebShell>
   );
 }
+
