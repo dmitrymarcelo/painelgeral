@@ -76,6 +76,19 @@ export default function WebPreventiveItemsPage() {
     [form, items],
   );
 
+  const stepMeta = [
+    {
+      id: 1 as const,
+      title: "Identificacao do Veiculo",
+      subtitle: "Modelo, marca, tipo, operacao e centro de custo",
+    },
+    {
+      id: 2 as const,
+      title: "Formula e Itens Preventivos",
+      subtitle: "Formula tecnica e lista de pecas/material com vida util",
+    },
+  ];
+
   const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
     setSavedMessage("");
@@ -135,28 +148,77 @@ export default function WebPreventiveItemsPage() {
     <WebShell title={translations.preventiveItemsRegister} subtitle="Cadastro em 2 telas">
       <div className="space-y-5">
         <div className="card p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div
-              className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${
-                step === 1 ? "bg-[var(--color-brand)] text-white" : "bg-slate-100 text-slate-500"
-              }`}
-            >
-              Tela 1 - Veiculo / Operacao
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                Fluxo de cadastro
+              </p>
+              <h3 className="mt-1 text-base font-black">
+                {stepMeta.find((item) => item.id === step)?.title}
+              </h3>
+              <p className="text-sm text-slate-500">
+                {stepMeta.find((item) => item.id === step)?.subtitle}
+              </p>
             </div>
-            <div className="h-px flex-1 min-w-10 bg-slate-200" />
-            <div
-              className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.12em] ${
-                step === 2 ? "bg-[var(--color-brand)] text-white" : "bg-slate-100 text-slate-500"
-              }`}
-            >
-              Tela 2 - Formula e Itens
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black uppercase text-slate-600">
+              Etapa {step} de 2
+            </span>
+          </div>
+
+          <div className="mt-4">
+            <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-[var(--color-brand)] transition-all duration-300 ease-out"
+                style={{ width: step === 1 ? "50%" : "100%" }}
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {stepMeta.map((item) => {
+                const isActive = item.id === step;
+                const isCompleted = item.id < step;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      if (item.id === 1 || canAdvanceToStep2) setStep(item.id);
+                    }}
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      isActive
+                        ? "border-[var(--color-brand)] bg-[var(--color-brand-soft)]/30 shadow-sm"
+                        : isCompleted
+                          ? "border-emerald-200 bg-emerald-50/70"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-0.5 grid h-8 w-8 place-items-center rounded-full text-xs font-black ${
+                          isActive
+                            ? "bg-[var(--color-brand)] text-white"
+                            : isCompleted
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {isCompleted ? "OK" : item.id}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-black">{item.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{item.subtitle}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {step === 1 && (
-          <div className="card p-5">
-            <h3 className="text-lg font-black">Campos tela 1</h3>
+          <div className="card p-5 transition-all duration-300 ease-out">
+            <h3 className="text-lg font-black">Etapa 1 - Identificacao do Veiculo e Operacao</h3>
             <p className="mt-1 text-sm text-slate-500">
               Cadastre a base do veiculo e contexto operacional para os itens de preventiva.
             </p>
@@ -239,10 +301,10 @@ export default function WebPreventiveItemsPage() {
 
         {step === 2 && (
           <>
-            <div className="card p-5">
+            <div className="card p-5 transition-all duration-300 ease-out">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-black">Campos tela 2</h3>
+                  <h3 className="text-lg font-black">Etapa 2 - Formula e Itens Preventivos</h3>
                   <p className="mt-1 text-sm text-slate-500">
                     Defina a formula do veiculo e os itens preventivos com vida util por km/tempo.
                   </p>
@@ -416,4 +478,3 @@ export default function WebPreventiveItemsPage() {
     </WebShell>
   );
 }
-
