@@ -144,6 +144,11 @@ export default function WebPreventiveItemsPage() {
   const [editingAppliedItemId, setEditingAppliedItemId] = useState<string | null>(null);
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
   const [savedRegistrations, setSavedRegistrations] = useState<PreventiveRegistrationPayload[]>([]);
+  const [registrationSearch, setRegistrationSearch] = useState("");
+  const [registrationOperationFilter, setRegistrationOperationFilter] = useState<
+    FormState["operationType"] | "all"
+  >("all");
+  const [registrationVehicleTypeFilter, setRegistrationVehicleTypeFilter] = useState<string>("all");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [items, setItems] = useState<PreventiveItemRow[]>([emptyItem()]);
   const [itemSearch, setItemSearch] = useState("");
@@ -236,6 +241,51 @@ export default function WebPreventiveItemsPage() {
       lastUpdated,
     };
   }, [savedRegistrations]);
+
+  const registrationFilterOptions = useMemo(() => {
+    const operationTypes = Array.from(
+      new Set(savedRegistrations.map((registration) => registration.form.operationType).filter(Boolean)),
+    ) as FormState["operationType"][];
+    const vehicleTypes = Array.from(
+      new Set(savedRegistrations.map((registration) => registration.form.vehicleType).filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b));
+
+    return { operationTypes, vehicleTypes };
+  }, [savedRegistrations]);
+
+  const filteredRegistrations = useMemo(() => {
+    const needle = registrationSearch.trim().toLowerCase();
+
+    return savedRegistrations.filter((registration) => {
+      const matchesSearch =
+        !needle ||
+        [
+          registration.form.vehicleModel,
+          registration.form.vehicleBrand,
+          registration.form.vehicleType,
+          registration.form.centerCost,
+          registration.form.vehicleFormula,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(needle);
+
+      const matchesOperation =
+        registrationOperationFilter === "all" ||
+        registration.form.operationType === registrationOperationFilter;
+
+      const matchesVehicleType =
+        registrationVehicleTypeFilter === "all" ||
+        registration.form.vehicleType === registrationVehicleTypeFilter;
+
+      return matchesSearch && matchesOperation && matchesVehicleType;
+    });
+  }, [
+    savedRegistrations,
+    registrationSearch,
+    registrationOperationFilter,
+    registrationVehicleTypeFilter,
+  ]);
 
   useEffect(() => {
     try {
@@ -765,7 +815,14 @@ export default function WebPreventiveItemsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={resetAll}
+                    className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+                  >
+                    Limpar Cadastro
+                  </button>
                   <button
                     type="button"
                     onClick={handleNext}
@@ -1177,26 +1234,18 @@ export default function WebPreventiveItemsPage() {
           </aside>
         </section>
 
-        <section className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            onClick={() => (step === 2 ? setStep(1) : resetAll())}
-            className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
-          >
-            {step === 2 ? "Voltar" : "Limpar Cadastro"}
-          </button>
+        {step === 2 && (
+          <section className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+            >
+              Voltar
+            </button>
 
-          <div className="flex flex-col items-start gap-2 md:items-end">
-            {savedMessage && <p className="text-sm font-semibold text-emerald-700">{savedMessage}</p>}
-            {step === 1 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
-              >
-                Continuar para Intervalos
-              </button>
-            ) : (
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              {savedMessage && <p className="text-sm font-semibold text-emerald-700">{savedMessage}</p>}
               <button
                 type="button"
                 onClick={handleSave}
@@ -1204,9 +1253,9 @@ export default function WebPreventiveItemsPage() {
               >
                 Salvar Plano de Manutencao
               </button>
-            )}
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -1215,10 +1264,49 @@ export default function WebPreventiveItemsPage() {
               <p className="text-sm text-slate-500">
                 Todos os registros ficam nesta tela para edicao rapida, reaproveitamento e padronizacao.
               </p>
+              {savedMessage && (
+                <p className="mt-2 text-sm font-semibold text-emerald-700">{savedMessage}</p>
+              )}
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-600">
-              {savedRegistrations.length} cadastro{savedRegistrations.length === 1 ? "" : "s"}
+              {filteredRegistrations.length}/{savedRegistrations.length} cadastro
+              {filteredRegistrations.length === 1 ? "" : "s"}
             </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-[1.4fr_0.8fr_0.8fr]">
+            <input
+              value={registrationSearch}
+              onChange={(e) => setRegistrationSearch(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              placeholder="Buscar por modelo, marca, tipo, centro de custo ou formula..."
+            />
+            <select
+              value={registrationOperationFilter}
+              onChange={(e) =>
+                setRegistrationOperationFilter(e.target.value as FormState["operationType"] | "all")
+              }
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+            >
+              <option value="all">Todas operacoes</option>
+              {registrationFilterOptions.operationTypes.map((operationType) => (
+                <option key={operationType} value={operationType}>
+                  {operationType}
+                </option>
+              ))}
+            </select>
+            <select
+              value={registrationVehicleTypeFilter}
+              onChange={(e) => setRegistrationVehicleTypeFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+            >
+              <option value="all">Todos os tipos</option>
+              {registrationFilterOptions.vehicleTypes.map((vehicleType) => (
+                <option key={vehicleType} value={vehicleType}>
+                  {vehicleType}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -1227,8 +1315,13 @@ export default function WebPreventiveItemsPage() {
                 Nenhum cadastro salvo ainda. Finalize um plano acima para ele aparecer aqui.
               </div>
             )}
+            {savedRegistrations.length > 0 && filteredRegistrations.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
+                Nenhum cadastro encontrado com os filtros informados.
+              </div>
+            )}
 
-            {savedRegistrations.map((registration) => (
+            {filteredRegistrations.map((registration) => (
               <div
                 key={registration.registrationId}
                 className={`rounded-2xl border p-4 shadow-sm transition ${

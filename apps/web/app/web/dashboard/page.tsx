@@ -50,7 +50,17 @@ export default function WebDashboardPage() {
     const statuses = events.map((event) => getMaintenanceOperationalStatus(event));
     const overdueCount = statuses.filter((status) => status === "VENCIDA").length;
     const nearDueCount = statuses.filter((status) => status === "A_VENCER").length;
+    const attentionCount = statuses.filter((status) => status === "ATENCAO").length;
     const compliantCount = statuses.filter((status) => status === "CONFORME").length;
+    const inProgressCount = events.filter((event) => event.status === "in_progress").length;
+    const completedCount = events.filter((event) => event.status === "completed").length;
+    const today = new Date();
+    const todayCount = events.filter(
+      (event) =>
+        event.day === today.getDate() &&
+        event.month === today.getMonth() &&
+        event.year === today.getFullYear(),
+    ).length;
 
     const total = statuses.length || 1;
     const compliance = Math.max(0, Math.min(100, Math.round((compliantCount / total) * 100)));
@@ -59,6 +69,10 @@ export default function WebDashboardPage() {
     return {
       overdueCount,
       nearDueCount,
+      attentionCount,
+      inProgressCount,
+      completedCount,
+      todayCount,
       compliance,
       fleetTotal: Math.max(uniqueAssets.size, 1),
     };
@@ -105,25 +119,45 @@ export default function WebDashboardPage() {
     <WebShell title={translations.dashboardTitle} subtitle={translations.dashboardSubtitle}>
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="kpi-card border-l-4 border-l-[var(--color-danger)]">
-            <p className="stat-label">{translations.overdue}</p>
+          <div className="kpi-card border-l-4 border-l-[var(--color-danger)] bg-gradient-to-b from-white to-rose-50/30">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">{translations.overdue}</p>
+              <span className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-black uppercase text-red-600">
+                Critico
+              </span>
+            </div>
             <p className="mt-2 text-5xl font-black text-[var(--color-danger)]">{metrics.overdueCount}</p>
             <p className="text-xs font-bold text-[var(--color-danger)]">Atualizado em tempo real</p>
           </div>
-          <div className="kpi-card border-l-4 border-l-[var(--color-warning)]">
-            <p className="stat-label">{translations.nearDue}</p>
+          <div className="kpi-card border-l-4 border-l-[var(--color-warning)] bg-gradient-to-b from-white to-amber-50/40">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">{translations.nearDue}</p>
+              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+                Planejar
+              </span>
+            </div>
             <p className="mt-2 text-5xl font-black text-[var(--color-warning)]">{metrics.nearDueCount}</p>
             <p className="text-xs font-semibold text-slate-500">{translations.schedulingAvailable}</p>
           </div>
-          <div className="kpi-card border-l-4 border-l-[var(--color-brand)]">
-            <p className="stat-label">{translations.compliance}</p>
+          <div className="kpi-card border-l-4 border-l-[var(--color-brand)] bg-gradient-to-b from-white to-blue-50/40">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">{translations.compliance}</p>
+              <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                Frota
+              </span>
+            </div>
             <p className="mt-2 text-5xl font-black">{metrics.compliance}%</p>
             <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
               <div className="h-2 rounded-full bg-[var(--color-brand)]" style={{ width: `${metrics.compliance}%` }} />
             </div>
           </div>
-          <div className="kpi-card border-l-4 border-l-slate-400">
-            <p className="stat-label">{translations.fleetTotal}</p>
+          <div className="kpi-card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50">
+            <div className="flex items-center justify-between">
+              <p className="stat-label">{translations.fleetTotal}</p>
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                Ativos
+              </span>
+            </div>
             <p className="mt-2 text-5xl font-black">{metrics.fleetTotal}</p>
             <p className="text-xs font-semibold text-slate-500">{translations.activeVehicles}</p>
           </div>
@@ -131,20 +165,70 @@ export default function WebDashboardPage() {
 
         <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
           <div className="card p-6">
-            <h3 className="text-lg font-black">{translations.preventiveTypesMonthly}</h3>
-            <div className="mt-6 grid h-56 place-items-center">
-              <div className="relative h-44 w-44 rounded-full border-[16px] border-slate-100">
-                <div className="absolute inset-0 rounded-full border-[16px] border-[var(--color-brand)] border-r-[var(--color-brand-soft)] border-b-[var(--color-brand-soft)]" />
-                <div className="absolute inset-0 grid place-items-center">
-                  <p className="text-center text-4xl font-black">{events.length}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-black">Resumo Operacional da Frota</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Visao rapida para decisao de oficina e programacao diaria.
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                Dashboard
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-blue-700">Hoje</p>
+                  <p className="mt-1 text-3xl font-black text-blue-800">{metrics.todayCount}</p>
+                  <p className="text-xs text-blue-700/80">Agendamentos do dia</p>
+                </div>
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">Em andamento</p>
+                  <p className="mt-1 text-3xl font-black text-amber-800">{metrics.inProgressCount}</p>
+                  <p className="text-xs text-amber-700/80">OS em execucao</p>
                 </div>
               </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                    Distribuicao de status
+                  </p>
+                  <span className="text-xs font-semibold text-slate-500">{events.length} registros</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: "Conformes", value: Math.max(0, events.length - metrics.overdueCount - metrics.nearDueCount - metrics.attentionCount), tone: "bg-emerald-500" },
+                    { label: "Atencao", value: metrics.attentionCount, tone: "bg-blue-500" },
+                    { label: "A vencer", value: metrics.nearDueCount, tone: "bg-amber-500" },
+                    { label: "Vencidas", value: metrics.overdueCount, tone: "bg-red-500" },
+                  ].map((item) => {
+                    const pct = events.length ? Math.round((item.value / events.length) * 100) : 0;
+                    return (
+                      <div key={item.label}>
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="font-semibold text-slate-700">{item.label}</span>
+                          <span className="font-black text-slate-700">
+                            {item.value} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-white">
+                          <div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-emerald-700">Concluidas</p>
+                <p className="mt-1 text-2xl font-black text-emerald-800">{metrics.completedCount}</p>
+                <p className="text-xs text-emerald-700/80">Ordens finalizadas registradas</p>
+              </div>
             </div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-600">
-              <li className="flex justify-between"><span>{translations.oilChange}</span><strong>{events.filter((event) => event.title.toLowerCase().includes("oleo")).length}</strong></li>
-              <li className="flex justify-between"><span>{translations.periodicReview}</span><strong>{events.filter((event) => event.title.toLowerCase().includes("revis")).length}</strong></li>
-              <li className="flex justify-between"><span>{translations.tiresSuspension}</span><strong>{events.filter((event) => event.title.toLowerCase().includes("pneu") || event.title.toLowerCase().includes("suspens")).length}</strong></li>
-            </ul>
           </div>
 
           <div className="card overflow-hidden">
