@@ -723,41 +723,6 @@ export default function WebPreventiveItemsPage() {
                             )}
 
                             <div className="flex flex-wrap items-center justify-end gap-2">
-                              {!applied && (
-                                <>
-                                  <span
-                                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                      item.triggerLinked
-                                        ? synced
-                                          ? "bg-blue-100 text-blue-700"
-                                          : "bg-orange-100 text-orange-700"
-                                        : "bg-slate-100 text-slate-700"
-                                    }`}
-                                  >
-                                    {item.triggerLinked
-                                      ? synced
-                                        ? "Vinculado"
-                                        : "Vinculado (ajuste)"
-                                      : "Customizado"}
-                                  </span>
-                                  <span
-                                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                      complete
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-amber-100 text-amber-700"
-                                    }`}
-                                  >
-                                    {complete ? "Completo" : "Pendente"}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleTriggerLink(item.id)}
-                                    className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-black uppercase text-slate-700 hover:bg-slate-50"
-                                  >
-                                    {item.triggerLinked ? "Desvincular" : "Vincular"}
-                                  </button>
-                                </>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => removeItem(item.id)}
@@ -773,47 +738,8 @@ export default function WebPreventiveItemsPage() {
                           <div className="mt-3 rounded-xl border border-slate-100 bg-white/80 p-3">
                             <div className="mb-2 flex flex-wrap items-center gap-2">
                               <span className="text-xs font-semibold text-slate-500">
-                                {applied ? "Editar gatilho aplicado para esta peca:" : "Heranca de gatilhos para esta peça:"}
+                                {applied ? "Editar gatilho aplicado para esta peca" : "Configurar gatilhos da peca"}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateItem(item.id, "inheritsKmTrigger", !item.inheritsKmTrigger)
-                                }
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                  item.inheritsKmTrigger
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-slate-100 text-slate-600"
-                                }`}
-                              >
-                                KM
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateItem(item.id, "inheritsHourmeterTrigger", !item.inheritsHourmeterTrigger)
-                                }
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                  item.inheritsHourmeterTrigger
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-slate-100 text-slate-600"
-                                }`}
-                              >
-                                Horimetro
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateItem(item.id, "inheritsTemporalTrigger", !item.inheritsTemporalTrigger)
-                                }
-                                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                  item.inheritsTemporalTrigger
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-slate-100 text-slate-600"
-                                }`}
-                              >
-                                Temporal
-                              </button>
                               {applied && editingApplied && (
                                 <button
                                   type="button"
