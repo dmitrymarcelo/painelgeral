@@ -52,6 +52,7 @@ export const translations = {
   workOrders: 'Ordens de Serviço',
   checklist: 'Checklist',
   calendar: 'Calendário',
+  preventiveItemsRegister: 'Cadastro de Itens de Preventiva',
   reports: 'Relatórios',
   
   // Header
