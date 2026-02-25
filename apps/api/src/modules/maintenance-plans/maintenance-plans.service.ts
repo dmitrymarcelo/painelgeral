@@ -1,10 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AddMaintenanceRuleDto } from './dto/add-maintenance-rule.dto';
 import { CreateMaintenancePlanDto } from './dto/create-maintenance-plan.dto';
 import { UpdateMaintenancePlanDto } from './dto/update-maintenance-plan.dto';
 
+/**
+ * RESPONSABILIDADE:
+ * Regras de negocio de planos preventivos (cabecalho e regras de gatilho).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Controller de planos delega create/update/addRule.
+ * - Prisma persiste em `maintenancePlan` e `maintenanceRule`.
+ * - Audit log registra alteracoes para trilha de aprovacao.
+ *
+ * CONTRATO BACKEND: a tela de cadastro de planos do frontend deve mapear:
+ * `vehicleBindingContext/form` -> `maintenancePlan`
+ * `triggerConfig/itens` -> regras e itens relacionados (expansao futura)
+ */
 @Injectable()
 export class MaintenancePlansService {
   constructor(
@@ -13,6 +26,7 @@ export class MaintenancePlansService {
   ) {}
 
   async findAll(tenantId: string) {
+    // CONTRATO BACKEND: incluir `rules` e `asset` reduz round-trips no frontend de planejamento.
     return this.prisma.maintenancePlan.findMany({
       where: { tenantId },
       include: { rules: true, asset: true },
@@ -80,6 +94,7 @@ export class MaintenancePlansService {
     id: string,
     dto: AddMaintenanceRuleDto,
   ) {
+    // Regra de negocio: regras de gatilho sao adicionadas separadamente para permitir composicao.
     await this.ensureExists(tenantId, id);
 
     const rule = await this.prisma.maintenanceRule.create({
@@ -111,7 +126,8 @@ export class MaintenancePlansService {
     });
 
     if (!exists) {
-      throw new NotFoundException('Plano de manutenção não encontrado.');
+      throw new NotFoundException('Plano de manutencao nao encontrado.');
     }
   }
 }
+

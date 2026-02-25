@@ -1,5 +1,16 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Visao Web de Ordens de Servico (OS) derivadas dos agendamentos de manutencao.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Converte eventos do `maintenance-store` em linhas de OS para operacao e gestao.
+ * - Compartilha semantica de status com calendario e dashboard.
+ *
+ * CONTRATO BACKEND: quando a API de O.S. estiver ativa, esta tela deve consumir `work_orders`
+ * reais (com `createdAt`, `startedAt`, `completedAt`, responsaveis e status`) em vez de inferir.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
@@ -77,6 +88,7 @@ const getFleetResponsible = (plate: string) => FLEET_RESPONSIBLE_BY_PLATE[plate]
 
 const getOsOpenedAt = (event: MaintenanceEvent) => {
   // O evento atual nao possui createdAt; usamos uma data de abertura estimada baseada no agendamento.
+  // CONTRATO BACKEND: substituir por `workOrder.createdAt` real assim que existir.
   const dueDate = getEventDate(event);
   const opened = new Date(dueDate);
   opened.setDate(opened.getDate() - 1);

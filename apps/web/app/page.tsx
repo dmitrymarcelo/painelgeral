@@ -1,5 +1,16 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Portal de entrada do sistema (selecao de modulo + autenticacao local de demonstracao).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Compartilha sessao com `WebShell` e `MobileShell` via `auth-store`.
+ * - Controla o bloqueio de navegacao para modulos sem login.
+ *
+ * CONTRATO BACKEND: substituir login local por `/auth/login` e `/auth/me`;
+ * esta tela permanece como ponto de autenticacao e escolha de modulo.
+ */
 import Link from "next/link";
 import { MouseEvent, useEffect, useState } from "react";
 import { MonitorIcon, SmartphoneIcon } from "@/components/ui/icons";
@@ -23,6 +34,7 @@ export default function PortalPage() {
   }, []);
 
   const handleLogin = () => {
+    // Regra de negocio: o portal valida o acesso e delega autorizacao fina aos modulos/API.
     const result = loginWithCredentials(authUser, authPassword);
     if (!result.ok) {
       setAuthFeedback(result.message);
@@ -38,6 +50,7 @@ export default function PortalPage() {
   };
 
   const guardModuleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
+    // Regra de negocio: bloqueio client-side para UX; backend continua sendo a fonte de verdade.
     if (authSession) return;
     event.preventDefault();
     setAuthFeedback("Realize login com usuario e senha para acessar os modulos.");

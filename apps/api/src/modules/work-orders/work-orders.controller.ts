@@ -1,3 +1,16 @@
+/**
+ * RESPONSABILIDADE:
+ * Endpoints de Ordens de Servico (OS): ciclo completo de abertura, atribuicao, inicio e conclusao.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `WorkOrdersService` aplica transicoes de status e notificacoes.
+ * - Calendario/gestao de manutencao podem derivar ou vincular eventos a O.S.
+ *
+ * CONTRATO BACKEND:
+ * - `GET /work-orders` com filtros de busca/status/prioridade
+ * - `POST /work-orders` cria O.S.
+ * - `POST /work-orders/:id/assign|start|complete` executa transicoes controladas
+ */
 import {
   Body,
   Controller,
@@ -29,6 +42,7 @@ export class WorkOrdersController {
   @Public()
   @Roles('ADMIN', 'GESTOR', 'TECNICO')
   findAll(@Req() request: Request, @Query() query: WorkOrderQueryDto) {
+    // CONTRATO BACKEND: retorno deve incluir `asset` e `assignments.user`.
     return this.workOrdersService.findAll(getTenantId(request), query);
   }
 

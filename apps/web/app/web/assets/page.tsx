@@ -1,5 +1,16 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Gestao de Preventivas (visao por ativo) com filtros, status de prioridade e detalhes historicos.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Cruza dados mock de ativos/servicos com eventos de manutencao do `maintenance-store`.
+ * - Funciona como prototipo da futura visao consolidada de ativos + preventivas.
+ *
+ * CONTRATO BACKEND: backend deve expor ativos, historico de manutencao, agendamentos e
+ * execucoes por placa/modelo para compor os indicadores exibidos nesta tela.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
@@ -209,6 +220,7 @@ const parseAssetLabel = (label: string) => {
 };
 
 const loadSyncedRunsFromStorage = (): SyncedChecklistRun[] => {
+  // CONTRATO BACKEND: em producao, este dado deve vir de `/checklists/runs` sincronizados.
   if (typeof window === "undefined") return [];
   const raw = window.localStorage.getItem(LOCAL_SYNC_RUNS_KEY);
   if (!raw) return [];

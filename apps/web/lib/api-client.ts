@@ -1,3 +1,14 @@
+/**
+ * RESPONSABILIDADE:
+ * Cliente HTTP padrao do frontend para consumo da API NestJS.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Centraliza URL base, headers de tenant e autenticacao.
+ * - Deve substituir acessos diretos a stores locais quando a integracao backend estiver ativa.
+ *
+ * CONTRATO BACKEND: respostas de erro devem priorizar JSON padronizado contendo
+ * `statusCode`, `message` e opcionalmente `erros` para feedback na UI.
+ */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
 type RequestConfig = {
@@ -32,7 +43,15 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Erro inesperado na API");
+    // CONTRATO BACKEND: padrao recomendado -> `{ statusCode, message, erros? }`.
+    let parsedMessage: string | undefined;
+    try {
+      const parsed = JSON.parse(text) as { message?: string };
+      parsedMessage = parsed.message;
+    } catch {
+      // Mantem fallback para respostas nao JSON.
+    }
+    throw new Error(parsedMessage || text || "Erro inesperado na API");
   }
 
   return (await response.json()) as T;

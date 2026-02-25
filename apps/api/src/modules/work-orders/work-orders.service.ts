@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -13,6 +13,18 @@ import { CreateWorkOrderDto } from './dto/create-work-order.dto';
 import { UpdateWorkOrderDto } from './dto/update-work-order.dto';
 import { WorkOrderQueryDto } from './dto/work-order-query.dto';
 
+/**
+ * RESPONSABILIDADE:
+ * Regras de negocio de O.S. (create/update/assign/start/complete) com historico e notificacoes.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `WorkOrdersController` expoe os endpoints.
+ * - Prisma persiste em `workOrder`, `workOrderHistory`, `workOrderAssignment`.
+ * - `NotificationsService` envia avisos de atribuicao.
+ *
+ * CONTRATO BACKEND: frontend espera O.S. com `asset`, `assignments.user`, `history` e
+ * status consistentes com as transicoes validadas neste service.
+ */
 @Injectable()
 export class WorkOrdersService {
   constructor(
@@ -22,6 +34,7 @@ export class WorkOrdersService {
   ) {}
 
   async findAll(tenantId: string, query: WorkOrderQueryDto) {
+    // Regra de negocio: busca textual atende codigo, servico e referencias do ativo.
     return this.prisma.workOrder.findMany({
       where: {
         tenantId,
@@ -61,6 +74,7 @@ export class WorkOrdersService {
   ) {
     const openedById = userId ?? (await this.getSystemUserId(tenantId));
 
+    // Regra de negocio: codigo de O.S. sequencial por tenant/ano para leitura operacional.
     const sequence = await this.prisma.workOrder.count({ where: { tenantId } });
     const code = `OS-${new Date().getFullYear()}-${String(sequence + 1).padStart(4, '0')}`;
 
@@ -113,7 +127,7 @@ export class WorkOrdersService {
     });
 
     if (!workOrder) {
-      throw new NotFoundException('O.S. não encontrada.');
+      throw new NotFoundException('O.S. nao encontrada.');
     }
 
     return workOrder;
@@ -142,7 +156,7 @@ export class WorkOrdersService {
           workOrderId: id,
           fromStatus: current.status,
           toStatus: dto.status,
-          note: 'Mudança de status manual',
+          note: 'Mudanca de status manual',
           createdById: userId,
         },
       });
@@ -185,11 +199,12 @@ export class WorkOrdersService {
       include: { user: true },
     });
 
+    // CONTRATO BACKEND: notificacao deve carregar referencia da O.S. para deep-link no frontend.
     await this.notificationsService.create({
       tenantId,
       userId: dto.userId,
-      title: 'Nova O.S. atribuída',
-      body: `Você recebeu a ordem ${id}.`,
+      title: 'Nova O.S. atribuida',
+      body: `Voce recebeu a ordem ${id}.`,
     });
 
     await this.auditLogsService.record({
@@ -206,11 +221,12 @@ export class WorkOrdersService {
 
   async start(tenantId: string, userId: string | undefined, id: string) {
     const current = await this.findOne(tenantId, id);
+    // Regra de negocio: apenas O.S. abertas/aguardando podem iniciar execucao.
     if (
       current.status !== WorkOrderStatus.ABERTA &&
       current.status !== WorkOrderStatus.AGUARDANDO
     ) {
-      throw new BadRequestException('Transição inválida para iniciar O.S.');
+      throw new BadRequestException('Transicao invalida para iniciar O.S.');
     }
 
     const updated = await this.prisma.workOrder.update({
@@ -227,7 +243,7 @@ export class WorkOrdersService {
         workOrderId: id,
         fromStatus: current.status,
         toStatus: WorkOrderStatus.EM_ANDAMENTO,
-        note: 'Início da execução',
+        note: 'Inicio da execucao',
         createdById: userId,
       },
     });
@@ -236,6 +252,7 @@ export class WorkOrdersService {
   }
 
   private async getSystemUserId(tenantId: string) {
+    // Regra de negocio: fallback para abertura automatica quando nenhuma sessao de usuario e enviada.
     const user = await this.prisma.user.findFirst({
       where: { tenantId, isActive: true },
       orderBy: { createdAt: 'asc' },
@@ -244,7 +261,7 @@ export class WorkOrdersService {
 
     if (!user) {
       throw new BadRequestException(
-        'Nenhum usu??rio ativo encontrado para o tenant.',
+        'Nenhum usuario ativo encontrado para o tenant.',
       );
     }
 
@@ -258,10 +275,11 @@ export class WorkOrdersService {
     dto: CompleteWorkOrderDto,
   ) {
     const current = await this.findOne(tenantId, id);
+    // Regra de negocio: conclusao exige O.S. em andamento para preservar trilha de status.
 
     if (current.status !== WorkOrderStatus.EM_ANDAMENTO) {
       throw new BadRequestException(
-        'Somente O.S. em andamento pode ser concluída.',
+        'Somente O.S. em andamento pode ser concluida.',
       );
     }
 
@@ -279,7 +297,7 @@ export class WorkOrdersService {
         workOrderId: id,
         fromStatus: current.status,
         toStatus: WorkOrderStatus.CONCLUIDA,
-        note: dto.note ?? 'Concluída',
+        note: dto.note ?? 'Concluida',
         createdById: userId,
       },
     });
@@ -296,3 +314,5 @@ export class WorkOrdersService {
     return updated;
   }
 }
+
+

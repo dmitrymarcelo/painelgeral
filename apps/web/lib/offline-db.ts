@@ -1,5 +1,17 @@
 import Dexie, { Table } from "dexie";
 
+/**
+ * RESPONSABILIDADE:
+ * Banco local (IndexedDB/Dexie) para fila offline e registros de checklist executados.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Telas operacionais salvam localmente quando a API/Internet nao estao disponiveis.
+ * - Um sincronizador futuro deve consumir `queue` e enviar os payloads pendentes.
+ *
+ * CONTRATO BACKEND: `queue.payload` deve respeitar o DTO do endpoint informado em `endpoint`.
+ * O backend deve suportar reprocessamento idempotente para evitar duplicidade em retries.
+ */
+
 export type OfflineActionStatus = "pending" | "synced" | "failed";
 
 export type OfflineAction = {
@@ -51,6 +63,7 @@ export const offlineStore = new OfflineStore();
 
 export async function queueOfflineAction(action: Omit<OfflineAction, "id" | "createdAt" | "status" | "retries">) {
   // Toda acao offline entra como pending para sincronizacao posterior.
+  // CONTRATO BACKEND: recomendado incluir `clientRequestId` no payload em integrações reais.
   return offlineStore.queue.add({
     ...action,
     createdAt: new Date().toISOString(),
@@ -78,6 +91,7 @@ export async function markActionFailed(id: number) {
 
 // Funções para Checklist Runs
 export async function saveChecklistRun(run: Omit<ChecklistRun, "id">) {
+  // CONTRATO BACKEND: corresponde conceitualmente a `POST /checklists/runs`.
   return offlineStore.checklistRuns.add({
     ...run,
     status: "pending",
@@ -102,6 +116,7 @@ export async function updateChecklistRunStatusByKey(
   status: ChecklistRunStatus,
 ) {
   // Atualiza por chave funcional (checklistId + completedAt) para deduplicar execucoes.
+  // Regra de negocio: o mesmo checklist pode rodar varias vezes; `completedAt` diferencia execucoes.
   await offlineStore.checklistRuns
     .where("checklistId")
     .equals(checklistId)

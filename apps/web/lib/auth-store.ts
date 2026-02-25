@@ -1,5 +1,21 @@
 "use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Store de autenticacao local (modo demo/offline) usado pelo portal inicial,
+ * WebShell, MobileShell e tela de usuarios.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `app/page.tsx` usa `loginWithCredentials` para liberar acesso aos modulos.
+ * - `WebShell` e `MobileShell` assinam `subscribeAuthSession` para proteger rotas.
+ * - `app/web/users/page.tsx` usa CRUD local enquanto o backend de identidade nao esta integrado.
+ *
+ * CONTRATO BACKEND: este arquivo deve ser substituido por chamadas de API
+ * (`POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST/PATCH /users`)
+ * retornando tokens/sessao. Estrutura esperada no frontend:
+ * `{ username/email, name, role, loginAt }`.
+ */
+
 export type LocalAuthUser = {
   username: string;
   password: string;
@@ -31,6 +47,7 @@ const emitAuthChange = () => {
 };
 
 export const getAuthUsers = (): LocalAuthUser[] => {
+  // Regra de negocio: garantir pelo menos um usuario local para demos/offline.
   if (!isBrowser()) return DEFAULT_USERS;
   try {
     const raw = window.localStorage.getItem(AUTH_USERS_KEY);
@@ -51,6 +68,7 @@ export const getAuthUsers = (): LocalAuthUser[] => {
 
 const saveAuthUsers = (users: LocalAuthUser[]) => {
   if (!isBrowser()) return;
+  // CONTRATO BACKEND: migrar este write para endpoints de usuarios e manter cache local opcional.
   window.localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
   emitAuthChange();
 };
@@ -67,6 +85,7 @@ export const getAuthSession = (): LocalAuthSession | null => {
 };
 
 export const loginWithCredentials = (username: string, password: string) => {
+  // Regra de negocio: normaliza login para evitar duplicidade por caixa/espacos.
   const normalizedUser = username.trim().toLowerCase();
   const normalizedPass = password.trim();
   if (!normalizedUser || !normalizedPass) {
@@ -89,6 +108,7 @@ export const loginWithCredentials = (username: string, password: string) => {
   };
 
   if (isBrowser()) {
+    // CONTRATO BACKEND: aqui deve persistir token/sessao retornados por `/auth/login`.
     window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
     emitAuthChange();
   }
@@ -114,6 +134,7 @@ export const createAuthUser = (input: LocalAuthUser) => {
 
   const users = getAuthUsers();
   if (users.some((user) => user.username.toLowerCase() === username)) {
+    // Regra de negocio: login unico para evitar colisao de sessao.
     return { ok: false as const, message: "Ja existe um usuario com esse login." };
   }
 
@@ -152,6 +173,7 @@ export const removeAuthUser = (username: string) => {
     return { ok: false as const, message: "Usuario nao encontrado." };
   }
   if (next.length === 0) {
+    // Regra de negocio: evita lock-out em ambiente local de demonstracao.
     return { ok: false as const, message: "Mantenha pelo menos um usuario no sistema." };
   }
   saveAuthUsers(next);
@@ -160,6 +182,7 @@ export const removeAuthUser = (username: string) => {
 
 export const subscribeAuthSession = (callback: () => void) => {
   if (!isBrowser()) return () => undefined;
+  // Fluxo de dados: mesma aba (evento custom) + outras abas (storage).
   const onStorage = (event: StorageEvent) => {
     if (!event.key || event.key === AUTH_SESSION_KEY) callback();
   };

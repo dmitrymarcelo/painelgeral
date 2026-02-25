@@ -1,5 +1,17 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Fonte local de eventos de manutencao preventiva usada por dashboard, calendario,
+ * gestao de preventivas, ordens de servico e modulo app.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Funciona como backend temporario para prototipacao.
+ * - Todas as telas assinam `subscribeMaintenanceEvents` para sincronizacao em tempo real.
+ *
+ * CONTRATO BACKEND: substituir por API de calendario/OS com entidade `calendar_events`
+ * e/ou `maintenance_events`, mantendo os mesmos campos funcionais usados pela UI.
+ */
 export type MaintenanceType = "preventive";
 export type MaintenanceStatus =
   | "scheduled"
@@ -25,6 +37,12 @@ export type MaintenanceEvent = {
   completedAt?: string | null;
   currentMaintenanceKm?: number | null;
 };
+
+// CONTRATO BACKEND: payload funcional minimo esperado pela UI de calendario/OS:
+// {
+//   id, day, month, year, time, type, title, asset, description,
+//   schedulerName, schedulerMatricula, technician, status, completedAt, currentMaintenanceKm
+// }
 
 export type MaintenanceOperationalStatus =
   | "CONFORME"
@@ -63,6 +81,8 @@ export function getEffectiveMaintenanceStatus(
   event: MaintenanceEvent,
   now: Date = new Date(),
 ): MaintenanceStatus {
+  // Regra de negocio: status "scheduled" pode ser promovido em tempo de leitura para
+  // "tolerance" (ate 15 min) e "no_show" (apos 15 min) sem alterar o registro persistido.
   if (event.status !== "scheduled") return event.status;
 
   const scheduledAt = getEventDateTime(event);
@@ -211,6 +231,7 @@ const readEvents = (): MaintenanceEvent[] => {
 
 const writeEvents = (events: MaintenanceEvent[]) => {
   if (typeof window === "undefined") return;
+  // CONTRATO BACKEND: este ponto central de escrita vira chamadas para `/calendar/events`.
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sortEvents(events)));
   emitChanged();
 };
@@ -234,7 +255,7 @@ export function saveMaintenanceEvents(events: MaintenanceEvent[]) {
 export function subscribeMaintenanceEvents(onChange: () => void) {
   if (typeof window === "undefined") return () => undefined;
 
-  // Escuta tanto mudancas de outra aba (storage) quanto da aba atual (evento custom).
+  // Fluxo de dados: escuta mudancas de outra aba (storage) e da aba atual (evento custom).
   const onStorage = (event: StorageEvent) => {
     if (event.key === STORAGE_KEY) {
       onChange();
@@ -269,6 +290,7 @@ export function getMaintenanceOperationalStatus(
   event: MaintenanceEvent,
   baseDate = new Date(),
 ): MaintenanceOperationalStatus {
+  // Regra de negocio: semaforo operacional para priorizacao do dashboard (prazo/execucao).
   const now = baseDate.getTime();
   const due = getMaintenanceDueDate(event).getTime();
 
@@ -315,6 +337,7 @@ export function markMaintenanceEventCompletedById(eventId: string, technician?: 
 export function markAssetMaintenanceCompleted(assetLike: string, technician?: string) {
   const needle = normalizeText(assetLike);
   mutateEvents((events) => {
+    // Regra de negocio: matching textual tolerante permite integracao gradual sem FK de asset.
     const index = events.findIndex((event) => {
       if (event.status === "completed") return false;
       const hay = normalizeText(event.asset);

@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
@@ -8,6 +8,19 @@ import { compare, hash } from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 
+/**
+ * RESPONSABILIDADE:
+ * Regras de autenticacao (login, refresh e logout) com JWT + refresh token hash.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `AuthController` delega validacao e emissao de tokens para este service.
+ * - Prisma persiste `refreshTokenHash` em `user` para revogacao de sessao.
+ *
+ * CONTRATO BACKEND:
+ * - `login` retorna `{ accessToken, refreshToken, user }`
+ * - `refresh` retorna novo par de tokens
+ * - `logout` invalida refresh token persistido
+ */
 @Injectable()
 export class AuthService {
   constructor(
@@ -16,13 +29,14 @@ export class AuthService {
   ) {}
 
   async login(tenantSlug: string, dto: LoginDto) {
+    // Regra de negocio: login e resolvido por tenant + email.
     const tenant = await this.prisma.tenant.findUnique({
       where: { slug: tenantSlug },
       select: { id: true },
     });
 
     if (!tenant) {
-      throw new UnauthorizedException('Tenant inválido.');
+      throw new UnauthorizedException('Tenant invalido.');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -42,12 +56,12 @@ export class AuthService {
     });
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Usuário inválido.');
+      throw new UnauthorizedException('Usuario invalido.');
     }
 
     const passwordMatches = await compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
-      throw new UnauthorizedException('Credenciais inválidas.');
+      throw new UnauthorizedException('Credenciais invalidas.');
     }
 
     const roles = user.userRoles.map((entry) => entry.role.code);
@@ -74,6 +88,7 @@ export class AuthService {
       data: { refreshTokenHash: await hash(refreshToken, 10) },
     });
 
+    // CONTRATO BACKEND: resposta de login consumida pelo frontend deve incluir tokens + usuario.
     return {
       accessToken,
       refreshToken,
@@ -101,7 +116,7 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch {
-      throw new UnauthorizedException('Refresh token inválido.');
+      throw new UnauthorizedException('Refresh token invalido.');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -114,12 +129,12 @@ export class AuthService {
     });
 
     if (!user?.refreshTokenHash || !user.isActive) {
-      throw new UnauthorizedException('Sessão inválida.');
+      throw new UnauthorizedException('Sessao invalida.');
     }
 
     const refreshMatches = await compare(refreshToken, user.refreshTokenHash);
     if (!refreshMatches) {
-      throw new UnauthorizedException('Sessão expirada.');
+      throw new UnauthorizedException('Sessao expirada.');
     }
 
     const roles = user.userRoles.map((entry) => entry.role.code);
@@ -146,6 +161,7 @@ export class AuthService {
       data: { refreshTokenHash: await hash(nextRefreshToken, 10) },
     });
 
+    // CONTRATO BACKEND: refresh retorna novo par de tokens sem repetir payload completo de usuario.
     return {
       accessToken: nextAccessToken,
       refreshToken: nextRefreshToken,
@@ -154,7 +170,7 @@ export class AuthService {
 
   async logout(userId: string): Promise<{ success: boolean }> {
     if (!userId) {
-      throw new BadRequestException('Usuário inválido para logout.');
+      throw new BadRequestException('Usuario invalido para logout.');
     }
 
     await this.prisma.user.update({
@@ -165,3 +181,4 @@ export class AuthService {
     return { success: true };
   }
 }
+

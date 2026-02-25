@@ -1,5 +1,16 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Layout do modulo App (visual mobile/PWA) com navegacao inferior e protecao de acesso.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Envolve paginas `/app/*`.
+ * - Reutiliza sessao do `auth-store` para espelhar permissao do modulo web.
+ *
+ * CONTRATO BACKEND: ao integrar login real, este shell continua consumindo a mesma sessao
+ * (`/auth/me`) usada no WebShell.
+ */
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
@@ -27,6 +38,7 @@ export function MobileShell({ title, children, freeScroll = false }: Props) {
 
   useEffect(() => {
     if (!authSession) {
+      // Regra de negocio: acesso ao modulo app passa obrigatoriamente pelo portal/login.
       router.replace("/");
     }
   }, [authSession, router]);

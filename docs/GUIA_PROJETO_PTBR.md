@@ -1,5 +1,7 @@
 # Guia do Projeto (PT-BR)
 
+> Complemento de handoff (diretoria + backend): `docs/ENTREGA_BACKEND_DIRETORIA_PTBR.md`
+
 ## Visao geral
 
 Este repositorio e um monorepo fullstack para gestao de frota/manutencao preventiva.

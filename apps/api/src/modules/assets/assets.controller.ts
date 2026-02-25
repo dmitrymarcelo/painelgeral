@@ -1,3 +1,16 @@
+/**
+ * RESPONSABILIDADE:
+ * Endpoints de Ativos (CRUD, historico e importacao CSV) por tenant.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `AssetsService` aplica regras de negocio, auditoria e importacao.
+ * - `getTenantId` garante escopo multi-tenant.
+ *
+ * CONTRATO BACKEND:
+ * - `GET /assets` suporta filtros por busca/tipo/status
+ * - `POST /assets/import/csv` retorna resumo de job de importacao
+ * - `GET /assets/:id/history` retorna historico de status
+ */
 import {
   Body,
   Controller,
@@ -28,6 +41,7 @@ export class AssetsController {
   @Public()
   @Roles('ADMIN', 'GESTOR', 'TECNICO')
   findAll(@Req() request: Request, @Query() query: AssetQueryDto) {
+    // CONTRATO BACKEND: retorno serve gestao de ativos/preventivas e precisa de filtros eficientes.
     return this.assetsService.findAll(getTenantId(request), query);
   }
 
@@ -65,6 +79,7 @@ export class AssetsController {
     @CurrentUser() user: AuthUser | undefined,
     @Body() dto: ImportAssetsCsvDto,
   ) {
+    // CONTRATO BACKEND: entrada de CSV cru + delimitador; saida com contadores por job.
     return this.assetsService.importCsv(getTenantId(request), user?.sub, dto);
   }
 

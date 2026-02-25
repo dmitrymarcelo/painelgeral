@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -10,11 +10,22 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+/**
+ * RESPONSABILIDADE:
+ * Regras de negocio de usuarios (cadastro, atualizacao, papeis e status).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `UsersController` usa este service para CRUD administrativo.
+ * - Prisma persiste em `user`, `role` e `userRoleMap`.
+ *
+ * CONTRATO BACKEND: frontend administrativo precisa de `user + userRoles.role`.
+ */
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(tenantId: string) {
+    // CONTRATO BACKEND: listagem administrativa precisa vir com roles expandidos (`userRoles.role`).
     return this.prisma.user.findMany({
       where: { tenantId },
       include: {
@@ -29,13 +40,15 @@ export class UsersService {
   }
 
   async create(tenantId: string, dto: CreateUserDto) {
+    // CONTRATO BACKEND: `CreateUserDto` deve conter senha em texto apenas neste endpoint;
+    // persistencia sempre usa `passwordHash`.
     const existing = await this.prisma.user.findUnique({
       where: { tenantId_email: { tenantId, email: dto.email } },
       select: { id: true },
     });
 
     if (existing) {
-      throw new BadRequestException('E-mail já cadastrado.');
+      throw new BadRequestException('E-mail ja cadastrado.');
     }
 
     const passwordHash = await hash(dto.password, 10);
@@ -50,6 +63,7 @@ export class UsersService {
       },
     });
 
+    // Regra de negocio: tecnico e papel padrao quando nenhum role e enviado.
     const rolesToAttach = dto.roles?.length ? dto.roles : [UserRole.TECNICO];
 
     for (const roleCode of rolesToAttach) {
@@ -88,6 +102,7 @@ export class UsersService {
     });
 
     if (dto.roles?.length) {
+      // Regra de negocio: atualizacao de roles e substitutiva para simplificar consistencia.
       await this.prisma.userRoleMap.deleteMany({
         where: { tenantId, userId: id },
       });
@@ -126,9 +141,10 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usuário não encontrado.');
+      throw new NotFoundException('Usuario nao encontrado.');
     }
 
     return user;
   }
 }
+

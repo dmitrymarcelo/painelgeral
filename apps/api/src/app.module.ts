@@ -1,3 +1,14 @@
+/**
+ * RESPONSABILIDADE:
+ * Composicao raiz da API (modulos de dominio + infraestrutura + guards globais).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Importa todos os modulos funcionais (auth, assets, calendario, OS, etc.).
+ * - Registra guardas globais para throttling, autenticacao JWT e autorizacao por papeis.
+ *
+ * CONTRATO BACKEND: novos modulos de dominio devem ser registrados aqui e seguir o mesmo
+ * padrao de isolamento por feature (`modules/<feature>`).
+ */
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';

@@ -1,3 +1,17 @@
+/**
+ * RESPONSABILIDADE:
+ * Endpoints administrativos de usuarios e ativacao/inativacao de acessos.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Usa `UsersService` para regras de negocio.
+ * - Usa `getTenantId` para escopo multi-tenant.
+ *
+ * CONTRATO BACKEND:
+ * - `GET /users` -> usuarios + roles
+ * - `POST /users` -> cria usuario
+ * - `PATCH /users/:id` -> atualiza dados/roles
+ * - `PATCH /users/:id/status` -> ativa/inativa
+ */
 import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -14,6 +28,7 @@ export class UsersController {
   @Get()
   @Roles('ADMIN', 'GESTOR')
   findAll(@Req() request: Request) {
+    // CONTRATO BACKEND: retorno com `userRoles.role` expandido para montar telas administrativas.
     return this.usersService.findAll(getTenantId(request));
   }
 

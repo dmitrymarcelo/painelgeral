@@ -1,5 +1,18 @@
 "use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Cadastro e gestao local de Planos de Manutencao Preventiva (identificacao do veiculo,
+ * formula, itens/pecas e gatilhos por item), incluindo lista de cadastros salvos na mesma tela.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Alimenta a futura base de planos preventivos que sera usada por calendario, OS e gestao de preventivas.
+ * - Hoje persiste em `localStorage` para validacao de UX e regras de negocio.
+ *
+ * CONTRATO BACKEND: o payload `PreventiveRegistrationPayload` representa um candidato direto
+ * para DTO de `maintenance-plans` + `maintenance-rules` + itens de plano.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
@@ -51,16 +64,23 @@ type PreventiveRegistrationPayload = {
   };
   items: PreventiveItemRow[];
 };
+// CONTRATO BACKEND: este payload sugere as entidades:
+// - maintenance_plan (cabecalho/contexto do veiculo)
+// - maintenance_rule (gatilhos de referencia)
+// - maintenance_plan_item (pecas/insumos + vidas uteis por gatilho)
 
 const STORAGE_KEY = "frota-pro.preventive-items-registration:last";
 const STORAGE_LIST_KEY = "frota-pro.preventive-items-registrations";
+const DEFAULT_TRIGGER_KM = "20000";
+const DEFAULT_TRIGGER_HOURMETER = "500";
+const DEFAULT_TRIGGER_TEMPORAL_MONTHS = "6";
 
 const emptyItem = (): PreventiveItemRow => ({
   id: crypto.randomUUID(),
   partMaterial: "",
-  triggerKmValue: "20000",
-  triggerHourmeterValue: "500",
-  triggerTemporalMonthsValue: "6",
+  triggerKmValue: DEFAULT_TRIGGER_KM,
+  triggerHourmeterValue: DEFAULT_TRIGGER_HOURMETER,
+  triggerTemporalMonthsValue: DEFAULT_TRIGGER_TEMPORAL_MONTHS,
   usefulLifeKm: "",
   usefulLifeHourmeter: "",
   usefulLifeTime: "",
@@ -109,32 +129,40 @@ const normalizeItem = (raw: Partial<PreventiveItemRow> | null | undefined): Prev
   inheritsTemporalTrigger: raw?.inheritsTemporalTrigger ?? true,
 });
 
-const normalizeRegistration = (raw: any): PreventiveRegistrationPayload | null => {
+const normalizeRegistration = (raw: unknown): PreventiveRegistrationPayload | null => {
   if (!raw || typeof raw !== "object") return null;
-  const form = { ...emptyForm(), ...(raw.form ?? {}) } as FormState;
+  const source = raw as Record<string, unknown>;
+  const vehicleBindingContext =
+    (source.vehicleBindingContext as Partial<PreventiveRegistrationPayload["vehicleBindingContext"]> | undefined) ??
+    {};
+  const triggerConfig =
+    (source.triggerConfig as Partial<PreventiveRegistrationPayload["triggerConfig"]> | undefined) ?? {};
+  const form = { ...emptyForm(), ...((source.form as Partial<FormState> | undefined) ?? {}) } as FormState;
   return {
-    registrationId: String(raw.registrationId || crypto.randomUUID()),
-    createdAt: String(raw.createdAt || new Date().toISOString()),
-    updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
+    registrationId: String(source.registrationId || crypto.randomUUID()),
+    createdAt: String(source.createdAt || new Date().toISOString()),
+    updatedAt: source.updatedAt ? String(source.updatedAt) : undefined,
     vehicleBindingContext: {
-      vehicleModel: String(raw.vehicleBindingContext?.vehicleModel ?? form.vehicleModel ?? ""),
-      vehicleBrand: String(raw.vehicleBindingContext?.vehicleBrand ?? form.vehicleBrand ?? ""),
-      vehicleType: String(raw.vehicleBindingContext?.vehicleType ?? form.vehicleType ?? ""),
+      vehicleModel: String(vehicleBindingContext.vehicleModel ?? form.vehicleModel ?? ""),
+      vehicleBrand: String(vehicleBindingContext.vehicleBrand ?? form.vehicleBrand ?? ""),
+      vehicleType: String(vehicleBindingContext.vehicleType ?? form.vehicleType ?? ""),
       operationType:
-        raw.vehicleBindingContext?.operationType === "Severo" ||
-        raw.vehicleBindingContext?.operationType === "Normal" ||
-        raw.vehicleBindingContext?.operationType === "Leve"
-          ? raw.vehicleBindingContext.operationType
+        vehicleBindingContext.operationType === "Severo" ||
+        vehicleBindingContext.operationType === "Normal" ||
+        vehicleBindingContext.operationType === "Leve"
+          ? vehicleBindingContext.operationType
           : (form.operationType ?? ""),
-      centerCost: String(raw.vehicleBindingContext?.centerCost ?? form.centerCost ?? ""),
+      centerCost: String(vehicleBindingContext.centerCost ?? form.centerCost ?? ""),
     },
     form,
     triggerConfig: {
-      quilometragemKm: Number(raw.triggerConfig?.quilometragemKm) || 0,
-      horimetroHrs: Number(raw.triggerConfig?.horimetroHrs) || 0,
-      temporalMeses: Number(raw.triggerConfig?.temporalMeses) || 0,
+      quilometragemKm: Number(triggerConfig.quilometragemKm) || 0,
+      horimetroHrs: Number(triggerConfig.horimetroHrs) || 0,
+      temporalMeses: Number(triggerConfig.temporalMeses) || 0,
     },
-    items: Array.isArray(raw.items) ? raw.items.map((item: any) => normalizeItem(item)) : [],
+    items: Array.isArray(source.items)
+      ? (source.items as unknown[]).map((item) => normalizeItem(item as Partial<PreventiveItemRow>))
+      : [],
   };
 };
 
@@ -152,9 +180,6 @@ export default function WebPreventiveItemsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [items, setItems] = useState<PreventiveItemRow[]>([emptyItem()]);
   const [itemSearch, setItemSearch] = useState("");
-  const [triggerKm, setTriggerKm] = useState("20000");
-  const [triggerHourmeter, setTriggerHourmeter] = useState("500");
-  const [triggerTemporalMonths, setTriggerTemporalMonths] = useState("6");
 
   const canAdvanceToStep2 = useMemo(
     () =>
@@ -203,6 +228,22 @@ export default function WebPreventiveItemsPage() {
     return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
   }, [items]);
 
+  const averageItemTriggerHourmeter = useMemo(() => {
+    const values = items
+      .map((item) => Number(item.triggerHourmeterValue))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (values.length === 0) return 0;
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  }, [items]);
+
+  const minimumItemTriggerTemporalMonths = useMemo(() => {
+    const values = items
+      .map((item) => Number(item.triggerTemporalMonthsValue))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (values.length === 0) return 0;
+    return Math.min(...values);
+  }, [items]);
+
   const estimatedInvestment = useMemo(() => {
     const base = items.length * 145;
     const opFactor = form.operationType === "Severo" ? 1.35 : form.operationType === "Leve" ? 0.9 : 1;
@@ -221,6 +262,21 @@ export default function WebPreventiveItemsPage() {
       .filter((value): value is number => value != null && value > 0);
     return monthValues.length > 0 ? Math.min(...monthValues) : 6;
   }, [items]);
+
+  const triggerReferenceSummary = useMemo(
+    () => ({
+      quilometragemKm: averageItemTriggerKm || Number(DEFAULT_TRIGGER_KM),
+      horimetroHrs: averageItemTriggerHourmeter || suggestedTriggerHourmeter,
+      temporalMeses: minimumItemTriggerTemporalMonths || suggestedTriggerTemporalMonths,
+    }),
+    [
+      averageItemTriggerHourmeter,
+      averageItemTriggerKm,
+      minimumItemTriggerTemporalMonths,
+      suggestedTriggerHourmeter,
+      suggestedTriggerTemporalMonths,
+    ],
+  );
 
   const registrationsSummary = useMemo(() => {
     const uniqueGroups = new Set(
@@ -288,6 +344,8 @@ export default function WebPreventiveItemsPage() {
   ]);
 
   useEffect(() => {
+    // CONTRATO BACKEND: enquanto nao houver API, esta lista representa a "colecao de planos"
+    // persistida localmente. `normalizeRegistration` garante retrocompatibilidade de payload.
     try {
       const raw = window.localStorage.getItem(STORAGE_LIST_KEY);
       const parsed = raw ? (JSON.parse(raw) as unknown) : [];
@@ -358,7 +416,8 @@ export default function WebPreventiveItemsPage() {
           ? {
               ...item,
               [key]: value,
-              // Edicao manual transforma o item em customizado, mantendo a relacao logica opcional.
+              // Regra de negocio:
+              // Edicao manual descola a peca da heranca automatica para preservar ajuste fino.
               triggerApplied: false,
               triggerLinked: false,
             }
@@ -394,6 +453,8 @@ export default function WebPreventiveItemsPage() {
   };
 
   const applyTriggerToItem = (id: string) => {
+    // Regra de negocio: "Aplicar gatilho" congela o snapshot atual dos gatilhos da peca
+    // nas vidas uteis, marcando a linha como aplicada. Qualquer alteracao posterior reabre pendencia.
     setItems((current) =>
       current.map((item) => {
         if (item.id !== id) return item;
@@ -415,59 +476,16 @@ export default function WebPreventiveItemsPage() {
     setSavedMessage("");
   };
 
-  const toggleTriggerLink = (id: string) => {
-    setItems((current) =>
-      current.map((item) => {
-        if (item.id !== id) return item;
-        if (item.triggerLinked) {
-          return { ...item, triggerLinked: false, triggerApplied: false };
-        }
-        const expected = getExpectedValuesForItem(item);
-        return {
-          ...item,
-          triggerApplied: false,
-          triggerLinked: true,
-          usefulLifeKm: expected.usefulLifeKm,
-          usefulLifeHourmeter: expected.usefulLifeHourmeter,
-          usefulLifeTime: expected.usefulLifeTime,
-        };
-      }),
-    );
-    setSavedMessage("");
-  };
-
-  useEffect(() => {
-    setItems((current) =>
-      current.map((item) => {
-        if (!item.triggerLinked) return item;
-        const expected = getExpectedValuesForItem(item);
-        if (
-          item.usefulLifeKm === expected.usefulLifeKm &&
-          item.usefulLifeHourmeter === expected.usefulLifeHourmeter &&
-          item.usefulLifeTime === expected.usefulLifeTime
-        ) {
-          return item;
-        }
-        return {
-          ...item,
-          usefulLifeKm: expected.usefulLifeKm,
-          usefulLifeHourmeter: expected.usefulLifeHourmeter,
-          usefulLifeTime: expected.usefulLifeTime,
-          triggerApplied: false,
-        };
-      }),
-    );
-    setItems((current) => current.map((item) => ({ ...item, triggerApplied: false })));
-  }, [triggerHourmeter, triggerKm, triggerTemporalMonths]);
-
   const addItem = () => {
     setItems((current) => [
       ...current,
       {
         ...emptyItem(),
-        triggerKmValue: triggerKm || "20000",
-        triggerHourmeterValue: triggerHourmeter || "500",
-        triggerTemporalMonthsValue: triggerTemporalMonths || "6",
+        triggerKmValue: String(triggerReferenceSummary.quilometragemKm || Number(DEFAULT_TRIGGER_KM)),
+        triggerHourmeterValue: String(triggerReferenceSummary.horimetroHrs || suggestedTriggerHourmeter),
+        triggerTemporalMonthsValue: String(
+          triggerReferenceSummary.temporalMeses || suggestedTriggerTemporalMonths,
+        ),
       },
     ]);
     setSavedMessage("");
@@ -518,14 +536,20 @@ export default function WebPreventiveItemsPage() {
       },
       form,
       triggerConfig: {
-        quilometragemKm: Number(triggerKm) || 0,
-        horimetroHrs: Number(triggerHourmeter) || 0,
-        temporalMeses: Number(triggerTemporalMonths) || 0,
+        // Regra de negocio: resumo do plano e derivado dos gatilhos por peca.
+        // Isso evita inconsistencias quando nao existe mais um bloco global de gatilhos.
+        quilometragemKm: triggerReferenceSummary.quilometragemKm,
+        horimetroHrs: triggerReferenceSummary.horimetroHrs,
+        temporalMeses: triggerReferenceSummary.temporalMeses,
       },
       items,
     };
+    // CONTRATO BACKEND: persistencia local temporaria. Em API real, este payload deve ser
+    // quebrado em cabecalho do plano + regras + itens relacionados.
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     try {
+      // CONTRATO BACKEND: na integracao real isso vira `POST/PATCH /maintenance-plans`.
+      // A lista local continua como cache de consulta/edicao rapida.
       const next = existing
         ? savedRegistrations.map((registration) =>
             registration.registrationId === payload.registrationId ? payload : registration,
@@ -547,9 +571,6 @@ export default function WebPreventiveItemsPage() {
     setForm(emptyForm());
     setItems([emptyItem()]);
     setItemSearch("");
-    setTriggerKm("20000");
-    setTriggerHourmeter("500");
-    setTriggerTemporalMonths("6");
     setSavedMessage(successMessage);
   };
 
@@ -559,21 +580,17 @@ export default function WebPreventiveItemsPage() {
     setForm(emptyForm());
     setItems([emptyItem()]);
     setItemSearch("");
-    setTriggerKm("20000");
-    setTriggerHourmeter("500");
-    setTriggerTemporalMonths("6");
     setSavedMessage("");
   };
 
   const handleEditRegistration = (registrationId: string) => {
     const selected = savedRegistrations.find((registration) => registration.registrationId === registrationId);
     if (!selected) return;
+    // Regra de negocio: a edicao reidrata exatamente o payload salvo para evitar perda de
+    // parametrizacao individual de gatilhos por peca.
     setEditingRegistrationId(selected.registrationId);
     setForm({ ...emptyForm(), ...selected.form });
     setItems(selected.items.length > 0 ? selected.items.map((item) => normalizeItem(item)) : [emptyItem()]);
-    setTriggerKm(String(selected.triggerConfig.quilometragemKm || 20000));
-    setTriggerHourmeter(String(selected.triggerConfig.horimetroHrs || suggestedTriggerHourmeter));
-    setTriggerTemporalMonths(String(selected.triggerConfig.temporalMeses || suggestedTriggerTemporalMonths));
     setStep(2);
     setSavedMessage("Cadastro carregado para edicao.");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1173,15 +1190,15 @@ export default function WebPreventiveItemsPage() {
               <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
                 <div className="rounded-lg bg-white/10 px-2 py-2">
                   <p className="opacity-80">KM</p>
-                  <p className="font-black">{averageItemTriggerKm || 0}</p>
+                  <p className="font-black">{triggerReferenceSummary.quilometragemKm}</p>
                 </div>
                 <div className="rounded-lg bg-white/10 px-2 py-2">
                   <p className="opacity-80">HRS</p>
-                  <p className="font-black">{Number(triggerHourmeter) || suggestedTriggerHourmeter}</p>
+                  <p className="font-black">{triggerReferenceSummary.horimetroHrs}</p>
                 </div>
                 <div className="rounded-lg bg-white/10 px-2 py-2">
                   <p className="opacity-80">MESES</p>
-                  <p className="font-black">{Number(triggerTemporalMonths) || suggestedTriggerTemporalMonths}</p>
+                  <p className="font-black">{triggerReferenceSummary.temporalMeses}</p>
                 </div>
               </div>
             </div>

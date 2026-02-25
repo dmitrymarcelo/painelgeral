@@ -1,4 +1,15 @@
-import { ValidationPipe } from '@nestjs/common';
+/**
+ * RESPONSABILIDADE:
+ * Bootstrap da API NestJS (prefixo global, CORS e validacao padronizada).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Inicializa todos os modulos definidos em `AppModule`.
+ * - Define contratos globais de entrada/erro para frontend e integracoes.
+ *
+ * CONTRATO BACKEND: respostas de validacao devem seguir payload padronizado:
+ * `{ statusCode, message, erros: [{ campo, erros[] }] }`.
+ */
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
@@ -15,6 +26,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       stopAtFirstError: true,
       exceptionFactory: (errors) => {
+        // Regra de negocio: traduz erros de validacao para PT-BR e formato consumivel pela UI.
         const messages = errors.map((error) => ({
           campo: error.property,
           erros: Object.values(error.constraints ?? {}).map((msg) => {
@@ -38,13 +50,12 @@ async function bootstrap() {
               .replace('maximum', 'maximo');
           }),
         }));
-        return new Error(
-          JSON.stringify({
-            statusCode: 400,
-            message: 'Erro de validacao',
-            erros: messages,
-          }),
-        );
+        // Clean code/bugfix: retornar HttpException preserva status 400 no Nest.
+        return new BadRequestException({
+          statusCode: 400,
+          message: 'Erro de validacao',
+          erros: messages,
+        });
       },
     }),
   );

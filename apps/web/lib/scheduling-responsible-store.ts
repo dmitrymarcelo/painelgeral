@@ -1,5 +1,16 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Cadastro e sessao local do responsavel por agendamentos de preventiva.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Calendario preenche `schedulerName` e `schedulerMatricula` ao criar agendamentos.
+ * - Funciona como mock persistente ate a API de usuarios/perfis assumir esse fluxo.
+ *
+ * CONTRATO BACKEND: entidade sugerida `users` (com perfil/role de agendamento) e sessao
+ * via `/auth/me`. Campos usados pela UI: `{ matricula, name, active }`.
+ */
 export type SchedulingResponsibleRecord = {
   id: string;
   matricula: string;
@@ -74,6 +85,7 @@ export function getSchedulingResponsibles(): SchedulingResponsibleRecord[] {
 
 export function saveSchedulingResponsibles(records: SchedulingResponsibleRecord[]) {
   if (typeof window === "undefined") return;
+  // CONTRATO BACKEND: migrar para CRUD de usuarios e manter store local apenas como cache.
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sortByName(records)));
   emitChanged();
 }
@@ -115,6 +127,7 @@ export function clearSchedulingResponsibleSession() {
 
 export function subscribeSchedulingResponsibles(onChange: () => void) {
   if (typeof window === "undefined") return () => undefined;
+  // Fluxo de dados: sincroniza sessao/cadastro de responsavel entre abas.
 
   const onStorage = (event: StorageEvent) => {
     if (event.key === STORAGE_KEY || event.key === SESSION_KEY) {

@@ -11,6 +11,18 @@ import { CreateAssetDto } from './dto/create-asset.dto';
 import { ImportAssetsCsvDto } from './dto/import-assets-csv.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 
+/**
+ * RESPONSABILIDADE:
+ * Regras de negocio de ativos (CRUD, historico de status e importacao CSV).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Controllers de ativos delegam operacoes para este service.
+ * - Prisma persiste em `asset`, `assetStatusHistory` e entidades de importacao.
+ * - `AuditLogsService` registra trilha de auditoria.
+ *
+ * CONTRATO BACKEND: frontend de ativos/gestao de preventivas depende de listagem com filtros,
+ * historico de status e importacao com sucesso parcial por linha.
+ */
 @Injectable()
 export class AssetsService {
   constructor(
@@ -20,6 +32,7 @@ export class AssetsService {
 
   async findAll(tenantId: string, query: AssetQueryDto) {
     const tenantDbId = await this.resolveTenantId(tenantId);
+    // Regra de negocio: busca textual cobre codigo, placa, modelo e fabricante.
     return this.prisma.asset.findMany({
       where: {
         tenantId: tenantDbId,
@@ -85,7 +98,10 @@ export class AssetsService {
 
   async findOne(tenantId: string, id: string) {
     const tenantDbId = await this.resolveTenantId(tenantId);
+    return this.findOneByResolvedTenantId(tenantDbId, id);
+  }
 
+  private async findOneByResolvedTenantId(tenantDbId: string, id: string) {
     const asset = await this.prisma.asset.findFirst({
       where: { tenantId: tenantDbId, id },
     });
@@ -104,7 +120,7 @@ export class AssetsService {
     dto: UpdateAssetDto,
   ) {
     const tenantDbId = await this.resolveTenantId(tenantId);
-    const current = await this.findOne(tenantDbId, id);
+    const current = await this.findOneByResolvedTenantId(tenantDbId, id);
 
     const updated = await this.prisma.asset.update({
       where: { id },
@@ -137,7 +153,7 @@ export class AssetsService {
 
   async history(tenantId: string, id: string) {
     const tenantDbId = await this.resolveTenantId(tenantId);
-    await this.findOne(tenantDbId, id);
+    await this.findOneByResolvedTenantId(tenantDbId, id);
 
     return this.prisma.assetStatusHistory.findMany({
       where: { tenantId: tenantDbId, assetId: id },
@@ -161,6 +177,7 @@ export class AssetsService {
       throw new BadRequestException('CSV sem conteúdo válido.');
     }
 
+    // Regra de negocio: CSV minimo precisa mapear identificador, tipo e modelo do ativo.
     const header = rows[0]
       .split(delimiter)
       .map((part) => part.trim().toLowerCase());
@@ -205,6 +222,7 @@ export class AssetsService {
       });
 
       try {
+        // CONTRATO BACKEND: importacao deve permitir sucesso parcial e rastrear erro por linha.
         const type = payload.type as AssetType;
         if (!Object.values(AssetType).includes(type)) {
           throw new Error(`Tipo de ativo inválido: ${payload.type}`);
@@ -298,6 +316,7 @@ export class AssetsService {
   }
 
   private async resolveTenantId(tenantRef: string) {
+    // Regra de negocio: aceita slug ou id para simplificar integracoes e testes.
     const tenant = await this.prisma.tenant.findFirst({
       where: {
         OR: [{ id: tenantRef }, { slug: tenantRef }],

@@ -1,5 +1,16 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Dashboard executivo/operacional da frota com KPIs e lista de urgencia.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Consome `maintenance-store` para consolidar status operacionais.
+ * - Serve de leitura para diretoria/gestao (nao edita dados).
+ *
+ * CONTRATO BACKEND: idealmente consumira endpoints agregados de KPI e lista de urgencia,
+ * mas o shape atual pode ser reproduzido a partir de `calendar_events`/`work_orders`.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
 import {
@@ -47,6 +58,8 @@ export default function WebDashboardPage() {
   }, []);
 
   const metrics = useMemo(() => {
+    // Regra de negocio: o dashboard trabalha com "status operacional" derivado de prazo/execucao,
+    // nao apenas com o status bruto do evento.
     const statuses = events.map((event) => getMaintenanceOperationalStatus(event));
     const overdueCount = statuses.filter((status) => status === "VENCIDA").length;
     const nearDueCount = statuses.filter((status) => status === "A_VENCER").length;

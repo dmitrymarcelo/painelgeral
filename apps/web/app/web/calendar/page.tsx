@@ -1,5 +1,17 @@
 ﻿"use client";
 
+/**
+ * RESPONSABILIDADE:
+ * Calendario de Manutencao da Frota (agendamento, reagendamento, status e regras operacionais
+ * como tolerancia/no-show) com persistencia local para validacao de UX.
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Usa `maintenance-store` como fonte compartilhada de eventos.
+ * - Usa `scheduling-responsible-store` para registrar quem agendou.
+ * - Recebe deep-link de notificacoes via querystring (`eventId`).
+ *
+ * CONTRATO BACKEND: a logica desta tela mapeia para `/calendar/events` + historico de justificativas.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { WebShell } from "@/components/layout/web-shell";
@@ -164,6 +176,8 @@ const JUSTIFICATION_REGEX =
   /\[JUSTIFICATIVA REAGENDAMENTO ([^\]]+)\]\n([\s\S]*?)(?=\n{2}\[JUSTIFICATIVA REAGENDAMENTO |\s*$)/g;
 
 const parseDescriptionWithJustifications = (raw: string) => {
+  // Regra de negocio: descricao visivel e historico de justificativas coexistem no mesmo campo
+  // enquanto nao existe estrutura backend separada para auditoria.
   const entries: RescheduleJustificationEntry[] = [];
   let match: RegExpExecArray | null;
 
@@ -188,6 +202,7 @@ const buildDescriptionWithJustifications = (
   baseDescription: string,
   entries: RescheduleJustificationEntry[],
 ) => {
+  // CONTRATO BACKEND: em producao, persistir justificativas em tabela/colecao dedicada.
   const sections: string[] = [];
   if (baseDescription.trim()) sections.push(baseDescription.trim());
 
@@ -232,6 +247,7 @@ export default function WebCalendarPage() {
   ) => {
     setEvents((current) => {
       const next = typeof updater === "function" ? updater(current) : updater;
+      // CONTRATO BACKEND: gateway local de persistencia do calendario.
       saveMaintenanceEvents(next);
       return next;
     });
@@ -366,6 +382,7 @@ export default function WebCalendarPage() {
   };
 
   const handleCreateOrder = () => {
+    // Regra de negocio: bloqueia datas passadas, horario passado hoje e excesso por slot.
     if (!formAsset || !selectedDate) {
       alert("Preencha os campos obrigatorios");
       return;
@@ -411,6 +428,7 @@ export default function WebCalendarPage() {
   };
 
   const handleUpdateEvent = () => {
+    // Regra de negocio central: qualquer alteracao exige justificativa no modal.
     if (!selectedEvent || !formAsset || !selectedDate) {
       alert("Preencha os campos obrigatorios");
       return;
@@ -618,6 +636,8 @@ export default function WebCalendarPage() {
   };
 
   const handleDrop = (day: number, dragEvent: React.DragEvent) => {
+    // Regra de negocio: mover no calendario usa as mesmas validacoes do reagendamento e
+    // exige justificativa obrigatoria antes de persistir.
     dragEvent.preventDefault();
     if (!draggedEvent) return;
 

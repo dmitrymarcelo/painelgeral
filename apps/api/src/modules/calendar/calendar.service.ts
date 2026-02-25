@@ -1,10 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CalendarQueryDto } from './dto/calendar-query.dto';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 
+/**
+ * RESPONSABILIDADE:
+ * Regras de negocio de eventos do calendario (listar, criar, atualizar e remover).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - `CalendarController` delega requests HTTP para este service.
+ * - Prisma persiste em `calendarEvent`.
+ * - `AuditLogsService` registra rastreabilidade de alteracoes.
+ *
+ * CONTRATO BACKEND: datas chegam como ISO string (`startAt`, `endAt`) e a resposta deve
+ * retornar o evento persistido com IDs relacionados (ativo/OS) quando existirem.
+ */
 @Injectable()
 export class CalendarService {
   constructor(
@@ -13,6 +25,7 @@ export class CalendarService {
   ) {}
 
   async findAll(tenantId: string, query: CalendarQueryDto) {
+    // Regra de negocio: filtro por janela temporal suporta as visoes mensal/semanal do frontend.
     return this.prisma.calendarEvent.findMany({
       where: {
         tenantId,
@@ -33,6 +46,7 @@ export class CalendarService {
     userId: string | undefined,
     dto: CreateCalendarEventDto,
   ) {
+    // CONTRATO BACKEND: converte datas ISO em `Date` no service para manter controller enxuto.
     const event = await this.prisma.calendarEvent.create({
       data: {
         tenantId,
@@ -110,7 +124,8 @@ export class CalendarService {
     });
 
     if (!exists) {
-      throw new NotFoundException('Evento não encontrado.');
+      throw new NotFoundException('Evento nao encontrado.');
     }
   }
 }
+

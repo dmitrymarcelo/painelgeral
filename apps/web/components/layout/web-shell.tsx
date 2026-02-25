@@ -1,4 +1,17 @@
-"use client";
+﻿"use client";
+
+/**
+ * RESPONSABILIDADE:
+ * Layout principal do modulo Web (sidebar, header, protecao de rota e notificacoes).
+ *
+ * COMO SE CONECTA AO ECOSSISTEMA:
+ * - Envolve as paginas `/web/*`.
+ * - Le sessao no `auth-store` para proteger acesso.
+ * - Consolida notificacoes a partir de `maintenance-store`.
+ *
+ * CONTRATO BACKEND: sessao e notificacoes hoje sao locais; em integracao real, este shell
+ * deve consumir `/auth/me` e `/notifications`, mantendo aqui apenas estado de UI.
+ */
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +39,9 @@ type NotificationItem = {
 };
 
 export function WebShell({ title, subtitle, children }: Props) {
+  // Props mantidas para compatibilidade com paginas existentes (titulos removidos no header por UX).
+  void title;
+  void subtitle;
   const pathname = usePathname();
   const router = useRouter();
   const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
@@ -43,10 +59,10 @@ export function WebShell({ title, subtitle, children }: Props) {
   const [authSession, setAuthSession] = useState(getAuthSession());
 
   const menuItems = [
-    { href: "/web/dashboard", label: translations.dashboard, icon: "🏠" },
-    { href: "/web/assets", label: translations.assetManagement, icon: "🚗" },
-    { href: "/web/maintenance", label: translations.workOrders, icon: "🛠" },
-    { href: "/web/calendar", label: translations.calendar, icon: "📅" },
+    { href: "/web/dashboard", label: translations.dashboard, icon: "\u{1F3E0}" },
+    { href: "/web/assets", label: translations.assetManagement, icon: "\u{1F697}" },
+    { href: "/web/maintenance", label: translations.workOrders, icon: "\u{1F6E0}" },
+    { href: "/web/calendar", label: translations.calendar, icon: "\u{1F4C5}" },
     { href: "/web/preventive-items", label: translations.preventiveItemsRegister, icon: "PM" },
     { href: "/web/users", label: "Usuarios de Acesso", icon: "US" },
   ];
@@ -74,6 +90,7 @@ export function WebShell({ title, subtitle, children }: Props) {
 
   useEffect(() => {
     const refreshNotifications = () => {
+      // Regra de negocio: notificacoes priorizam itens acionaveis (atraso/no-show/tolerancia/hoje).
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
@@ -146,7 +163,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                     aria-label="Recolher menu lateral"
                     title="Recolher menu"
                   >
-                    ‹
+                    {"<"}
                   </button>
                 )}
               </div>
@@ -164,7 +181,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                   aria-label="Expandir menu lateral"
                   title="Expandir menu"
                 >
-                  ›
+                  {">"}
                 </button>
               )}
             </div>
@@ -233,7 +250,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                 )}
               </button>
               <button className="text-slate-400" title="Indicador">
-                •
+                {"*"}
               </button>
               <div className="h-8 w-px bg-[var(--color-border)]"></div>
               <div>
@@ -293,4 +310,5 @@ export function WebShell({ title, subtitle, children }: Props) {
     </div>
   );
 }
+
 
