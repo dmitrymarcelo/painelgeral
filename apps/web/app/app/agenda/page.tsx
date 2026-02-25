@@ -257,8 +257,12 @@ export default function MobileAgendaPage() {
   return (
     <MobileShell title="Agenda da Frota">
       <div className="space-y-3">
-        <div className="card p-4">
-          <div className="mb-3 flex justify-end">
+        <div className="card border-l-4 border-l-blue-500 bg-gradient-to-b from-white to-blue-50/20 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Calendario de Preventivas</p>
+              <p className="text-xs text-slate-500">Selecione uma data e acompanhe a agenda do dia.</p>
+            </div>
             <button
               onClick={() => {
                 setShowNewOs(true);
@@ -335,7 +339,7 @@ export default function MobileAgendaPage() {
         )}
 
         {syncMessage && (
-          <div className="card p-3">
+          <div className="card border-l-4 border-l-emerald-500 bg-gradient-to-b from-white to-emerald-50/20 p-3">
             <p className="text-xs font-semibold text-slate-600">{syncMessage}</p>
           </div>
         )}
@@ -386,9 +390,12 @@ export default function MobileAgendaPage() {
 
       {showNewOs && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-[430px] rounded-2xl bg-white p-4 shadow-2xl">
+          <div className="w-full max-w-[430px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-black uppercase tracking-wide">Criar Ordem de Manutencao</p>
+              <div>
+                <p className="text-sm font-black uppercase tracking-wide">Criar Ordem de Manutencao</p>
+                <p className="text-xs text-slate-500">Preenchimento rapido para agenda mobile</p>
+              </div>
               <button onClick={() => setShowNewOs(false)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold">
                 Fechar
               </button>

@@ -98,12 +98,12 @@ export default function MobileHomePage() {
     <MobileShell title={translations.dashboardTitle} freeScroll>
       <div className="space-y-4 pb-24">
         <div className="grid grid-cols-2 gap-3">
-          <div className="card border-l-4 border-l-[var(--color-danger)] p-4">
+          <div className="card border-l-4 border-l-[var(--color-danger)] bg-gradient-to-b from-white to-rose-50/30 p-4">
             <p className="text-[10px] font-black uppercase text-[var(--color-danger)]">{translations.overdue}</p>
             <p className="text-4xl font-black text-[var(--color-danger)]">{stats.overdueCount}</p>
             <p className="text-[10px] font-bold text-[var(--color-danger)]">Atualizado em tempo real</p>
           </div>
-          <div className="card border-l-4 border-l-[var(--color-warning)] p-4">
+          <div className="card border-l-4 border-l-[var(--color-warning)] bg-gradient-to-b from-white to-amber-50/30 p-4">
             <p className="text-[10px] font-black uppercase text-[var(--color-warning)]">{translations.nearDue}</p>
             <p className="text-4xl font-black text-[var(--color-warning)]">{stats.nearDueCount}</p>
             <p className="text-[10px] text-slate-500">{translations.schedulingAvailable}</p>
@@ -111,14 +111,14 @@ export default function MobileHomePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="card border-l-4 border-l-[var(--color-brand)] p-4">
+          <div className="card border-l-4 border-l-[var(--color-brand)] bg-gradient-to-b from-white to-blue-50/30 p-4">
             <p className="text-[10px] font-black uppercase text-[var(--color-brand)]">{translations.compliance}</p>
             <p className="text-4xl font-black">{stats.compliance}%</p>
             <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
               <div className="h-2 rounded-full bg-[var(--color-brand)]" style={{ width: `${stats.compliance}%` }} />
             </div>
           </div>
-          <div className="card border-l-4 border-l-slate-400 p-4">
+          <div className="card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50 p-4">
             <p className="text-[10px] font-black uppercase text-slate-400">{translations.fleetTotal}</p>
             <p className="text-4xl font-black">{stats.total}</p>
             <p className="text-[10px] text-slate-500">{translations.activeVehicles}</p>
@@ -126,13 +126,18 @@ export default function MobileHomePage() {
         </div>
 
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{translations.assetManagementStatus}</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{translations.assetManagementStatus}</p>
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+              Resumo
+            </span>
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-xl bg-slate-50 p-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="font-semibold">{translations.landFleet}</p>
               <p className="text-2xl font-black">{events.filter((event) => !event.asset.toLowerCase().includes("lancha")).length}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="font-semibold">{translations.nauticalFleet}</p>
               <p className="text-2xl font-black">{events.filter((event) => event.asset.toLowerCase().includes("lancha")).length}</p>
             </div>
@@ -193,11 +198,11 @@ export default function MobileHomePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-red-500 p-4 text-white">
+          <div className="rounded-2xl border border-red-200 bg-gradient-to-b from-red-500 to-red-600 p-4 text-white shadow-md">
             <p className="text-[10px] font-black uppercase">{translations.stoppedVehicles}</p>
             <p className="text-4xl font-black">{stats.overdueCount}</p>
           </div>
-          <div className="rounded-2xl bg-blue-500 p-4 text-white">
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-b from-blue-500 to-blue-600 p-4 text-white shadow-md">
             <p className="text-[10px] font-black uppercase">Em atencao</p>
             <p className="text-4xl font-black">{stats.attentionCount}</p>
           </div>

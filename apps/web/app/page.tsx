@@ -10,60 +10,17 @@ import {
   logoutAuthSession,
   subscribeAuthSession,
 } from "@/lib/auth-store";
-import {
-  clearSchedulingResponsibleSession,
-  findSchedulingResponsibleByMatricula,
-  getSchedulingResponsibleSession,
-  setSchedulingResponsibleSession,
-  subscribeSchedulingResponsibles,
-} from "@/lib/scheduling-responsible-store";
-
 export default function PortalPage() {
-  const [matricula, setMatricula] = useState("");
-  const [feedback, setFeedback] = useState("");
   const [authUser, setAuthUser] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authFeedback, setAuthFeedback] = useState("");
   const [authSession, setAuthSession] = useState(getAuthSession());
-  const [activeSession, setActiveSession] = useState(getSchedulingResponsibleSession());
-
-  useEffect(() => {
-    const refresh = () => setActiveSession(getSchedulingResponsibleSession());
-    refresh();
-    return subscribeSchedulingResponsibles(refresh);
-  }, []);
 
   useEffect(() => {
     const refresh = () => setAuthSession(getAuthSession());
     refresh();
     return subscribeAuthSession(refresh);
   }, []);
-
-  const applyMatricula = () => {
-    const normalized = matricula.replace(/\D/g, "");
-    if (!normalized) {
-      setFeedback("Informe uma matricula numerica.");
-      return;
-    }
-
-    const responsible = findSchedulingResponsibleByMatricula(normalized);
-    if (!responsible) {
-      setFeedback("Matricula nao encontrada em Responsavel pelo Agendamento.");
-      return;
-    }
-
-    setSchedulingResponsibleSession({
-      matricula: responsible.matricula,
-      name: responsible.name,
-      selectedAt: new Date().toISOString(),
-    });
-    setFeedback(`Responsavel ativo: ${responsible.name} (${responsible.matricula})`);
-  };
-
-  const clearSession = () => {
-    clearSchedulingResponsibleSession();
-    setFeedback("Sessao de responsavel pelo agendamento limpa.");
-  };
 
   const handleLogin = () => {
     const result = loginWithCredentials(authUser, authPassword);
@@ -102,7 +59,7 @@ export default function PortalPage() {
       </div>
 
       <section className="relative mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-12 md:py-18">
-        <div className="mx-auto mb-8 grid w-full max-w-5xl gap-4 md:grid-cols-[1.15fr_1fr]">
+        <div className="mx-auto mb-8 w-full max-w-3xl">
           <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-lg backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Acesso ao Sistema</p>
@@ -144,6 +101,12 @@ export default function PortalPage() {
               >
                 Sair
               </button>
+              <Link
+                href="/web/users"
+                className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-blue-700"
+              >
+                Usuarios de Acesso
+              </Link>
             </div>
 
             <p className="mt-3 text-sm text-slate-600">
@@ -155,36 +118,6 @@ export default function PortalPage() {
             <p className="mt-2 text-xs text-slate-500">
               Usuarios de teste: {getAuthUsers().map((user) => `${user.username}/${user.password}`).join(" • ")}
             </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-lg backdrop-blur">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Rastreabilidade de Agendamento</p>
-            <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-              <input
-                value={matricula}
-                onChange={(event) => setMatricula(event.target.value.replace(/\D/g, ""))}
-                placeholder="Informe a matricula do responsavel"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-              />
-              <button
-                onClick={applyMatricula}
-                className="rounded-xl bg-[var(--color-brand)] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white"
-              >
-                Aplicar matricula
-              </button>
-              <button
-                onClick={clearSession}
-                className="rounded-xl border border-slate-300 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-600"
-              >
-                Limpar
-              </button>
-            </div>
-            <p className="mt-3 text-sm text-slate-600">
-              {activeSession
-                ? `Responsavel ativo: ${activeSession.name} (Matricula ${activeSession.matricula})`
-                : "Nenhum responsavel de agendamento selecionado."}
-            </p>
-            {feedback && <p className="mt-1 text-xs font-semibold text-slate-500">{feedback}</p>}
           </div>
         </div>
 

@@ -38,9 +38,14 @@ export function MobileShell({ title, children, freeScroll = false }: Props) {
           freeScroll ? "min-h-[860px] overflow-visible" : "h-[860px] overflow-hidden"
         }`}
       >
-        <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-white px-5 py-4">
+        <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-white/95 px-5 py-4 backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">{translations.fieldTechnician}</p>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">{translations.fieldTechnician}</p>
+              <p className="text-[10px] font-semibold text-slate-500">
+                {authSession ? `${authSession.name} • ${authSession.role}` : "Nao autenticado"}
+              </p>
+            </div>
             <Link
               href="/"
               className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600"
@@ -49,7 +54,12 @@ export function MobileShell({ title, children, freeScroll = false }: Props) {
               {translations.start}
             </Link>
           </div>
-          <h1 className="text-[22px] font-black tracking-tight text-slate-900">{title}</h1>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <h1 className="text-[22px] font-black tracking-tight text-slate-900">{title}</h1>
+            <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+              App
+            </span>
+          </div>
         </header>
 
         <main
@@ -72,8 +82,8 @@ export function MobileShell({ title, children, freeScroll = false }: Props) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`grid place-content-center text-[11px] font-black uppercase tracking-[0.12em] ${
-                  active ? "text-[var(--color-brand)]" : "text-slate-400"
+                className={`grid place-content-center rounded-xl text-[11px] font-black uppercase tracking-[0.12em] ${
+                  active ? "bg-blue-50 text-[var(--color-brand)]" : "text-slate-400"
                 }`}
               >
                 {tab.label}

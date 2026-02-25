@@ -49,6 +49,12 @@ export const getAuthUsers = (): LocalAuthUser[] => {
   }
 };
 
+const saveAuthUsers = (users: LocalAuthUser[]) => {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+  emitAuthChange();
+};
+
 export const getAuthSession = (): LocalAuthSession | null => {
   if (!isBrowser()) return null;
   try {
@@ -96,6 +102,62 @@ export const logoutAuthSession = () => {
   emitAuthChange();
 };
 
+export const createAuthUser = (input: LocalAuthUser) => {
+  const username = input.username.trim().toLowerCase();
+  const password = input.password.trim();
+  const name = input.name.trim();
+  const role = input.role.trim();
+
+  if (!username || !password || !name || !role) {
+    return { ok: false as const, message: "Preencha usuario, senha, nome e perfil." };
+  }
+
+  const users = getAuthUsers();
+  if (users.some((user) => user.username.toLowerCase() === username)) {
+    return { ok: false as const, message: "Ja existe um usuario com esse login." };
+  }
+
+  const next = [...users, { username, password, name, role }];
+  saveAuthUsers(next);
+  return { ok: true as const, users: next };
+};
+
+export const updateAuthUser = (
+  username: string,
+  updates: Partial<Pick<LocalAuthUser, "password" | "name" | "role">>,
+) => {
+  const normalized = username.trim().toLowerCase();
+  const users = getAuthUsers();
+  let changed = false;
+  const next = users.map((user) => {
+    if (user.username.toLowerCase() !== normalized) return user;
+    changed = true;
+    return {
+      ...user,
+      password: updates.password?.trim() ? updates.password.trim() : user.password,
+      name: updates.name?.trim() ? updates.name.trim() : user.name,
+      role: updates.role?.trim() ? updates.role.trim() : user.role,
+    };
+  });
+  if (!changed) return { ok: false as const, message: "Usuario nao encontrado." };
+  saveAuthUsers(next);
+  return { ok: true as const, users: next };
+};
+
+export const removeAuthUser = (username: string) => {
+  const normalized = username.trim().toLowerCase();
+  const users = getAuthUsers();
+  const next = users.filter((user) => user.username.toLowerCase() !== normalized);
+  if (next.length === users.length) {
+    return { ok: false as const, message: "Usuario nao encontrado." };
+  }
+  if (next.length === 0) {
+    return { ok: false as const, message: "Mantenha pelo menos um usuario no sistema." };
+  }
+  saveAuthUsers(next);
+  return { ok: true as const, users: next };
+};
+
 export const subscribeAuthSession = (callback: () => void) => {
   if (!isBrowser()) return () => undefined;
   const onStorage = (event: StorageEvent) => {
@@ -109,3 +171,4 @@ export const subscribeAuthSession = (callback: () => void) => {
   };
 };
 
+export const subscribeAuthUsers = subscribeAuthSession;
