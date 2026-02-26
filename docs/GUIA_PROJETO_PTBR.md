@@ -138,6 +138,7 @@ corepack pnpm dev
 - O frontend usa muitos dados mock/local (`localStorage` e Dexie), entao comportamento pode variar por navegador/perfil.
 - Ao remover funcionalidades da UI, prefira redirecionar rotas primeiro (como feito em checklist/tecnicos) antes de excluir stores/fluxos compartilhados.
 - Em rotas App Router com `useSearchParams` (ex.: calendario), use `Suspense` para evitar erro de prerender em build/deploy (Next.js/Netlify).
+- Em deploy Netlify com Next.js, use `@netlify/plugin-nextjs` e evite `publish = apps/web/.next` (causa 404).
 
 ## Onde comentar/alterar sem risco alto
 

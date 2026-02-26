@@ -365,6 +365,9 @@ corepack pnpm dev
 - A rota `app/web/calendar/page.tsx` usa `useSearchParams` (hook client-only).
 - Em Next.js App Router, esse hook precisa estar dentro de um componente renderizado sob `Suspense`.
 - Esta regra ja foi aplicada no projeto para evitar falha de prerender em build CI/CD.
+- Para Netlify com Next.js (App Router), **nao** publique `apps/web/.next` como site estatico.
+- Foi adicionado `netlify.toml` na raiz com `@netlify/plugin-nextjs` e sem `publish` customizado.
+- `apps/web/.next` e pasta interna de build; publicar essa pasta gera 404 ("Page not found").
 - Validacao executada localmente:
   - `corepack pnpm --filter @frota/web build` ✅
 

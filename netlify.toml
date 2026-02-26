@@ -1,0 +1,14 @@
+[build]
+  command = "corepack pnpm --filter @frota/web build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Observacao:
+# - Nao definir `publish = apps/web/.next`
+# - O plugin do Next.js no Netlify gera/publica a saida correta automaticamente.
+# - `apps/web/.next` e pasta interna de build e causa 404 quando servida como site estatico.
+
