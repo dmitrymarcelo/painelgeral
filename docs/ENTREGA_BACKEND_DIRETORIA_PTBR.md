@@ -142,8 +142,8 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
 - Rotulos da sidebar foram encurtados na exibicao expandida (`Gestao`, `Cadastro`, etc.) para evitar corte visual.
 - Matriz de perfis aplicada no frontend (cadastro de usuarios + calendario):
   - `Operacoes`: somente criar agendamentos
-  - `Gestor`: criar agendamentos + remanejar datas/agendamento
-  - `Tecnico`: mesmas funcoes do gestor + alterar status de execucao + concluir + informar KM
+  - `Gestor`: criar agendamentos + remanejar datas/horario no calendario (sem editar ativo/descricao)
+  - `Tecnico`: mesmas funcoes do gestor + alterar status de execucao + concluir + informar KM (sem editar ativo/descricao)
   - `Administrador`: acesso total (incluindo exclusao de agendamento e gestao de usuarios)
 - Ajuste de migracao local aplicado: o usuario demo `admin` (login local) e tratado como
   `Administrador` mesmo em storages/sessoes antigas onde estava salvo como `Gestor`.

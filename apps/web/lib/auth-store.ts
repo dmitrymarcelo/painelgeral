@@ -170,7 +170,9 @@ export const getRolePermissions = (
     return {
       canCreateSchedule: true,
       canRescheduleCalendar: true,
-      canEditSchedulingDetails: true,
+      // Regra de negocio: tecnico remaneja (data/horario) e executa, mas nao altera
+      // metadados administrativos do agendamento (ativo/descricao) sem aval administrativo.
+      canEditSchedulingDetails: false,
       canChangeExecutionStatus: true,
       canCompleteMaintenance: true,
       canInformMaintenanceKm: true,
@@ -184,7 +186,8 @@ export const getRolePermissions = (
     return {
       canCreateSchedule: true,
       canRescheduleCalendar: true,
-      canEditSchedulingDetails: true,
+      // Gestor pode agendar/remanejar datas, mas nao editar detalhes de execucao/cadastro.
+      canEditSchedulingDetails: false,
       canChangeExecutionStatus: false,
       canCompleteMaintenance: false,
       canInformMaintenanceKm: false,

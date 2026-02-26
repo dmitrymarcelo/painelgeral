@@ -197,6 +197,11 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
   nome completo no `title`/tooltip do item.
 - Permissoes de calendario/operacao sao centralizadas em `apps/web/lib/auth-store.ts` (`getRolePermissions`),
   evitando duplicacao de regra por tela e facilitando futura migracao para ACL vinda do backend.
+- Matriz operacional atual do calendario:
+  - `Operacoes`: agendar somente
+  - `Gestor`: agendar + remanejar data/horario
+  - `Tecnico`: agendar + remanejar + status/conclusao + KM
+  - `Administrador`: acesso total (inclui editar detalhes do agendamento e excluir)
 - `auth-store` possui migracao local para garantir que o login demo `admin` tenha perfil
   `Administrador` (acesso total), corrigindo sessoes/localStorage antigos.
 

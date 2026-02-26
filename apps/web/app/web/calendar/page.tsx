@@ -484,10 +484,10 @@ function WebCalendarPageContent() {
     }
 
     const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
-    const schedulingFieldsChanged =
+    const scheduleMetadataChanged =
       selectedEvent.asset !== formAsset ||
-      isRescheduling ||
       previousParts.baseDescription.trim() !== formDescription.trim();
+    const schedulingFieldsChanged = scheduleMetadataChanged || isRescheduling;
     const selectedEffectiveStatus = getEffectiveMaintenanceStatus(selectedEvent);
     const statusChanged = selectedEffectiveStatus !== formStatus;
     const nextKmValue = formCurrentMaintenanceKm.trim()
@@ -496,8 +496,8 @@ function WebCalendarPageContent() {
     const kmChanged = (selectedEvent.currentMaintenanceKm ?? null) !== nextKmValue;
     const hasAnyChange = schedulingFieldsChanged || statusChanged || kmChanged;
 
-    if (schedulingFieldsChanged && !rolePermissions.canEditSchedulingDetails) {
-      alert("Seu perfil nao pode alterar dados do agendamento.");
+    if (scheduleMetadataChanged && !rolePermissions.canEditSchedulingDetails) {
+      alert("Seu perfil nao pode alterar dados do agendamento (ativo/descricao).");
       return;
     }
 
@@ -864,15 +864,27 @@ function WebCalendarPageContent() {
       selectedEvent.month !== currentMonth ||
       selectedEvent.year !== currentYear ||
       selectedEvent.time !== formTime);
-  const canEditScheduleFields = selectedEvent
-    ? !modalReadOnly && rolePermissions.canEditSchedulingDetails
-    : !modalReadOnly && rolePermissions.canCreateSchedule;
+  const canCreateScheduleFields = !modalReadOnly && rolePermissions.canCreateSchedule;
+  const canEditScheduleMetadataFields =
+    !!selectedEvent && !modalReadOnly && rolePermissions.canEditSchedulingDetails;
+  const canEditRescheduleFields =
+    !!selectedEvent && !modalReadOnly && rolePermissions.canRescheduleCalendar;
+  const canEditScheduleFields = selectedEvent ? canEditScheduleMetadataFields : canCreateScheduleFields;
   const canEditStatusField = !!selectedEvent && !modalReadOnly && rolePermissions.canChangeExecutionStatus;
   const canEditKmField = !!selectedEvent && !modalReadOnly && rolePermissions.canInformMaintenanceKm;
   const canDeleteSelectedEvent = !!selectedEvent && !modalReadOnly && rolePermissions.canDeleteSchedule;
+  const canEditJustificationField =
+    !!selectedEvent &&
+    !modalReadOnly &&
+    (rolePermissions.canRescheduleCalendar ||
+      rolePermissions.canEditSchedulingDetails ||
+      rolePermissions.canChangeExecutionStatus ||
+      rolePermissions.canInformMaintenanceKm ||
+      rolePermissions.canDeleteSchedule);
   const canSaveModal = selectedEvent
     ? !modalReadOnly &&
-      (rolePermissions.canEditSchedulingDetails ||
+      (rolePermissions.canRescheduleCalendar ||
+        rolePermissions.canEditSchedulingDetails ||
         rolePermissions.canChangeExecutionStatus ||
         rolePermissions.canInformMaintenanceKm)
     : !modalReadOnly && rolePermissions.canCreateSchedule;
@@ -1189,7 +1201,7 @@ function WebCalendarPageContent() {
                   {translations.asset} *
                 </label>
                 <select
-                  disabled={!canEditScheduleFields}
+                  disabled={selectedEvent ? !canEditScheduleMetadataFields : !canCreateScheduleFields}
                   value={formAsset}
                   onChange={(event) => setFormAsset(event.target.value)}
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1207,7 +1219,7 @@ function WebCalendarPageContent() {
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Horario *</label>
                   <select
-                    disabled={!canEditScheduleFields}
+                    disabled={selectedEvent ? !canEditRescheduleFields : !canCreateScheduleFields}
                     value={formTime}
                     onChange={(event) => setFormTime(event.target.value)}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1288,7 +1300,7 @@ function WebCalendarPageContent() {
                   Descricao (detalhes adicionais)
                 </label>
                 <textarea
-                  disabled={modalReadOnly}
+                  disabled={selectedEvent ? !canEditScheduleMetadataFields : modalReadOnly}
                   value={formDescription}
                   onChange={(event) => setFormDescription(event.target.value)}
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1321,7 +1333,7 @@ function WebCalendarPageContent() {
                     JUSTIFICATIVA {isReschedulingSelection ? "*" : ""}
                   </label>
                   <textarea
-                    disabled={!canEditScheduleFields}
+                    disabled={!canEditJustificationField}
                     value={formJustification}
                     onChange={(event) => setFormJustification(event.target.value)}
                     className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
