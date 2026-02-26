@@ -78,6 +78,29 @@ Este documento consolida a arquitetura atual do projeto, as regras de negocio ja
 - `apps/web`: Next.js (modulo web + modulo app em layout mobile)
 - `apps/api`: NestJS + Prisma
 - `packages/types`: tipos compartilhados
+
+## Deploy Rapido para Testes (AWS Amplify - Frontend)
+
+Objetivo desta etapa: publicar apenas `apps/web` rapidamente para validacao funcional, mantendo o backend local/mock enquanto a API definitiva e entregue.
+
+- Arquivo de suporte criado na raiz: `amplify.yml`
+- Estrategia:
+  - monorepo (`pnpm`)
+  - build do app `@frota/web`
+  - artefato publicado em `apps/web/.next`
+
+### Configuracao recomendada no AWS Amplify (Console)
+
+- Origem: GitHub (repositorio `dmitrymarcelo/painelgeral`)
+- Branch: `main` (ou branch de teste)
+- App root (monorepo): `apps/web`
+- Build spec: usar `amplify.yml` da raiz do repositorio
+
+### Observacoes tecnicas
+
+- O frontend atualmente suporta fluxo local/mock e tambem pontes para backend (`auth`, `calendar`, `maintenance-plans`).
+- Para teste executivo/UI, o deploy do frontend sozinho e suficiente.
+- Para operacao real multiusuario, ainda e necessario publicar a API + banco + redis.
 - `infra`: reservado para infraestrutura/suporte
 
 ### Fluxo atual de dados (frontend)

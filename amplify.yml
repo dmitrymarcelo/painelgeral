@@ -1,0 +1,23 @@
+version: 1
+applications:
+  - appRoot: apps/web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - corepack enable
+            - cd ../..
+            - pnpm install --frozen-lockfile
+        build:
+          commands:
+            - cd ../..
+            - pnpm --filter @frota/web build
+      artifacts:
+        baseDirectory: apps/web/.next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - .pnpm-store/**/*
+          - apps/web/.next/cache/**/*

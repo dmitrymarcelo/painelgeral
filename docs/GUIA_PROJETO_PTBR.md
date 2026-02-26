@@ -141,6 +141,29 @@ corepack pnpm dev
 - Em deploy Netlify com Next.js (monorepo), use `@netlify/plugin-nextjs` e configure `publish` para o distDir do app (`apps/web/.next`).
 - Evite `publish` apontando para a raiz do repositorio (o plugin Next.js falha no pre-build).
 
+## Deploy rapido (AWS Amplify - frontend)
+
+Para testes e demonstracao, a forma mais rapida e publicar somente `apps/web` no AWS Amplify.
+
+### Pre-requisitos
+
+- Repositorio atualizado no GitHub
+- Arquivo `amplify.yml` na raiz do projeto (ja incluido)
+
+### Passos (Console AWS)
+
+1. Abrir `AWS Amplify` -> `Hospedagem` -> `Create app / Host web app`
+2. Conectar ao GitHub e selecionar o repositorio `dmitrymarcelo/painelgeral`
+3. Selecionar a branch desejada (`main` para teste rapido)
+4. Confirmar monorepo com `App root = apps/web`
+5. Usar o build spec detectado (`amplify.yml`)
+6. Iniciar deploy
+
+### Observacao
+
+- Este deploy sobe o frontend Next.js com fluxos locais/mock/fallback.
+- Para operacao real multiusuario sera necessario publicar a API (`apps/api`) + banco + redis.
+
 ## Onde comentar/alterar sem risco alto
 
 - Layout e navegacao: `apps/web/components/layout/*`
