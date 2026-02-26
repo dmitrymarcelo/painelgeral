@@ -135,7 +135,7 @@ export default function WebDashboardPage() {
           <div className="kpi-card border-l-4 border-l-[var(--color-danger)] bg-gradient-to-b from-white to-rose-50/30">
             <div className="flex items-center justify-between">
               <p className="stat-label">{translations.overdue}</p>
-              <span className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-black uppercase text-red-600">
+              <span className="chip bg-red-100 text-red-600">
                 Critico
               </span>
             </div>
@@ -145,7 +145,7 @@ export default function WebDashboardPage() {
           <div className="kpi-card border-l-4 border-l-[var(--color-warning)] bg-gradient-to-b from-white to-amber-50/40">
             <div className="flex items-center justify-between">
               <p className="stat-label">{translations.nearDue}</p>
-              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+              <span className="chip bg-amber-100 text-amber-700">
                 Planejar
               </span>
             </div>
@@ -155,7 +155,7 @@ export default function WebDashboardPage() {
           <div className="kpi-card border-l-4 border-l-[var(--color-brand)] bg-gradient-to-b from-white to-blue-50/40">
             <div className="flex items-center justify-between">
               <p className="stat-label">{translations.compliance}</p>
-              <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+              <span className="chip bg-blue-100 text-blue-700">
                 Frota
               </span>
             </div>
@@ -167,7 +167,7 @@ export default function WebDashboardPage() {
           <div className="kpi-card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50">
             <div className="flex items-center justify-between">
               <p className="stat-label">{translations.fleetTotal}</p>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+              <span className="chip bg-slate-100 text-slate-600">
                 Ativos
               </span>
             </div>
@@ -185,7 +185,7 @@ export default function WebDashboardPage() {
                   Visao rapida para decisao de oficina e programacao diaria.
                 </p>
               </div>
-              <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+              <span className="chip bg-blue-50 text-blue-700">
                 Dashboard
               </span>
             </div>
@@ -244,7 +244,7 @@ export default function WebDashboardPage() {
             </div>
           </div>
 
-          <div className="card overflow-hidden">
+          <div className="table-shell">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <h3 className="text-lg font-black">{translations.urgencyList}</h3>
               <button className="text-sm font-bold text-[var(--color-brand-ink)]">{translations.openFleetMap}</button>
@@ -261,7 +261,7 @@ export default function WebDashboardPage() {
               </thead>
               <tbody>
                 {urgencyRows.map((row) => (
-                  <tr key={`${row.id}-${row.action}`} className="border-b border-slate-100">
+                  <tr key={`${row.id}-${row.action}`} className="table-row">
                     <td className="table-cell font-mono font-bold">{row.id}</td>
                     <td className="table-cell">
                       <p className="font-semibold">{row.model}</p>
@@ -282,7 +282,7 @@ export default function WebDashboardPage() {
                     </td>
                     <td className="table-cell">
                       <span
-                        className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                        className={`chip ${
                           row.status === "VENCIDA"
                             ? "bg-red-100 text-red-600"
                             : row.status === "A_VENCER"

@@ -4,14 +4,14 @@ import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-inter",
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Frota Pro",
-  description: "Gestão completa de ativos e manutenção de frota",
+  description: "Gestao completa de ativos e manutencao de frota",
   manifest: "/manifest.webmanifest",
   applicationName: "Frota Pro",
 };

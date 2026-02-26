@@ -278,7 +278,7 @@ export default function WebUsersPage() {
                 </p>
               </div>
               <span
-                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                className={`chip ${
                   seedInfo?.hasSeed ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
                 }`}
               >
@@ -290,14 +290,14 @@ export default function WebUsersPage() {
               <button
                 onClick={handleResetAndSeed}
                 disabled={!currentPermissions.canManageUsers}
-                className="rounded-xl bg-[var(--color-brand)] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="btn-primary"
               >
                 Limpar e Popular Dados de Teste
               </button>
               <button
                 onClick={handleClearLocalData}
                 disabled={!currentPermissions.canManageUsers}
-                className="rounded-xl border border-slate-300 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-secondary"
               >
                 Limpar Dados Locais
               </button>
@@ -356,38 +356,38 @@ export default function WebUsersPage() {
               </p>
             </div>
             {editingUsername && (
-              <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+              <span className="chip bg-amber-100 text-amber-700">
                 Editando {editingUsername}
               </span>
             )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="filter-grid md:grid-cols-2 xl:grid-cols-4">
             <input
               value={form.username}
               disabled={Boolean(editingUsername)}
               onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-100"
+              className="field-control"
               placeholder={apiMode ? "E-mail do usuario" : "Usuario (login)"}
             />
             <input
               type="password"
               value={form.password}
               onChange={(e) => setForm((c) => ({ ...c, password: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              className="field-control"
               placeholder={editingUsername ? "Nova senha (opcional)" : "Senha"}
             />
             <input
               value={form.name}
               onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              className="field-control"
               placeholder="Nome completo"
             />
             <select
               value={form.role}
               onChange={(e) => setForm((c) => ({ ...c, role: e.target.value }))}
               disabled={!currentPermissions.canManageUsers}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-100"
+              className="field-control"
             >
               {ROLE_OPTIONS.map((role) => (
                 <option key={role} value={role}>
@@ -402,14 +402,14 @@ export default function WebUsersPage() {
               type="button"
               onClick={handleSubmit}
               disabled={!currentPermissions.canManageUsers}
-              className="rounded-xl bg-blue-600 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="btn-primary"
             >
               {loading ? "Salvando..." : editingUsername ? "Salvar Alteracoes" : "Cadastrar Usuario"}
             </button>
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-xl border border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-700 hover:bg-slate-50"
+              className="btn-secondary"
             >
               Limpar
             </button>
@@ -417,7 +417,7 @@ export default function WebUsersPage() {
           </div>
         </div>
 
-        <div className="card overflow-hidden">
+        <div className="table-shell">
           <div className="border-b border-slate-100 px-6 py-4 text-xs font-black uppercase tracking-[0.16em] text-slate-500">
             Usuarios cadastrados ({users.length})
           </div>
@@ -432,15 +432,15 @@ export default function WebUsersPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.username} className="border-b border-slate-100">
+                <tr key={user.username} className="table-row">
                   <td className="table-cell font-mono font-bold">{user.username}</td>
                   <td className="table-cell">{user.name}</td>
                   <td className="table-cell">
-                    <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
+                    <span className="chip bg-blue-100 text-blue-700">
                       {user.role}
                     </span>
                     {!user.active && (
-                      <span className="ml-2 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-black uppercase text-rose-700">
+                      <span className="chip ml-2 bg-rose-100 text-rose-700">
                         Inativo
                       </span>
                     )}
@@ -463,7 +463,7 @@ export default function WebUsersPage() {
                           });
                           setMessage("");
                         }}
-                        className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="btn-soft-primary"
                       >
                         Editar
                       </button>
@@ -507,7 +507,7 @@ export default function WebUsersPage() {
                             if (editingUsername === user.username) resetForm();
                           })();
                         }}
-                        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black uppercase text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="btn-danger-outline"
                       >
                         {apiMode ? "Inativar" : "Remover"}
                       </button>

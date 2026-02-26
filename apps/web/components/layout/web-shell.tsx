@@ -41,9 +41,6 @@ type NotificationItem = {
 type ThemeMode = "light" | "dark" | "auto";
 
 export function WebShell({ title, subtitle, children }: Props) {
-  // Props mantidas para compatibilidade com paginas existentes (titulos removidos no header por UX).
-  void title;
-  void subtitle;
   const pathname = usePathname();
   const router = useRouter();
   const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
@@ -74,6 +71,7 @@ export function WebShell({ title, subtitle, children }: Props) {
     { href: "/web/preventive-items", label: translations.preventiveItemsRegister, shortLabel: "Cadastro", icon: "PM" },
     { href: "/web/users", label: "Usuarios de Acesso", shortLabel: "Usuarios", icon: "US" },
   ];
+  const currentMenuItem = menuItems.find((item) => pathname === item.href);
 
   const persistSidebarCollapsed = (next: boolean) => {
     setSidebarCollapsed(next);
@@ -179,20 +177,28 @@ export function WebShell({ title, subtitle, children }: Props) {
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)]">
       <div
         className="grid min-h-screen"
-        style={{ gridTemplateColumns: sidebarCollapsed ? "76px 1fr" : "220px 1fr" }}
+        style={{ gridTemplateColumns: sidebarCollapsed ? "84px 1fr" : "252px 1fr" }}
       >
-        <aside className="flex flex-col border-r border-[var(--color-border)] bg-[var(--color-panel-soft)]">
+        <aside className="flex flex-col border-r border-[var(--color-border)] bg-[linear-gradient(180deg,var(--color-panel-soft),#eef3fa)]">
           <div className="p-4">
             <div className="mb-6">
-              <div className={`mb-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between gap-3"}`}>
-                <div className={`grid place-items-center rounded-full border-2 border-[#ffd84c] bg-[#123a7d] text-white shadow-md ${sidebarCollapsed ? "h-12 w-12" : "h-[56px] w-[56px]"}`}>
+              <div
+                className={`mb-3 flex items-center ${
+                  sidebarCollapsed ? "justify-center" : "justify-between gap-3"
+                }`}
+              >
+                <div
+                  className={`${
+                    sidebarCollapsed ? "h-12 w-12 rounded-2xl" : "h-14 w-14 rounded-2xl"
+                  } grid place-items-center border border-white/60 bg-[linear-gradient(160deg,#0f4ea8,#137fec)] text-white shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
+                >
                   <CarIcon className={sidebarCollapsed ? "h-5 w-5" : "h-6 w-6"} />
                 </div>
                 {!sidebarCollapsed && (
                   <button
                     type="button"
                     onClick={() => persistSidebarCollapsed(true)}
-                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-slate-500 hover:text-slate-700"
+                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white/90 text-slate-500 hover:text-slate-700"
                     aria-label="Recolher menu lateral"
                     title="Recolher menu"
                   >
@@ -203,14 +209,17 @@ export function WebShell({ title, subtitle, children }: Props) {
 
               {!sidebarCollapsed ? (
                 <>
-                  <p className="text-center text-[10px] font-black uppercase tracking-[0.35em] text-slate-600">Frota Pro</p>
-                  <div className="mx-auto mt-2 h-1 w-16 rounded-full bg-[var(--color-brand)]/50"></div>
+                  <div className="rounded-2xl border border-white/80 bg-white/70 p-3 backdrop-blur">
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Plataforma</p>
+                    <p className="mt-1 text-sm font-black tracking-[0.02em] text-slate-800">Frota Pro</p>
+                    <div className="mt-3 h-1 w-16 rounded-full bg-[var(--color-brand)]/55"></div>
+                  </div>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={() => persistSidebarCollapsed(false)}
-                  className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-slate-500 hover:text-slate-700"
+                  className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white/90 text-slate-500 hover:text-slate-700"
                   aria-label="Expandir menu lateral"
                   title="Expandir menu"
                 >
@@ -219,6 +228,9 @@ export function WebShell({ title, subtitle, children }: Props) {
               )}
             </div>
 
+            {!sidebarCollapsed && (
+              <p className="mb-2 px-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Menu</p>
+            )}
             <nav className="space-y-2">
               {menuItems.map((item) => {
                 const active = pathname === item.href;
@@ -226,25 +238,47 @@ export function WebShell({ title, subtitle, children }: Props) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex h-11 items-center rounded-xl ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} text-[12px] font-black uppercase tracking-[0.08em] transition ${
+                    className={`group relative flex h-11 items-center rounded-xl ${
+                      sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"
+                    } text-[12px] font-black uppercase tracking-[0.06em] transition ${
                       active
-                        ? "bg-[var(--color-brand)] text-white shadow-lg shadow-blue-200"
-                        : "text-slate-500 hover:bg-[var(--color-surface)]"
+                        ? "border border-blue-200 bg-white text-[var(--color-brand-ink)] shadow-sm"
+                        : "border border-transparent text-slate-500 hover:border-white/80 hover:bg-white/80"
                     }`}
                     title={item.label}
                   >
+                    {!sidebarCollapsed && (
+                      <span
+                        aria-hidden="true"
+                        className={`absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full transition ${
+                          active ? "bg-[var(--color-brand)]" : "bg-transparent group-hover:bg-blue-100"
+                        }`}
+                      />
+                    )}
                     {sidebarCollapsed && (
                       // Icones ilustrativos aparecem apenas no modo recolhido.
                       <span
                         className={`grid h-7 w-7 place-items-center rounded-md text-sm ${
-                          active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                          active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-ink)]" : "bg-slate-200 text-slate-600"
                         }`}
                         aria-hidden="true"
                       >
                         {item.icon}
                       </span>
                     )}
-                    {!sidebarCollapsed && <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.shortLabel}</span>}
+                    {!sidebarCollapsed && (
+                      <>
+                        <span
+                          className={`grid h-7 w-7 place-items-center rounded-lg text-[11px] ${
+                            active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-ink)]" : "bg-slate-100 text-slate-500"
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {item.icon}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.shortLabel}</span>
+                      </>
+                    )}
                   </Link>
                 );
               })}
@@ -254,104 +288,123 @@ export function WebShell({ title, subtitle, children }: Props) {
         </aside>
 
         <main>
-          <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 md:px-8">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
-              >
-                <TruckIcon className="h-4 w-4" />
-                {translations.backToStart}
-              </Link>
-              {/* Titulos removidos por decisao de UX: navegacao principal ja identifica a pagina. */}
-            </div>
+          <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
+            <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 md:px-7">
+              <div className="flex min-w-0 items-center gap-3 md:gap-4">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                >
+                  <TruckIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{translations.backToStart}</span>
+                  <span className="sm:hidden">Voltar</span>
+                </Link>
 
-            <div className="relative flex items-center gap-2 md:gap-4 text-right">
-              <button
-                type="button"
-                onClick={() =>
-                  persistThemeMode(themeMode === "auto" ? "dark" : themeMode === "dark" ? "light" : "auto")
-                }
-                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
-                title={
-                  themeMode === "auto"
-                    ? "Tema automatico (navegador)"
-                    : themeMode === "dark"
-                      ? "Tema escuro"
-                      : "Tema claro"
-                }
-              >
-                {themeMode === "auto" ? "Tema: Auto" : themeMode === "dark" ? "Tema: Escuro" : "Tema: Claro"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setNotificationsOpen((current) => !current)}
-                className="relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
-                title="Notificacoes"
-              >
-                Notificacoes
-                {notificationCount > 0 && (
-                  <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
-                    {notificationCount > 9 ? "9+" : notificationCount}
-                  </span>
-                )}
-              </button>
-              <button className="text-slate-400" title="Indicador">
-                {"*"}
-              </button>
-              <div className="hidden h-8 w-px bg-[var(--color-border)] md:block"></div>
-              <div>
-                <p className="text-xs font-black">{authSession?.name || "Visitante"}</p>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">
-                  {authSession?.role || "Nao autenticado"}
-                </p>
-              </div>
-
-              {notificationsOpen && (
-                <div className="absolute right-0 top-12 z-30 w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Notificacoes</p>
-                    <button
-                      type="button"
-                      onClick={() => setNotificationsOpen(false)}
-                      className="text-xs font-bold text-slate-400 hover:text-slate-600"
-                    >
-                      fechar
-                    </button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                    <span>Web</span>
+                    <span>/</span>
+                    <span className="truncate">{currentMenuItem?.shortLabel ?? "Modulo"}</span>
                   </div>
-                  <div className="max-h-72 overflow-y-auto">
-                    {notificationItems.length === 0 ? (
-                      <div className="px-4 py-5 text-sm text-slate-500">Sem notificacoes no momento.</div>
-                    ) : (
-                      notificationItems.map((item) => (
-                        <Link
-                          key={item.id}
-                          href={`/web/calendar?eventId=${encodeURIComponent(item.eventId)}`}
-                          onClick={() => setNotificationsOpen(false)}
-                          className="block border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
-                        >
-                          <div className="flex items-start gap-2">
-                            <span
-                              className={`mt-1 inline-block h-2 w-2 rounded-full ${
-                                item.type === "urgent"
-                                  ? "bg-red-500"
-                                  : item.type === "warning"
-                                    ? "bg-amber-500"
-                                    : "bg-blue-500"
-                              }`}
-                            />
-                            <p className="text-sm leading-snug text-slate-700">{item.label}</p>
-                          </div>
-                        </Link>
-                      ))
+                  <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                    <h1 className="truncate text-sm font-black text-slate-800 md:text-base">
+                      {title || currentMenuItem?.label || "Painel"}
+                    </h1>
+                    {subtitle && (
+                      <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-500 lg:inline">
+                        {subtitle}
+                      </span>
                     )}
                   </div>
                 </div>
-              )}
+              </div>
+
+              <div className="relative flex items-center gap-2 text-right md:gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    persistThemeMode(themeMode === "auto" ? "dark" : themeMode === "dark" ? "light" : "auto")
+                  }
+                  className="inline-flex items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                  title={
+                    themeMode === "auto"
+                      ? "Tema automatico (navegador)"
+                      : themeMode === "dark"
+                        ? "Tema escuro"
+                        : "Tema claro"
+                  }
+                >
+                  {themeMode === "auto" ? "Auto" : themeMode === "dark" ? "Escuro" : "Claro"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotificationsOpen((current) => !current)}
+                  className="relative inline-flex items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                  title="Notificacoes"
+                >
+                  <span className="hidden sm:inline">Notificacoes</span>
+                  <span className="sm:hidden">Avisos</span>
+                  {notificationCount > 0 && (
+                    <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                      {notificationCount > 9 ? "9+" : notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                <div className="hidden h-8 w-px bg-[var(--color-border)] md:block"></div>
+                <div className="hidden md:block">
+                  <p className="text-xs font-black">{authSession?.name || "Visitante"}</p>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">
+                    {authSession?.role || "Nao autenticado"}
+                  </p>
+                </div>
+
+                {notificationsOpen && (
+                  <div className="absolute right-0 top-12 z-30 w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Notificacoes</p>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="text-xs font-bold text-slate-400 hover:text-slate-600"
+                      >
+                        fechar
+                      </button>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {notificationItems.length === 0 ? (
+                        <div className="px-4 py-5 text-sm text-slate-500">Sem notificacoes no momento.</div>
+                      ) : (
+                        notificationItems.map((item) => (
+                          <Link
+                            key={item.id}
+                            href={`/web/calendar?eventId=${encodeURIComponent(item.eventId)}`}
+                            onClick={() => setNotificationsOpen(false)}
+                            className="block border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50"
+                          >
+                            <div className="flex items-start gap-2">
+                              <span
+                                className={`mt-1 inline-block h-2 w-2 rounded-full ${
+                                  item.type === "urgent"
+                                    ? "bg-red-500"
+                                    : item.type === "warning"
+                                      ? "bg-amber-500"
+                                      : "bg-blue-500"
+                                }`}
+                              />
+                              <p className="text-sm leading-snug text-slate-700">{item.label}</p>
+                            </div>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
-          <section className="p-3 md:p-5">{children}</section>
+          <section className="p-3 md:p-5 lg:p-6">{children}</section>
         </main>
       </div>
     </div>

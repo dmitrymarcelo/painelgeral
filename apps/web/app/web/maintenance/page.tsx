@@ -270,23 +270,23 @@ export default function WebMaintenancePage() {
           </div>
         </div>
 
-        <div className="card p-4">
+        <div className="toolbar-card">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Central de Filtros</p>
               <p className="text-sm text-slate-500">Consulte OS por responsavel, tipo, data de abertura e status.</p>
             </div>
-            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+            <span className="chip bg-slate-100 text-slate-600">
               {filteredRows.length}/{rows.length} OS
             </span>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="filter-grid md:grid-cols-2 xl:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Responsavel</label>
+              <label className="field-label">Responsavel</label>
               <select
                 value={filterResponsible}
                 onChange={(event) => setFilterResponsible(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="field-control"
               >
                 <option value="">Todos</option>
                 {[...new Set(rows.map((row) => row.fleetResponsible))].map((responsible) => (
@@ -297,11 +297,11 @@ export default function WebMaintenancePage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Tipo de veiculo</label>
+              <label className="field-label">Tipo de veiculo</label>
               <select
                 value={filterVehicleType}
                 onChange={(event) => setFilterVehicleType(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="field-control"
               >
                 <option value="">Todos</option>
                 {[...new Set(rows.map((row) => row.vehicleType))].map((type) => (
@@ -312,38 +312,38 @@ export default function WebMaintenancePage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Data de abertura</label>
+              <label className="field-label">Data de abertura</label>
               <input
                 type="date"
                 value={filterOpenedDate}
                 onChange={(event) => setFilterOpenedDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="field-control"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Placa</label>
+              <label className="field-label">Placa</label>
               <input
                 value={filterPlate}
                 onChange={(event) => setFilterPlate(event.target.value)}
                 placeholder="Ex.: ABC-1234"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="field-control"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">OS</label>
+              <label className="field-label">OS</label>
               <input
                 value={filterOs}
                 onChange={(event) => setFilterOs(event.target.value)}
                 placeholder="Ex.: OS-2026..."
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="field-control"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status da OS</label>
+              <label className="field-label">Status da OS</label>
               <select
                 value={filterOsStatus}
                 onChange={(event) => setFilterOsStatus(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="field-control"
               >
                 <option value="">Todos</option>
                 <option value="Agendada">Agendada</option>
@@ -355,7 +355,7 @@ export default function WebMaintenancePage() {
           </div>
         </div>
 
-        <div className="card overflow-hidden">
+        <div className="table-shell">
           <div className="border-b border-slate-100 px-6 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
             Ordens de Servico ({filteredRows.length})
           </div>
@@ -374,7 +374,7 @@ export default function WebMaintenancePage() {
             </thead>
             <tbody>
               {filteredRows.map((row) => (
-                <tr key={row.code} className="border-b border-slate-100">
+                <tr key={row.code} className="table-row">
                   <td className="table-cell font-mono font-bold">{row.code}</td>
                   <td className="table-cell font-mono font-semibold">{row.plate}</td>
                   <td className="table-cell">{row.vehicleType}</td>
