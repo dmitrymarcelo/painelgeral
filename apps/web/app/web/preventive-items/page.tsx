@@ -74,9 +74,19 @@ const STORAGE_LIST_KEY = "frota-pro.preventive-items-registrations";
 const DEFAULT_TRIGGER_KM = "20000";
 const DEFAULT_TRIGGER_HOURMETER = "500";
 const DEFAULT_TRIGGER_TEMPORAL_MONTHS = "6";
+let preventiveLocalIdCounter = 0;
+
+const generateClientSafeId = () => {
+  // Regra de negocio/UX: esta tela precisa gerar IDs no cliente mesmo em ambiente HTTP
+  // (ex.: EC2 com IP publico em testes), onde `crypto.randomUUID` pode indisponibilizar.
+  const secureUuid = globalThis.crypto?.randomUUID?.();
+  if (secureUuid) return secureUuid;
+  preventiveLocalIdCounter += 1;
+  return `tmp-${Date.now()}-${preventiveLocalIdCounter}-${Math.random().toString(36).slice(2, 8)}`;
+};
 
 const emptyItem = (): PreventiveItemRow => ({
-  id: crypto.randomUUID(),
+  id: generateClientSafeId(),
   partMaterial: "",
   triggerKmValue: DEFAULT_TRIGGER_KM,
   triggerHourmeterValue: DEFAULT_TRIGGER_HOURMETER,
@@ -114,7 +124,7 @@ const isItemComplete = (item: PreventiveItemRow) =>
 const normalizeItem = (raw: Partial<PreventiveItemRow> | null | undefined): PreventiveItemRow => ({
   ...emptyItem(),
   ...(raw ?? {}),
-  id: raw?.id || crypto.randomUUID(),
+  id: raw?.id || generateClientSafeId(),
   partMaterial: raw?.partMaterial ?? "",
   triggerKmValue: raw?.triggerKmValue ?? "20000",
   triggerHourmeterValue: raw?.triggerHourmeterValue ?? "500",
@@ -139,7 +149,7 @@ const normalizeRegistration = (raw: unknown): PreventiveRegistrationPayload | nu
     (source.triggerConfig as Partial<PreventiveRegistrationPayload["triggerConfig"]> | undefined) ?? {};
   const form = { ...emptyForm(), ...((source.form as Partial<FormState> | undefined) ?? {}) } as FormState;
   return {
-    registrationId: String(source.registrationId || crypto.randomUUID()),
+    registrationId: String(source.registrationId || generateClientSafeId()),
     createdAt: String(source.createdAt || new Date().toISOString()),
     updatedAt: source.updatedAt ? String(source.updatedAt) : undefined,
     vehicleBindingContext: {
@@ -524,7 +534,7 @@ export default function WebPreventiveItemsPage() {
       ? savedRegistrations.find((registration) => registration.registrationId === editingRegistrationId)
       : null;
     const payload: PreventiveRegistrationPayload = {
-      registrationId: existing?.registrationId || crypto.randomUUID(),
+      registrationId: existing?.registrationId || generateClientSafeId(),
       createdAt: existing?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       vehicleBindingContext: {

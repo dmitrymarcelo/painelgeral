@@ -135,6 +135,8 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
 - No bootstrap/container da API, o entrypoint correto para producao e:
   - `node apps/api/dist/src/main.js`
 - Usar `node dist/main` causa loop de reinicio (`MODULE_NOT_FOUND`) no container da API.
+- Na tela `Cadastro de Planos de Manutencao` (`/web/preventive-items`), a geracao de IDs locais no frontend
+  deve usar fallback para ambientes HTTP (IP publico em teste EC2), pois `crypto.randomUUID()` pode falhar fora de contexto seguro.
 
 ### Ambiente de teste validado
 

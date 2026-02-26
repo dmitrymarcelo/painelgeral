@@ -189,6 +189,8 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
 
 - O entrypoint da API em container deve usar `node apps/api/dist/src/main.js`.
 - O comando `node dist/main` nao funciona neste projeto (Nest build gera `dist/src/main.js`).
+- Em testes por IP publico/HTTP (EC2 sem HTTPS), evite depender exclusivamente de `crypto.randomUUID()` em paginas client-side;
+  use fallback de ID local para prevenir erro de runtime em navegadores fora de contexto seguro.
 
 ## Onde comentar/alterar sem risco alto
 
