@@ -145,6 +145,10 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
 - A tela `Usuarios de Acesso` (`/web/users`) recebeu utilitario administrativo de massa de testes local:
   `Limpar e Popular Dados de Teste`, que reseta e popula `localStorage` com dados para calendario, OS,
   ativos, usuarios e cadastros de planos preventivos.
+- O `Calendario` teve ajuste de colorimetria por status (`Agendado`, `Em andamento`, `Em tolerancia`,
+  `Nao Compareceu`, `Concluido`) e o marcador visual de `Hoje` deixou de usar cor dedicada para reduzir redundancia.
+- Em `Gestao de Preventivas`, a tabela principal foi reorganizada (Placa/Tipo/Centro/Modelo/Ult. MT/KM Atual/Proxima/...)
+  e ganhou coluna `Progresso` calculada por relacao `KM Atual x Proxima preventiva`.
 - Matriz de perfis aplicada no frontend (cadastro de usuarios + calendario):
   - `Operacoes`: somente criar agendamentos
   - `Gestor`: criar agendamentos + remanejar datas/horario no calendario (sem editar ativo/descricao)

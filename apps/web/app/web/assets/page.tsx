@@ -246,6 +246,12 @@ type AssetComputedRow = AssetRow & {
   schedulingStatus: AssetSchedulingStatus;
   lastMaintenanceDate: string | null;
   presenceStatus: AssetPresenceStatus;
+  kmProgress: {
+    ratioPercent: number;
+    kmGap: number;
+    label: string;
+    tone: "good" | "warning" | "danger";
+  };
 };
 
 const getEventDate = (event: MaintenanceEvent) =>
@@ -312,6 +318,46 @@ const getSchedulingStatusFromEvents = (relatedEvents: MaintenanceEvent[]): Asset
 
   const hasCompleted = relatedEvents.some((event) => event.status === "completed");
   return hasCompleted ? "Concluido" : "Nao Agendado";
+};
+
+const getKmProgress = (row: AssetRow): AssetComputedRow["kmProgress"] => {
+  // Regra de negocio: progresso compara KM atual com KM da proxima preventiva para indicar
+  // quanto falta (ou passou) para o gatilho de manutencao. A barra usa a faixa entre ultima e proxima.
+  const interval = Math.max(1, row.nextKm - row.lastKm);
+  const traveledInInterval = row.currentKm - row.lastKm;
+  const ratioPercent = Math.max(0, Math.min(100, Math.round((traveledInInterval / interval) * 100)));
+  const kmGap = row.nextKm - row.currentKm;
+
+  if (kmGap < 0) {
+    return {
+      ratioPercent: 100,
+      kmGap,
+      label: `Atrasado ${Math.abs(kmGap).toLocaleString("pt-BR")} km`,
+      tone: "danger",
+    };
+  }
+  if (kmGap === 0) {
+    return {
+      ratioPercent: 100,
+      kmGap,
+      label: "No gatilho",
+      tone: "warning",
+    };
+  }
+  if (kmGap <= 3000) {
+    return {
+      ratioPercent,
+      kmGap,
+      label: `Faltam ${kmGap.toLocaleString("pt-BR")} km`,
+      tone: "warning",
+    };
+  }
+  return {
+    ratioPercent,
+    kmGap,
+    label: `Faltam ${kmGap.toLocaleString("pt-BR")} km`,
+    tone: "good",
+  };
 };
 
 export default function WebAssetsPage() {
@@ -396,6 +442,7 @@ export default function WebAssetsPage() {
         schedulingStatus: getSchedulingStatusFromEvents(relatedEvents),
         lastMaintenanceDate: getLastMaintenanceDateFromRow(row, relatedEvents),
         presenceStatus: getPresenceStatusFromRow(row),
+        kmProgress: getKmProgress(row),
       };
     });
   }, [rowsWithOrchestration, maintenanceEvents]);
@@ -612,15 +659,16 @@ export default function WebAssetsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-500">
               <tr>
-                <th className="px-6 py-4">{translations.assetType}</th>
                 <th className="px-6 py-4">{translations.plateId}</th>
-                <th className="px-6 py-4">Centro Custo</th>
+                <th className="px-6 py-4">Tipo</th>
+                <th className="px-6 py-4">Centro</th>
                 <th className="px-6 py-4">{translations.modelType}</th>
-                <th className="px-6 py-4">Data da ultima manutencao</th>
+                <th className="px-6 py-4">Ult. MT</th>
                 <th className="px-6 py-4">KM Atual</th>
-                <th className="px-6 py-4">{translations.next}</th>
-                <th className="px-6 py-4">Status Prioridade</th>
-                <th className="px-6 py-4">Status de Agendamento</th>
+                <th className="px-6 py-4">Proxima</th>
+                <th className="px-6 py-4">Progresso</th>
+                <th className="px-6 py-4">Prioridade</th>
+                <th className="px-6 py-4">Agendamento</th>
                 <th className="px-6 py-4">Presenca</th>
                 <th className="px-6 py-4">{translations.status}</th>
               </tr>
@@ -637,13 +685,40 @@ export default function WebAssetsPage() {
                     row.id === selectedAsset?.id ? "bg-[var(--color-brand-soft)]/40" : ""
                   }`}
                 >
-                  <td className="px-6 py-4 font-semibold">{row.type}</td>
                   <td className="px-6 py-4 font-mono font-bold">{row.code}</td>
+                  <td className="px-6 py-4 font-semibold">{row.type}</td>
                   <td className="px-6 py-4">{row.centerCost}</td>
                   <td className="px-6 py-4">{row.model}</td>
                   <td className="px-6 py-4 text-slate-600">{formatDateOnly(row.lastMaintenanceDate)}</td>
                   <td className="px-6 py-4 font-bold">{formatKm(row.currentKm)}</td>
                   <td className="px-6 py-4 font-bold text-[var(--color-danger)]">{formatKm(row.nextKm)}</td>
+                  <td className="px-6 py-4">
+                    <div className="min-w-[160px]">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full ${
+                            row.kmProgress.tone === "danger"
+                              ? "bg-red-500"
+                              : row.kmProgress.tone === "warning"
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
+                          }`}
+                          style={{ width: `${row.kmProgress.ratioPercent}%` }}
+                        />
+                      </div>
+                      <p
+                        className={`mt-1 text-[11px] font-bold ${
+                          row.kmProgress.tone === "danger"
+                            ? "text-red-700"
+                            : row.kmProgress.tone === "warning"
+                              ? "text-amber-700"
+                              : "text-slate-600"
+                        }`}
+                      >
+                        {row.kmProgress.label}
+                      </p>
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
@@ -704,7 +779,7 @@ export default function WebAssetsPage() {
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td className="px-6 py-6 text-sm text-slate-500" colSpan={11}>
+                  <td className="px-6 py-6 text-sm text-slate-500" colSpan={12}>
                     Nenhum registro encontrado com os filtros selecionados.
                   </td>
                 </tr>

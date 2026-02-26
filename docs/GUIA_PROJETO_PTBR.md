@@ -208,6 +208,10 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
   `Administrador` (acesso total), corrigindo sessoes/localStorage antigos.
 - `apps/web/lib/test-data-seed.ts` centraliza reset/populacao de massa local de testes (localStorage)
   e e acionado na tela `Usuarios de Acesso` para QA rapido em ambiente demo/EC2.
+- `apps/web/app/web/calendar/page.tsx` possui paleta semantica de status ajustada e sem destaque cromatico
+  exclusivo para o marcador `Hoje`, reduzindo conflito visual com status de agendamento.
+- `apps/web/app/web/assets/page.tsx` (Gestao de Preventivas) possui coluna `Progresso` baseada em
+  `KM Atual` x `Proxima` para indicar sobra/atraso do gatilho de preventiva.
 
 ## Onde comentar/alterar sem risco alto
 

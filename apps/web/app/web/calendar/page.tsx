@@ -94,39 +94,39 @@ const statusChipColors: Record<
   }
 > = {
   scheduled: {
-    eventBg: "bg-blue-50",
-    eventBorder: "border-l-blue-500",
-    eventText: "text-blue-700",
-    dot: "bg-blue-500",
-    badge: "bg-blue-100 text-blue-700",
+    eventBg: "bg-indigo-50",
+    eventBorder: "border-l-indigo-500",
+    eventText: "text-indigo-700",
+    dot: "bg-indigo-500",
+    badge: "bg-indigo-100 text-indigo-700",
   },
   in_progress: {
+    eventBg: "bg-violet-50",
+    eventBorder: "border-l-violet-500",
+    eventText: "text-violet-700",
+    dot: "bg-violet-500",
+    badge: "bg-violet-100 text-violet-700",
+  },
+  tolerance: {
     eventBg: "bg-amber-50",
     eventBorder: "border-l-amber-500",
     eventText: "text-amber-700",
     dot: "bg-amber-500",
     badge: "bg-amber-100 text-amber-700",
   },
-  tolerance: {
-    eventBg: "bg-orange-50",
-    eventBorder: "border-l-orange-500",
-    eventText: "text-orange-700",
-    dot: "bg-orange-500",
-    badge: "bg-orange-100 text-orange-700",
-  },
   no_show: {
-    eventBg: "bg-rose-50",
-    eventBorder: "border-l-rose-600",
-    eventText: "text-rose-700",
-    dot: "bg-rose-600",
-    badge: "bg-rose-100 text-rose-700",
+    eventBg: "bg-red-50",
+    eventBorder: "border-l-red-600",
+    eventText: "text-red-700",
+    dot: "bg-red-600",
+    badge: "bg-red-100 text-red-700",
   },
   completed: {
-    eventBg: "bg-emerald-50",
-    eventBorder: "border-l-emerald-500",
-    eventText: "text-emerald-700",
-    dot: "bg-emerald-500",
-    badge: "bg-emerald-100 text-emerald-700",
+    eventBg: "bg-teal-50",
+    eventBorder: "border-l-teal-500",
+    eventText: "text-teal-700",
+    dot: "bg-teal-500",
+    badge: "bg-teal-100 text-teal-700",
   },
 };
 
@@ -1056,10 +1056,6 @@ function WebCalendarPageContent() {
                 <span>{label}</span>
               </div>
             ))}
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded bg-sky-600" />
-              <span>Hoje</span>
-            </div>
           </div>
 
           <div className="mt-3 text-xs text-slate-500">
@@ -1098,17 +1094,13 @@ function WebCalendarPageContent() {
                     day ? "cursor-pointer" : "cursor-default"
                   } ${
                     isDragOver ? "border-blue-500 bg-blue-50" : ""
-                  } ${dayIsPast ? "bg-slate-50/80 text-slate-400" : "hover:bg-slate-50"} ${
-                    dayIsToday ? "bg-sky-100/70 ring-1 ring-inset ring-sky-200" : ""
-                  }`}
+                  } ${dayIsPast ? "bg-slate-50/80 text-slate-400" : "hover:bg-slate-50"}`}
                 >
                   {day && (
                     <>
                       <p
                         className={`mb-1 text-sm font-bold ${
-                          dayIsToday
-                            ? "text-sky-700"
-                            : dayIsPast
+                          dayIsPast
                               ? "text-slate-400"
                               : "text-slate-500"
                         }`}
