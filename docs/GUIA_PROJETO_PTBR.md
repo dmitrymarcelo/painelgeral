@@ -212,6 +212,8 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
   exclusivo para o marcador `Hoje`, reduzindo conflito visual com status de agendamento.
 - `apps/web/app/web/assets/page.tsx` (Gestao de Preventivas) possui coluna `Progresso` baseada em
   `KM Atual` x `Proxima` para indicar sobra/atraso do gatilho de preventiva.
+- Cabecalhos e celulas de listagens Web foram padronizados com classes globais (`table-head`,
+  `table-head-cell`, `table-cell`, `table-cell-tight`) para manter proporcao/espacamento coerentes.
 
 ## Onde comentar/alterar sem risco alto
 

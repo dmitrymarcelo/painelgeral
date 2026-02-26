@@ -360,29 +360,29 @@ export default function WebMaintenancePage() {
             Ordens de Servico ({filteredRows.length})
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.16em] text-slate-500">
+            <thead className="table-head text-left">
               <tr>
-                <th className="px-6 py-4">{translations.id}</th>
-                <th className="px-6 py-4">Placa</th>
-                <th className="px-6 py-4">Tipo de veiculo</th>
-                <th className="px-6 py-4">Responsavel</th>
-                <th className="px-6 py-4">Responsavel Agendamento</th>
-                <th className="px-6 py-4">Data de abertura da OS</th>
-                <th className="px-6 py-4">MTTR</th>
-                <th className="px-6 py-4">{translations.status}</th>
+                <th className="table-head-cell">{translations.id}</th>
+                <th className="table-head-cell">Placa</th>
+                <th className="table-head-cell">Tipo de veiculo</th>
+                <th className="table-head-cell">Responsavel</th>
+                <th className="table-head-cell">Responsavel Agendamento</th>
+                <th className="table-head-cell">Data de abertura da OS</th>
+                <th className="table-head-cell">MTTR</th>
+                <th className="table-head-cell">{translations.status}</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.map((row) => (
                 <tr key={row.code} className="border-b border-slate-100">
-                  <td className="px-6 py-4 font-mono font-bold">{row.code}</td>
-                  <td className="px-6 py-4 font-mono font-semibold">{row.plate}</td>
-                  <td className="px-6 py-4">{row.vehicleType}</td>
-                  <td className="px-6 py-4">{row.fleetResponsible}</td>
-                  <td className="px-6 py-4">{row.schedulingResponsible}</td>
-                  <td className="px-6 py-4">{formatDateTime(row.openedAt)}</td>
-                  <td className="px-6 py-4 font-semibold">{row.mttr}</td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell font-mono font-bold">{row.code}</td>
+                  <td className="table-cell font-mono font-semibold">{row.plate}</td>
+                  <td className="table-cell">{row.vehicleType}</td>
+                  <td className="table-cell">{row.fleetResponsible}</td>
+                  <td className="table-cell">{row.schedulingResponsible}</td>
+                  <td className="table-cell">{formatDateTime(row.openedAt)}</td>
+                  <td className="table-cell font-semibold">{row.mttr}</td>
+                  <td className="table-cell">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                         row.statusLabel === "Agendada"
@@ -405,7 +405,7 @@ export default function WebMaintenancePage() {
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td className="px-6 py-6 text-sm text-slate-500" colSpan={8}>
+                  <td className="table-cell text-sm text-slate-500" colSpan={8}>
                     Nenhuma OS encontrada com os filtros selecionados.
                   </td>
                 </tr>

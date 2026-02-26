@@ -250,25 +250,25 @@ export default function WebDashboardPage() {
               <button className="text-sm font-bold text-[var(--color-brand-ink)]">{translations.openFleetMap}</button>
             </div>
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-500">
+              <thead className="table-head">
                 <tr>
-                  <th className="px-6 py-4">{translations.plateId}</th>
-                  <th className="px-6 py-4">{translations.modelType}</th>
-                  <th className="px-6 py-4">{translations.preventive}</th>
-                  <th className="px-6 py-4">{translations.dueDate}</th>
-                  <th className="px-6 py-4">{translations.status}</th>
+                  <th className="table-head-cell">{translations.plateId}</th>
+                  <th className="table-head-cell">{translations.modelType}</th>
+                  <th className="table-head-cell">{translations.preventive}</th>
+                  <th className="table-head-cell">{translations.dueDate}</th>
+                  <th className="table-head-cell">{translations.status}</th>
                 </tr>
               </thead>
               <tbody>
                 {urgencyRows.map((row) => (
                   <tr key={`${row.id}-${row.action}`} className="border-b border-slate-100">
-                    <td className="px-6 py-4 font-mono font-bold">{row.id}</td>
-                    <td className="px-6 py-4">
+                    <td className="table-cell font-mono font-bold">{row.id}</td>
+                    <td className="table-cell">
                       <p className="font-semibold">{row.model}</p>
                     </td>
-                    <td className="px-6 py-4">{row.action}</td>
+                    <td className="table-cell">{row.action}</td>
                     <td
-                      className={`px-6 py-4 font-bold ${
+                      className={`table-cell font-bold ${
                         row.status === "VENCIDA"
                           ? "text-[var(--color-danger)]"
                           : row.status === "A_VENCER"
@@ -280,7 +280,7 @@ export default function WebDashboardPage() {
                     >
                       {row.due}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="table-cell">
                       <span
                         className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                           row.status === "VENCIDA"
@@ -299,7 +299,7 @@ export default function WebDashboardPage() {
                 ))}
                 {urgencyRows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-6 text-sm text-slate-500">Nenhum registro de preventiva.</td>
+                    <td colSpan={5} className="table-cell text-sm text-slate-500">Nenhum registro de preventiva.</td>
                   </tr>
                 )}
               </tbody>

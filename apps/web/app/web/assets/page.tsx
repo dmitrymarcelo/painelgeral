@@ -657,20 +657,20 @@ export default function WebAssetsPage() {
 
         <div className="card overflow-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-[0.18em] text-slate-500">
+            <thead className="table-head">
               <tr>
-                <th className="px-6 py-4">{translations.plateId}</th>
-                <th className="px-6 py-4">Tipo</th>
-                <th className="px-6 py-4">Centro</th>
-                <th className="px-6 py-4">{translations.modelType}</th>
-                <th className="px-6 py-4">Ult. MT</th>
-                <th className="px-6 py-4">KM Atual</th>
-                <th className="px-6 py-4">Proxima</th>
-                <th className="px-6 py-4">Progresso</th>
-                <th className="px-6 py-4">Prioridade</th>
-                <th className="px-6 py-4">Agendamento</th>
-                <th className="px-6 py-4">Presenca</th>
-                <th className="px-6 py-4">{translations.status}</th>
+                <th className="table-head-cell">{translations.plateId}</th>
+                <th className="table-head-cell">Tipo</th>
+                <th className="table-head-cell">Centro Custo</th>
+                <th className="table-head-cell">{translations.modelType}</th>
+                <th className="table-head-cell">Ultima MT</th>
+                <th className="table-head-cell">KM Atual</th>
+                <th className="table-head-cell">Proxima</th>
+                <th className="table-head-cell">Progresso</th>
+                <th className="table-head-cell">Prioridade</th>
+                <th className="table-head-cell">Agendamento</th>
+                <th className="table-head-cell">Presenca</th>
+                <th className="table-head-cell">{translations.status}</th>
               </tr>
             </thead>
             <tbody>
@@ -685,14 +685,14 @@ export default function WebAssetsPage() {
                     row.id === selectedAsset?.id ? "bg-[var(--color-brand-soft)]/40" : ""
                   }`}
                 >
-                  <td className="px-6 py-4 font-mono font-bold">{row.code}</td>
-                  <td className="px-6 py-4 font-semibold">{row.type}</td>
-                  <td className="px-6 py-4">{row.centerCost}</td>
-                  <td className="px-6 py-4">{row.model}</td>
-                  <td className="px-6 py-4 text-slate-600">{formatDateOnly(row.lastMaintenanceDate)}</td>
-                  <td className="px-6 py-4 font-bold">{formatKm(row.currentKm)}</td>
-                  <td className="px-6 py-4 font-bold text-[var(--color-danger)]">{formatKm(row.nextKm)}</td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell font-mono font-bold">{row.code}</td>
+                  <td className="table-cell font-semibold">{row.type}</td>
+                  <td className="table-cell">{row.centerCost}</td>
+                  <td className="table-cell">{row.model}</td>
+                  <td className="table-cell text-slate-600">{formatDateOnly(row.lastMaintenanceDate)}</td>
+                  <td className="table-cell font-bold">{formatKm(row.currentKm)}</td>
+                  <td className="table-cell font-bold text-[var(--color-danger)]">{formatKm(row.nextKm)}</td>
+                  <td className="table-cell">
                     <div className="min-w-[160px]">
                       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                         <div
@@ -719,7 +719,7 @@ export default function WebAssetsPage() {
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                         row.priorityStatus === "Alta"
@@ -732,7 +732,7 @@ export default function WebAssetsPage() {
                       {row.priorityStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                         row.schedulingStatus === "Agendado p/ Hoje"
@@ -747,7 +747,7 @@ export default function WebAssetsPage() {
                       {row.schedulingStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                         row.presenceStatus === "Compareceu"
@@ -760,7 +760,7 @@ export default function WebAssetsPage() {
                       {row.presenceStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell">
                     <span
                       className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
                         row.status === translations.critical
@@ -779,7 +779,7 @@ export default function WebAssetsPage() {
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td className="px-6 py-6 text-sm text-slate-500" colSpan={12}>
+                  <td className="table-cell text-sm text-slate-500" colSpan={12}>
                     Nenhum registro encontrado com os filtros selecionados.
                   </td>
                 </tr>

@@ -422,20 +422,20 @@ export default function WebUsersPage() {
             Usuarios cadastrados ({users.length})
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-500">
+            <thead className="table-head text-left">
               <tr>
-                <th className="px-6 py-4">Usuario</th>
-                <th className="px-6 py-4">Nome</th>
-                <th className="px-6 py-4">Perfil</th>
-                <th className="px-6 py-4">Acoes</th>
+                <th className="table-head-cell">Usuario</th>
+                <th className="table-head-cell">Nome</th>
+                <th className="table-head-cell">Perfil</th>
+                <th className="table-head-cell">Acoes</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <tr key={user.username} className="border-b border-slate-100">
-                  <td className="px-6 py-4 font-mono font-bold">{user.username}</td>
-                  <td className="px-6 py-4">{user.name}</td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell font-mono font-bold">{user.username}</td>
+                  <td className="table-cell">{user.name}</td>
+                  <td className="table-cell">
                     <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
                       {user.role}
                     </span>
@@ -445,7 +445,7 @@ export default function WebUsersPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="table-cell">
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"

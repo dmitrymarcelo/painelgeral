@@ -149,6 +149,9 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
   `Nao Compareceu`, `Concluido`) e o marcador visual de `Hoje` deixou de usar cor dedicada para reduzir redundancia.
 - Em `Gestao de Preventivas`, a tabela principal foi reorganizada (Placa/Tipo/Centro/Modelo/Ult. MT/KM Atual/Proxima/...)
   e ganhou coluna `Progresso` calculada por relacao `KM Atual x Proxima preventiva`.
+- Padrao visual de listagens Web consolidado em `apps/web/app/globals.css` (`table-head`,
+  `table-head-cell`, `table-cell`, `table-cell-tight`) e aplicado nas tabelas principais
+  (`Dashboard`, `Gestao de Preventivas`, `Ordens de Servico`, `Usuarios`).
 - Matriz de perfis aplicada no frontend (cadastro de usuarios + calendario):
   - `Operacoes`: somente criar agendamentos
   - `Gestor`: criar agendamentos + remanejar datas/horario no calendario (sem editar ativo/descricao)
