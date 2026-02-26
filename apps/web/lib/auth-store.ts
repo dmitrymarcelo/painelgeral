@@ -56,7 +56,7 @@ const AUTH_SESSION_KEY = "frota-pro.auth-session";
 const AUTH_EVENT = "frota-pro:auth-change";
 
 const DEFAULT_USERS: LocalAuthUser[] = [
-  { username: "admin", password: "admin123", name: "Administrador", role: "Gestor" },
+  { username: "admin", password: "admin123", name: "Administrador", role: "Administrador" },
   { username: "operacoes", password: "123456", name: "Gestor de Operacoes", role: "Operacoes" },
 ];
 
@@ -65,6 +65,15 @@ const isBrowser = () => typeof window !== "undefined";
 const emitAuthChange = () => {
   if (!isBrowser()) return;
   window.dispatchEvent(new Event(AUTH_EVENT));
+};
+
+const enforceLocalAdminRole = <T extends { username?: string; role?: string; authMode?: string }>(record: T): T => {
+  const username = String(record.username ?? "").trim().toLowerCase();
+  if (username !== "admin") return record;
+  if ("authMode" in record && record.authMode && record.authMode !== "local") return record;
+  if (record.role === "Administrador") return record;
+  // Regra de negocio: o login local `admin` e reservado para acesso total no ambiente demo.
+  return { ...record, role: "Administrador" };
 };
 
 export const getAuthUsers = (): LocalAuthUser[] => {
@@ -81,7 +90,10 @@ export const getAuthUsers = (): LocalAuthUser[] => {
       window.localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(DEFAULT_USERS));
       return DEFAULT_USERS;
     }
-    return parsed.filter(Boolean) as LocalAuthUser[];
+    const users = (parsed.filter(Boolean) as LocalAuthUser[]).map((user) => enforceLocalAdminRole(user));
+    // Migra storage antigo onde `admin` foi salvo como Gestor.
+    window.localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+    return users;
   } catch {
     return DEFAULT_USERS;
   }
@@ -99,7 +111,12 @@ export const getAuthSession = (): LocalAuthSession | null => {
   try {
     const raw = window.localStorage.getItem(AUTH_SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as LocalAuthSession;
+    const parsed = JSON.parse(raw) as LocalAuthSession;
+    const migrated = enforceLocalAdminRole(parsed) as LocalAuthSession;
+    if (JSON.stringify(parsed) !== JSON.stringify(migrated)) {
+      window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(migrated));
+    }
+    return migrated;
   } catch {
     return null;
   }

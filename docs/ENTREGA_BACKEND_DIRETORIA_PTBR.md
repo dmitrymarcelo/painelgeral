@@ -145,6 +145,8 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
   - `Gestor`: criar agendamentos + remanejar datas/agendamento
   - `Tecnico`: mesmas funcoes do gestor + alterar status de execucao + concluir + informar KM
   - `Administrador`: acesso total (incluindo exclusao de agendamento e gestao de usuarios)
+- Ajuste de migracao local aplicado: o usuario demo `admin` (login local) e tratado como
+  `Administrador` mesmo em storages/sessoes antigas onde estava salvo como `Gestor`.
 
 ### Ambiente de teste validado
 
