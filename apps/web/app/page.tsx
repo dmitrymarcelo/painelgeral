@@ -26,11 +26,28 @@ export default function PortalPage() {
   const [authPassword, setAuthPassword] = useState("");
   const [authFeedback, setAuthFeedback] = useState("");
   const [authSession, setAuthSession] = useState(getAuthSession());
+  const [recommendedMode, setRecommendedMode] = useState<"web" | "app">("web");
 
   useEffect(() => {
     const refresh = () => setAuthSession(getAuthSession());
     refresh();
     return subscribeAuthSession(refresh);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // Regra de negocio/UX: usar heuristica local para sugerir modulo por dispositivo.
+    // Nao e deteccao perfeita; backend nao participa. A sugestao prioriza App em smartphones.
+    const detectMode = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      const isPhoneUa = /android|iphone|ipod|windows phone|mobile/.test(ua);
+      const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+      const smallViewport = window.innerWidth < 900;
+      setRecommendedMode(isPhoneUa || (coarsePointer && smallViewport) ? "app" : "web");
+    };
+    detectMode();
+    window.addEventListener("resize", detectMode);
+    return () => window.removeEventListener("resize", detectMode);
   }, []);
 
   const handleLogin = async () => {
@@ -122,6 +139,13 @@ export default function PortalPage() {
               >
                 Usuarios de Acesso
               </Link>
+              <Link
+                href={recommendedMode === "app" ? "/app/home" : "/web/dashboard"}
+                onClick={guardModuleNavigation}
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-emerald-700"
+              >
+                Acesso Inteligente ({recommendedMode === "app" ? "App" : "Web"})
+              </Link>
             </div>
 
             <p className="mt-3 text-sm text-slate-600">
@@ -132,6 +156,9 @@ export default function PortalPage() {
             {authFeedback && <p className="mt-1 text-xs font-semibold text-slate-500">{authFeedback}</p>}
             <p className="mt-2 text-xs text-slate-500">
               Usuarios de teste: {getAuthUsers().map((user) => `${user.username}/${user.password}`).join(" • ")}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Detecao automatica: {recommendedMode === "app" ? "Smartphone/Tablet -> App" : "Desktop/Notebook -> Web"}.
             </p>
           </div>
         </div>
@@ -145,7 +172,9 @@ export default function PortalPage() {
           <Link
             href="/web/dashboard"
             onClick={guardModuleNavigation}
-            className="card group relative overflow-hidden rounded-3xl p-8 transition hover:-translate-y-0.5"
+            className={`card group relative overflow-hidden rounded-3xl p-8 transition hover:-translate-y-0.5 ${
+              recommendedMode === "web" ? "ring-2 ring-[var(--color-brand)]" : ""
+            }`}
           >
             <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-slate-100"></div>
             <div className="relative">
@@ -157,13 +186,20 @@ export default function PortalPage() {
               <span className="mt-7 inline-flex rounded-xl bg-[var(--color-brand)] px-5 py-2 text-xs font-black uppercase tracking-[0.14em] text-white">
                 {authSession ? "Acessar modulo" : "Login necessario"}
               </span>
+              {recommendedMode === "web" && (
+                <span className="ml-2 mt-7 inline-flex rounded-xl border border-[var(--color-brand)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-brand)]">
+                  Recomendado
+                </span>
+              )}
             </div>
           </Link>
 
           <Link
             href="/app/home"
             onClick={guardModuleNavigation}
-            className="card group relative overflow-hidden rounded-3xl p-8 transition hover:-translate-y-0.5"
+            className={`card group relative overflow-hidden rounded-3xl p-8 transition hover:-translate-y-0.5 ${
+              recommendedMode === "app" ? "ring-2 ring-[#2f80ed]" : ""
+            }`}
           >
             <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-slate-100"></div>
             <div className="relative">
@@ -175,6 +211,11 @@ export default function PortalPage() {
               <span className="mt-7 inline-flex rounded-xl bg-[#2f80ed] px-5 py-2 text-xs font-black uppercase tracking-[0.14em] text-white">
                 {authSession ? "Acessar modulo" : "Login necessario"}
               </span>
+              {recommendedMode === "app" && (
+                <span className="ml-2 mt-7 inline-flex rounded-xl border border-[#2f80ed] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#2f80ed]">
+                  Recomendado
+                </span>
+              )}
             </div>
           </Link>
         </div>

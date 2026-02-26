@@ -16,6 +16,7 @@ import {
   subscribeAuthUsers,
   updateAuthUser,
 } from "@/lib/auth-store";
+import { clearLocalDemoData, getLocalDemoSeedInfo, resetAndSeedLocalDemoData } from "@/lib/test-data-seed";
 
 type FormState = {
   id?: string;
@@ -67,6 +68,7 @@ export default function WebUsersPage() {
   const [editingUsername, setEditingUsername] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [seedInfo, setSeedInfo] = useState<{ version: string | null; hasSeed: boolean } | null>(null);
 
   const apiMode = useMemo(() => isApiAuthSession(authSession), [authSession]);
   const currentPermissions = useMemo(() => getRolePermissions(authSession), [authSession]);
@@ -124,6 +126,11 @@ export default function WebUsersPage() {
     refreshLocalUsers();
     return subscribeAuthUsers(refreshLocalUsers);
   }, [apiMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setSeedInfo(getLocalDemoSeedInfo());
+  }, [users.length, apiMode]);
 
   const resetForm = () => {
     setForm(emptyForm());
@@ -208,6 +215,29 @@ export default function WebUsersPage() {
     refreshLocalUsers();
   };
 
+  const handleResetAndSeed = () => {
+    if (!currentPermissions.canManageUsers) {
+      setMessage("Somente Administrador pode resetar/popular dados locais de teste.");
+      return;
+    }
+    const result = resetAndSeedLocalDemoData();
+    setMessage(result.message);
+    setAuthSession(getAuthSession());
+    refreshLocalUsers();
+    setSeedInfo(getLocalDemoSeedInfo());
+  };
+
+  const handleClearLocalData = () => {
+    if (!currentPermissions.canManageUsers) {
+      setMessage("Somente Administrador pode limpar dados locais.");
+      return;
+    }
+    clearLocalDemoData();
+    setMessage("Dados locais de demonstracao foram limpos. Recarregue a pagina para reidratar stores basicas.");
+    setSeedInfo(getLocalDemoSeedInfo());
+    refreshLocalUsers();
+  };
+
   return (
     <WebShell title="Usuarios de Acesso" subtitle="Controle local de login">
       <div className="space-y-5">
@@ -235,6 +265,45 @@ export default function WebUsersPage() {
             <p className="text-xs text-slate-500">{apiMode ? "Base backend (API)" : "Base em localStorage (demo)"}</p>
           </div>
         </div>
+
+        {!apiMode && (
+          <div className="card p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                  Massa de Testes (Local)
+                </p>
+                <p className="text-sm text-slate-500">
+                  Limpa e popula dados de demonstracao nas abas Web/App (calendario, OS, ativos e planos preventivos).
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                  seedInfo?.hasSeed ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {seedInfo?.hasSeed ? `Seed ${seedInfo.version}` : "Sem seed aplicada"}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleResetAndSeed}
+                disabled={!currentPermissions.canManageUsers}
+                className="rounded-xl bg-[var(--color-brand)] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                Limpar e Popular Dados de Teste
+              </button>
+              <button
+                onClick={handleClearLocalData}
+                disabled={!currentPermissions.canManageUsers}
+                className="rounded-xl border border-slate-300 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Limpar Dados Locais
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="card p-5">
           <div className="mb-4">

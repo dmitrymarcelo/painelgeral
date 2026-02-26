@@ -140,6 +140,11 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
 - `WebShell` recebeu suporte a tema (`claro/escuro/automatico`) com resolucao por `prefers-color-scheme`
   e persistencia local, mantendo experiencia coerente em diferentes navegadores/clientes.
 - Rotulos da sidebar foram encurtados na exibicao expandida (`Gestao`, `Cadastro`, etc.) para evitar corte visual.
+- O portal inicial (`/`) possui heuristica de dispositivo (user-agent + viewport/touch) para sugerir
+  automaticamente o modulo recomendado (`Web` para desktop / `App` para smartphone), sem impedir troca manual.
+- A tela `Usuarios de Acesso` (`/web/users`) recebeu utilitario administrativo de massa de testes local:
+  `Limpar e Popular Dados de Teste`, que reseta e popula `localStorage` com dados para calendario, OS,
+  ativos, usuarios e cadastros de planos preventivos.
 - Matriz de perfis aplicada no frontend (cadastro de usuarios + calendario):
   - `Operacoes`: somente criar agendamentos
   - `Gestor`: criar agendamentos + remanejar datas/horario no calendario (sem editar ativo/descricao)

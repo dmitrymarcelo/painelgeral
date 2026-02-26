@@ -193,6 +193,8 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
   use fallback de ID local para prevenir erro de runtime em navegadores fora de contexto seguro.
 - O shell web suporta tema `auto/claro/escuro` (persistido em `localStorage`) e modo `auto` segue
   a configuracao de tema do navegador/cliente (`prefers-color-scheme`).
+- O portal inicial (`apps/web/app/page.tsx`) faz deteccao automatica de dispositivo (heuristica client-side)
+  e destaca o modulo recomendado (`Web`/`App`) via botao "Acesso Inteligente".
 - Para reduzir cortes de texto em sidebars compactas, prefira rotulos curtos na navegacao e mantenha o
   nome completo no `title`/tooltip do item.
 - Permissoes de calendario/operacao sao centralizadas em `apps/web/lib/auth-store.ts` (`getRolePermissions`),
@@ -204,6 +206,8 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
   - `Administrador`: acesso total (inclui editar detalhes do agendamento e excluir)
 - `auth-store` possui migracao local para garantir que o login demo `admin` tenha perfil
   `Administrador` (acesso total), corrigindo sessoes/localStorage antigos.
+- `apps/web/lib/test-data-seed.ts` centraliza reset/populacao de massa local de testes (localStorage)
+  e e acionado na tela `Usuarios de Acesso` para QA rapido em ambiente demo/EC2.
 
 ## Onde comentar/alterar sem risco alto
 
