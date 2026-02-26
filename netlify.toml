@@ -1,5 +1,8 @@
 [build]
   command = "corepack pnpm --filter @frota/web build"
+  # Monorepo Next.js: o plugin exige um publish que aponte para o distDir do app,
+  # nunca para a raiz do repositorio. Para o @frota/web o distDir padrao e `apps/web/.next`.
+  publish = "apps/web/.next"
 
 [build.environment]
   NODE_VERSION = "22"
@@ -7,8 +10,8 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Observacao:
-# - Nao definir `publish = apps/web/.next`
-# - O plugin do Next.js no Netlify gera/publica a saida correta automaticamente.
-# - `apps/web/.next` e pasta interna de build e causa 404 quando servida como site estatico.
-
+# Observacoes:
+# - A Netlify UI estava forçando `publish` para a raiz do repo (`/opt/build/repo`), o que quebra
+#   o plugin Next.js no pre-build.
+# - Declarar `publish = "apps/web/.next"` no `netlify.toml` evita esse erro em monorepo.
+# - Se houver override na UI, remova/ajuste para o mesmo valor.
