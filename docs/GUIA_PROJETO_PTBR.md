@@ -163,6 +163,8 @@ Para testes e demonstracao, a forma mais rapida e publicar somente `apps/web` no
 
 - Este deploy sobe o frontend Next.js com fluxos locais/mock/fallback.
 - Para operacao real multiusuario sera necessario publicar a API (`apps/api`) + banco + redis.
+- Em monorepo (`appRoot = apps/web`), no `amplify.yml` use `artifacts.baseDirectory: .next` (relativo ao app root).
+- Nao use `apps/web/.next` no `baseDirectory`, pois o Amplify falha com `Artifact directory doesn't exist`.
 
 ## Onde comentar/alterar sem risco alto
 

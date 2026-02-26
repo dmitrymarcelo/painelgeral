@@ -13,7 +13,8 @@ applications:
             - cd ../..
             - pnpm --filter @frota/web build
       artifacts:
-        baseDirectory: apps/web/.next
+        # Em apps monorepo no Amplify, o baseDirectory e relativo ao appRoot.
+        baseDirectory: .next
         files:
           - '**/*'
       cache:

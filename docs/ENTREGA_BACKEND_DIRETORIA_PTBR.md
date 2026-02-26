@@ -87,7 +87,7 @@ Objetivo desta etapa: publicar apenas `apps/web` rapidamente para validacao func
 - Estrategia:
   - monorepo (`pnpm`)
   - build do app `@frota/web`
-  - artefato publicado em `apps/web/.next`
+  - artefato publicado em `.next` (relativo ao `appRoot = apps/web`)
 
 ### Configuracao recomendada no AWS Amplify (Console)
 
@@ -95,6 +95,12 @@ Objetivo desta etapa: publicar apenas `apps/web` rapidamente para validacao func
 - Branch: `main` (ou branch de teste)
 - App root (monorepo): `apps/web`
 - Build spec: usar `amplify.yml` da raiz do repositorio
+
+### Observacao de compatibilidade (Amplify monorepo)
+
+- Com `appRoot: apps/web`, o campo `artifacts.baseDirectory` do `amplify.yml` deve ser relativo ao app root.
+- Valor correto neste projeto: `.next`
+- Valor incorreto (causa erro `Artifact directory doesn't exist`): `apps/web/.next`
 
 ### Observacoes tecnicas
 
