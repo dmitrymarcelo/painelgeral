@@ -140,6 +140,11 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
 - `WebShell` recebeu suporte a tema (`claro/escuro/automatico`) com resolucao por `prefers-color-scheme`
   e persistencia local, mantendo experiencia coerente em diferentes navegadores/clientes.
 - Rotulos da sidebar foram encurtados na exibicao expandida (`Gestao`, `Cadastro`, etc.) para evitar corte visual.
+- Matriz de perfis aplicada no frontend (cadastro de usuarios + calendario):
+  - `Operacoes`: somente criar agendamentos
+  - `Gestor`: criar agendamentos + remanejar datas/agendamento
+  - `Tecnico`: mesmas funcoes do gestor + alterar status de execucao + concluir + informar KM
+  - `Administrador`: acesso total (incluindo exclusao de agendamento e gestao de usuarios)
 
 ### Ambiente de teste validado
 

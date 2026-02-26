@@ -24,6 +24,8 @@ export type LocalAuthUser = {
   role: string;
 };
 
+export type AppUserRole = "Operacoes" | "Gestor" | "Tecnico" | "Administrador";
+
 export type LocalAuthSession = {
   authMode: "local" | "api";
   userId?: string;
@@ -35,6 +37,18 @@ export type LocalAuthSession = {
   accessToken?: string;
   refreshToken?: string;
   loginAt: string;
+};
+
+export type AppRolePermissions = {
+  canCreateSchedule: boolean;
+  canRescheduleCalendar: boolean;
+  canEditSchedulingDetails: boolean;
+  canChangeExecutionStatus: boolean;
+  canCompleteMaintenance: boolean;
+  canInformMaintenanceKm: boolean;
+  canDeleteSchedule: boolean;
+  canManageUsers: boolean;
+  isAdmin: boolean;
 };
 
 const AUTH_USERS_KEY = "frota-pro.auth-users";
@@ -95,6 +109,86 @@ export const isApiAuthSession = (
   session: LocalAuthSession | null,
 ): session is LocalAuthSession & { authMode: "api"; accessToken: string; tenantId: string } =>
   Boolean(session && session.authMode === "api" && session.accessToken && session.tenantId);
+
+export const normalizeAppUserRole = (role?: string | null): AppUserRole => {
+  const normalized = (role ?? "").trim().toUpperCase();
+  if (["ADMIN", "ADMINISTRADOR"].includes(normalized)) return "Administrador";
+  if (["OPERACOES", "OPERAÇÕES"].includes(normalized)) return "Operacoes";
+  if (["TECNICO", "TÉCNICO"].includes(normalized)) return "Tecnico";
+  if (normalized === "GESTOR") return "Gestor";
+  // Fallback conservador: gestor no contexto atual e o perfil operacional mais comum.
+  return "Gestor";
+};
+
+export const getRolePermissions = (
+  sessionOrRole: LocalAuthSession | string | null | undefined,
+): AppRolePermissions => {
+  const role =
+    typeof sessionOrRole === "string"
+      ? normalizeAppUserRole(sessionOrRole)
+      : normalizeAppUserRole(sessionOrRole?.role);
+
+  const isAdmin = role === "Administrador";
+
+  // Regra de negocio (definida pelo fluxo operacional do projeto):
+  // - Operacoes: somente criar agendamento
+  // - Gestor: criar + remanejar datas/agendamento
+  // - Tecnico: mesmas funcoes do gestor + finalizar e informar KM
+  // - Administrador: acesso total
+  if (isAdmin) {
+    return {
+      canCreateSchedule: true,
+      canRescheduleCalendar: true,
+      canEditSchedulingDetails: true,
+      canChangeExecutionStatus: true,
+      canCompleteMaintenance: true,
+      canInformMaintenanceKm: true,
+      canDeleteSchedule: true,
+      canManageUsers: true,
+      isAdmin: true,
+    };
+  }
+
+  if (role === "Tecnico") {
+    return {
+      canCreateSchedule: true,
+      canRescheduleCalendar: true,
+      canEditSchedulingDetails: true,
+      canChangeExecutionStatus: true,
+      canCompleteMaintenance: true,
+      canInformMaintenanceKm: true,
+      canDeleteSchedule: false,
+      canManageUsers: false,
+      isAdmin: false,
+    };
+  }
+
+  if (role === "Gestor") {
+    return {
+      canCreateSchedule: true,
+      canRescheduleCalendar: true,
+      canEditSchedulingDetails: true,
+      canChangeExecutionStatus: false,
+      canCompleteMaintenance: false,
+      canInformMaintenanceKm: false,
+      canDeleteSchedule: false,
+      canManageUsers: false,
+      isAdmin: false,
+    };
+  }
+
+  return {
+    canCreateSchedule: true,
+    canRescheduleCalendar: false,
+    canEditSchedulingDetails: false,
+    canChangeExecutionStatus: false,
+    canCompleteMaintenance: false,
+    canInformMaintenanceKm: false,
+    canDeleteSchedule: false,
+    canManageUsers: false,
+    isAdmin: false,
+  };
+};
 
 export const getAuthApiContext = () => {
   const session = getAuthSession();

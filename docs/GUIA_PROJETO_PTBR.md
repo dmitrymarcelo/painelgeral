@@ -195,6 +195,8 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
   a configuracao de tema do navegador/cliente (`prefers-color-scheme`).
 - Para reduzir cortes de texto em sidebars compactas, prefira rotulos curtos na navegacao e mantenha o
   nome completo no `title`/tooltip do item.
+- Permissoes de calendario/operacao sao centralizadas em `apps/web/lib/auth-store.ts` (`getRolePermissions`),
+  evitando duplicacao de regra por tela e facilitando futura migracao para ACL vinda do backend.
 
 ## Onde comentar/alterar sem risco alto
 

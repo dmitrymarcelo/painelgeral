@@ -16,6 +16,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
+import { getAuthSession, getRolePermissions, subscribeAuthSession } from "@/lib/auth-store";
 import {
   getEffectiveMaintenanceStatus,
   getMaintenanceEvents,
@@ -215,6 +216,7 @@ const buildDescriptionWithJustifications = (
 
 function WebCalendarPageContent() {
   const searchParams = useSearchParams();
+  const [authSession, setAuthSession] = useState(getAuthSession());
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -235,11 +237,18 @@ function WebCalendarPageContent() {
   const [filterResponsible, setFilterResponsible] = useState("");
   const [filterCenterCost, setFilterCenterCost] = useState("");
   const [filterSchedulingStatus, setFilterSchedulingStatus] = useState("");
+  const rolePermissions = useMemo(() => getRolePermissions(authSession), [authSession]);
 
   useEffect(() => {
     const refresh = () => setEvents(getMaintenanceEvents());
     refresh();
     return subscribeMaintenanceEvents(refresh);
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => setAuthSession(getAuthSession());
+    refresh();
+    return subscribeAuthSession(refresh);
   }, []);
 
   const updateEvents = (
@@ -338,6 +347,11 @@ function WebCalendarPageContent() {
       return;
     }
 
+    if (!rolePermissions.canCreateSchedule) {
+      alert("Seu perfil nao possui permissao para criar agendamentos.");
+      return;
+    }
+
     setSelectedDate(day);
     setSelectedEvent(null);
     setModalReadOnly(false);
@@ -382,6 +396,11 @@ function WebCalendarPageContent() {
   };
 
   const handleCreateOrder = () => {
+    if (!rolePermissions.canCreateSchedule) {
+      alert("Seu perfil nao possui permissao para criar agendamentos.");
+      return;
+    }
+
     // Regra de negocio: bloqueia datas passadas, horario passado hoje e excesso por slot.
     if (!formAsset || !selectedDate) {
       alert("Preencha os campos obrigatorios");
@@ -405,7 +424,7 @@ function WebCalendarPageContent() {
 
     const schedulerSession = getSchedulingResponsibleSession();
     const newEvent: MaintenanceEvent = {
-      id: crypto.randomUUID(),
+      id: globalThis.crypto?.randomUUID?.() ?? `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       day: selectedDate,
       month: currentMonth,
       year: currentYear,
@@ -455,7 +474,6 @@ function WebCalendarPageContent() {
       selectedEvent.month !== currentMonth ||
       selectedEvent.year !== currentYear ||
       selectedEvent.time !== formTime;
-
     if (
       isRescheduling &&
       isTodayDay(selectedDate) &&
@@ -466,18 +484,42 @@ function WebCalendarPageContent() {
     }
 
     const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
+    const schedulingFieldsChanged =
+      selectedEvent.asset !== formAsset ||
+      isRescheduling ||
+      previousParts.baseDescription.trim() !== formDescription.trim();
     const selectedEffectiveStatus = getEffectiveMaintenanceStatus(selectedEvent);
     const statusChanged = selectedEffectiveStatus !== formStatus;
     const nextKmValue = formCurrentMaintenanceKm.trim()
       ? Number(formCurrentMaintenanceKm)
       : null;
     const kmChanged = (selectedEvent.currentMaintenanceKm ?? null) !== nextKmValue;
-    const hasAnyChange =
-      selectedEvent.asset !== formAsset ||
-      isRescheduling ||
-      previousParts.baseDescription.trim() !== formDescription.trim() ||
-      statusChanged ||
-      kmChanged;
+    const hasAnyChange = schedulingFieldsChanged || statusChanged || kmChanged;
+
+    if (schedulingFieldsChanged && !rolePermissions.canEditSchedulingDetails) {
+      alert("Seu perfil nao pode alterar dados do agendamento.");
+      return;
+    }
+
+    if (isRescheduling && !rolePermissions.canRescheduleCalendar) {
+      alert("Seu perfil nao pode remanejar datas no calendario.");
+      return;
+    }
+
+    if (statusChanged && !rolePermissions.canChangeExecutionStatus) {
+      alert("Seu perfil nao pode alterar status de execucao.");
+      return;
+    }
+
+    if (kmChanged && !rolePermissions.canInformMaintenanceKm) {
+      alert("Seu perfil nao pode informar quilometragem da manutencao.");
+      return;
+    }
+
+    if (formStatus === "completed" && !rolePermissions.canCompleteMaintenance) {
+      alert("Somente tecnico ou administrador pode concluir manutencao.");
+      return;
+    }
 
     if (formStatus === "completed" && !formCurrentMaintenanceKm.trim()) {
       alert("Preencha o KM atual da manutencao para concluir.");
@@ -598,6 +640,11 @@ function WebCalendarPageContent() {
   };
 
   const handleDeleteEvent = (eventId: string) => {
+    if (!rolePermissions.canDeleteSchedule) {
+      alert("Somente administrador pode excluir agendamentos.");
+      return;
+    }
+
     const target = events.find((event) => event.id === eventId);
     if (!target || getEventIsPast(target)) {
       alert("Datas passadas estao bloqueadas para edicao.");
@@ -615,6 +662,11 @@ function WebCalendarPageContent() {
   };
 
   const handleDragStart = (event: MaintenanceEvent, dragEvent: React.DragEvent) => {
+    if (!rolePermissions.canRescheduleCalendar) {
+      dragEvent.preventDefault();
+      return;
+    }
+
     if (getEventIsPast(event)) {
       dragEvent.preventDefault();
       return;
@@ -640,6 +692,13 @@ function WebCalendarPageContent() {
     // exige justificativa obrigatoria antes de persistir.
     dragEvent.preventDefault();
     if (!draggedEvent) return;
+
+    if (!rolePermissions.canRescheduleCalendar) {
+      alert("Seu perfil nao pode remanejar datas no calendario.");
+      setDraggedEvent(null);
+      setDragOverDay(null);
+      return;
+    }
 
     if (isPastDay(day)) {
       alert("Datas passadas estao bloqueadas para edicao.");
@@ -721,6 +780,11 @@ function WebCalendarPageContent() {
   };
 
   const openNewOrderModal = () => {
+    if (!rolePermissions.canCreateSchedule) {
+      alert("Seu perfil nao possui permissao para criar agendamentos.");
+      return;
+    }
+
     const now = new Date();
     setCurrentDate(new Date(now.getFullYear(), now.getMonth(), 1));
     setSelectedDate(now.getDate());
@@ -800,6 +864,18 @@ function WebCalendarPageContent() {
       selectedEvent.month !== currentMonth ||
       selectedEvent.year !== currentYear ||
       selectedEvent.time !== formTime);
+  const canEditScheduleFields = selectedEvent
+    ? !modalReadOnly && rolePermissions.canEditSchedulingDetails
+    : !modalReadOnly && rolePermissions.canCreateSchedule;
+  const canEditStatusField = !!selectedEvent && !modalReadOnly && rolePermissions.canChangeExecutionStatus;
+  const canEditKmField = !!selectedEvent && !modalReadOnly && rolePermissions.canInformMaintenanceKm;
+  const canDeleteSelectedEvent = !!selectedEvent && !modalReadOnly && rolePermissions.canDeleteSchedule;
+  const canSaveModal = selectedEvent
+    ? !modalReadOnly &&
+      (rolePermissions.canEditSchedulingDetails ||
+        rolePermissions.canChangeExecutionStatus ||
+        rolePermissions.canInformMaintenanceKm)
+    : !modalReadOnly && rolePermissions.canCreateSchedule;
 
   return (
     <WebShell
@@ -946,7 +1022,8 @@ function WebCalendarPageContent() {
             </div>
             <button
               onClick={openNewOrderModal}
-              className="rounded-xl bg-[var(--color-brand)] px-4 py-2 text-sm font-black"
+              disabled={!rolePermissions.canCreateSchedule}
+              className="rounded-xl bg-[var(--color-brand)] px-4 py-2 text-sm font-black disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {translations.newMaintenanceOrder}
             </button>
@@ -1096,6 +1173,15 @@ function WebCalendarPageContent() {
                 Registro em data passada: visualizacao liberada, edicao bloqueada.
               </div>
             )}
+            {!modalReadOnly && (
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                Perfil atual: <strong>{authSession?.role ?? "Nao identificado"}</strong>.
+                {rolePermissions.canCreateSchedule ? " Pode agendar." : " Nao pode agendar."}
+                {rolePermissions.canRescheduleCalendar ? " Pode remanejar datas." : ""}
+                {rolePermissions.canCompleteMaintenance ? " Pode concluir manutencao e informar KM." : ""}
+                {rolePermissions.isAdmin ? " Acesso total." : ""}
+              </div>
+            )}
 
             <div className="space-y-4">
               <div>
@@ -1103,7 +1189,7 @@ function WebCalendarPageContent() {
                   {translations.asset} *
                 </label>
                 <select
-                  disabled={modalReadOnly}
+                  disabled={!canEditScheduleFields}
                   value={formAsset}
                   onChange={(event) => setFormAsset(event.target.value)}
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1121,7 +1207,7 @@ function WebCalendarPageContent() {
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Horario *</label>
                   <select
-                    disabled={modalReadOnly}
+                    disabled={!canEditScheduleFields}
                     value={formTime}
                     onChange={(event) => setFormTime(event.target.value)}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1177,7 +1263,7 @@ function WebCalendarPageContent() {
                   </label>
                   <input
                     type="date"
-                    disabled={modalReadOnly || !selectedEvent}
+                    disabled={modalReadOnly || !selectedEvent || !rolePermissions.canRescheduleCalendar}
                     value={selectedDateIso}
                     min={selectedEvent ? undefined : minDateIso}
                     onChange={(event) => handleFormDateChange(event.target.value)}
@@ -1235,7 +1321,7 @@ function WebCalendarPageContent() {
                     JUSTIFICATIVA {isReschedulingSelection ? "*" : ""}
                   </label>
                   <textarea
-                    disabled={modalReadOnly}
+                    disabled={!canEditScheduleFields}
                     value={formJustification}
                     onChange={(event) => setFormJustification(event.target.value)}
                     className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1252,7 +1338,7 @@ function WebCalendarPageContent() {
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status</label>
                   <select
-                    disabled={modalReadOnly}
+                    disabled={!canEditStatusField}
                     value={formStatus}
                     onChange={(event) => setFormStatus(event.target.value as MaintenanceStatus)}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1275,7 +1361,7 @@ function WebCalendarPageContent() {
                     type="number"
                     min={0}
                     step={1}
-                    disabled={modalReadOnly}
+                    disabled={!canEditKmField}
                     value={formCurrentMaintenanceKm}
                     onChange={(event) => setFormCurrentMaintenanceKm(event.target.value)}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
@@ -1285,7 +1371,7 @@ function WebCalendarPageContent() {
               )}
 
               <div className="mt-6 flex gap-3">
-                {selectedEvent && !modalReadOnly && (
+                {canDeleteSelectedEvent && selectedEvent && (
                   <button
                     onClick={() => handleDeleteEvent(selectedEvent.id)}
                     className="flex-1 rounded-xl border border-red-200 py-3 text-sm font-black uppercase text-red-600"
@@ -1299,7 +1385,7 @@ function WebCalendarPageContent() {
                 >
                   {translations.cancel}
                 </button>
-                {!modalReadOnly && (
+                {canSaveModal && (
                   <button
                     onClick={selectedEvent ? handleUpdateEvent : handleCreateOrder}
                     className="flex-1 rounded-xl bg-[var(--color-brand)] py-3 text-sm font-black uppercase text-white"

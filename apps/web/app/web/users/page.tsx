@@ -8,7 +8,9 @@ import {
   getAuthApiContext,
   getAuthSession,
   getAuthUsers,
+  getRolePermissions,
   isApiAuthSession,
+  normalizeAppUserRole,
   removeAuthUser,
   subscribeAuthSession,
   subscribeAuthUsers,
@@ -41,6 +43,8 @@ type UsersTableRow = {
   source: "local" | "api";
 };
 
+const ROLE_OPTIONS = ["Operacoes", "Gestor", "Tecnico", "Administrador"] as const;
+
 const emptyForm = (): FormState => ({
   username: "",
   password: "",
@@ -65,12 +69,14 @@ export default function WebUsersPage() {
   const [loading, setLoading] = useState(false);
 
   const apiMode = useMemo(() => isApiAuthSession(authSession), [authSession]);
+  const currentPermissions = useMemo(() => getRolePermissions(authSession), [authSession]);
+  const normalizedCurrentRole = useMemo(() => normalizeAppUserRole(authSession?.role), [authSession]);
 
   const mapApiUserToRow = (user: ApiUserRow): UsersTableRow => ({
     id: user.id,
     username: user.email,
     name: user.name,
-    role: user.userRoles?.[0]?.role?.code || "TECNICO",
+    role: normalizeAppUserRole(user.userRoles?.[0]?.role?.code),
     active: Boolean(user.isActive),
     source: "api",
   });
@@ -125,6 +131,11 @@ export default function WebUsersPage() {
   };
 
   const handleSubmit = async () => {
+    if (!currentPermissions.canManageUsers) {
+      setMessage("Somente Administrador pode cadastrar ou editar usuarios.");
+      return;
+    }
+
     if (apiMode) {
       const ctx = getAuthApiContext();
       if (!ctx) {
@@ -137,7 +148,7 @@ export default function WebUsersPage() {
         const roleMap: Record<string, string> = {
           Administrador: "ADMIN",
           Gestor: "GESTOR",
-          Operacoes: "GESTOR",
+          Operacoes: "OPERACOES",
           Tecnico: "TECNICO",
         };
         if (editingUsername && form.id) {
@@ -200,6 +211,13 @@ export default function WebUsersPage() {
   return (
     <WebShell title="Usuarios de Acesso" subtitle="Controle local de login">
       <div className="space-y-5">
+        {!currentPermissions.canManageUsers && (
+          <div className="card border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Apenas <strong>Administrador</strong> pode gerenciar usuarios. Seu perfil atual:{" "}
+            <strong>{normalizedCurrentRole}</strong>.
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-3">
           <div className="kpi-card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50">
             <p className="stat-label">Usuarios</p>
@@ -215,6 +233,44 @@ export default function WebUsersPage() {
             <p className="stat-label">Modo</p>
             <p className="text-2xl font-black text-emerald-700">Local</p>
             <p className="text-xs text-slate-500">{apiMode ? "Base backend (API)" : "Base em localStorage (demo)"}</p>
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <div className="mb-4">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Regras de perfis (fluxo do projeto)</p>
+            <p className="text-sm text-slate-500">
+              Matriz aplicada ao calendario e acoes operacionais do sistema.
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                role: "Operacoes",
+                color: "border-l-blue-500 from-blue-50/40",
+                rules: "Agendar somente",
+              },
+              {
+                role: "Gestor",
+                color: "border-l-indigo-500 from-indigo-50/40",
+                rules: "Agendar e remanejar datas no calendario",
+              },
+              {
+                role: "Tecnico",
+                color: "border-l-emerald-500 from-emerald-50/40",
+                rules: "Agendar, remanejar, finalizar e informar KM",
+              },
+              {
+                role: "Administrador",
+                color: "border-l-rose-500 from-rose-50/40",
+                rules: "Acesso total ao sistema",
+              },
+            ].map((item) => (
+              <div key={item.role} className={`rounded-xl border border-slate-200 border-l-4 bg-gradient-to-b to-white p-4 ${item.color}`}>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{item.role}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-700">{item.rules}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -261,12 +317,14 @@ export default function WebUsersPage() {
             <select
               value={form.role}
               onChange={(e) => setForm((c) => ({ ...c, role: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              disabled={!currentPermissions.canManageUsers}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-100"
             >
-              <option value="Operacoes">Operacoes</option>
-              <option value="Gestor">Gestor</option>
-              <option value="Tecnico">Tecnico</option>
-              <option value="Administrador">Administrador</option>
+              {ROLE_OPTIONS.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -274,7 +332,8 @@ export default function WebUsersPage() {
             <button
               type="button"
               onClick={handleSubmit}
-              className="rounded-xl bg-blue-600 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-blue-700"
+              disabled={!currentPermissions.canManageUsers}
+              className="rounded-xl bg-blue-600 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {loading ? "Salvando..." : editingUsername ? "Salvar Alteracoes" : "Cadastrar Usuario"}
             </button>
@@ -321,7 +380,9 @@ export default function WebUsersPage() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
+                        disabled={!currentPermissions.canManageUsers}
                         onClick={() => {
+                          if (!currentPermissions.canManageUsers) return;
                           setEditingUsername(user.username);
                           setForm({
                             id: user.id,
@@ -333,14 +394,19 @@ export default function WebUsersPage() {
                           });
                           setMessage("");
                         }}
-                        className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
+                        className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Editar
                       </button>
                       <button
                         type="button"
+                        disabled={!currentPermissions.canManageUsers}
                         onClick={() => {
                           void (async () => {
+                            if (!currentPermissions.canManageUsers) {
+                              setMessage("Somente Administrador pode alterar cadastros de usuarios.");
+                              return;
+                            }
                             if (apiMode) {
                               const ctx = getAuthApiContext();
                               if (!ctx || !user.id) {
@@ -372,7 +438,7 @@ export default function WebUsersPage() {
                             if (editingUsername === user.username) resetForm();
                           })();
                         }}
-                        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black uppercase text-red-700 hover:bg-red-50"
+                        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black uppercase text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {apiMode ? "Inativar" : "Remover"}
                       </button>
