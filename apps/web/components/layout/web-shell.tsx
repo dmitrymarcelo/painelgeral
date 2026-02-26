@@ -38,6 +38,8 @@ type NotificationItem = {
   type: "urgent" | "today" | "warning";
 };
 
+type ThemeMode = "light" | "dark" | "auto";
+
 export function WebShell({ title, subtitle, children }: Props) {
   // Props mantidas para compatibilidade com paginas existentes (titulos removidos no header por UX).
   void title;
@@ -45,6 +47,7 @@ export function WebShell({ title, subtitle, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const SIDEBAR_COLLAPSED_KEY = "frota-pro:web-sidebar-collapsed";
+  const THEME_MODE_KEY = "frota-pro:theme-mode";
   // Persistencia da sidebar lida de forma sincrona para evitar "abrir/fechar" ao navegar.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -57,14 +60,19 @@ export function WebShell({ title, subtitle, children }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
   const [authSession, setAuthSession] = useState(getAuthSession());
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "auto";
+    const stored = window.localStorage.getItem(THEME_MODE_KEY);
+    return stored === "light" || stored === "dark" || stored === "auto" ? stored : "auto";
+  });
 
   const menuItems = [
-    { href: "/web/dashboard", label: translations.dashboard, icon: "\u{1F3E0}" },
-    { href: "/web/assets", label: translations.assetManagement, icon: "\u{1F697}" },
-    { href: "/web/maintenance", label: translations.workOrders, icon: "\u{1F6E0}" },
-    { href: "/web/calendar", label: translations.calendar, icon: "\u{1F4C5}" },
-    { href: "/web/preventive-items", label: translations.preventiveItemsRegister, icon: "PM" },
-    { href: "/web/users", label: "Usuarios de Acesso", icon: "US" },
+    { href: "/web/dashboard", label: translations.dashboard, shortLabel: "Dashboard", icon: "\u{1F3E0}" },
+    { href: "/web/assets", label: translations.assetManagement, shortLabel: "Gestao", icon: "\u{1F697}" },
+    { href: "/web/maintenance", label: translations.workOrders, shortLabel: "Ordens", icon: "\u{1F6E0}" },
+    { href: "/web/calendar", label: translations.calendar, shortLabel: "Calendario", icon: "\u{1F4C5}" },
+    { href: "/web/preventive-items", label: translations.preventiveItemsRegister, shortLabel: "Cadastro", icon: "PM" },
+    { href: "/web/users", label: "Usuarios de Acesso", shortLabel: "Usuarios", icon: "US" },
   ];
 
   const persistSidebarCollapsed = (next: boolean) => {
@@ -75,6 +83,31 @@ export function WebShell({ title, subtitle, children }: Props) {
       // Ignora falha de storage e mantem estado em memoria.
     }
   };
+
+  const persistThemeMode = (next: ThemeMode) => {
+    setThemeMode(next);
+    try {
+      window.localStorage.setItem(THEME_MODE_KEY, next);
+    } catch {
+      // Mantem estado em memoria se storage falhar.
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const applyTheme = () => {
+      const resolved = themeMode === "auto" ? (media.matches ? "dark" : "light") : themeMode;
+      root.dataset.theme = resolved;
+      root.style.colorScheme = resolved;
+    };
+
+    applyTheme();
+    media.addEventListener?.("change", applyTheme);
+    return () => media.removeEventListener?.("change", applyTheme);
+  }, [themeMode]);
 
   useEffect(() => {
     const refresh = () => setAuthSession(getAuthSession());
@@ -148,7 +181,7 @@ export function WebShell({ title, subtitle, children }: Props) {
         className="grid min-h-screen"
         style={{ gridTemplateColumns: sidebarCollapsed ? "76px 1fr" : "220px 1fr" }}
       >
-        <aside className="flex flex-col border-r border-[var(--color-border)] bg-[#f3f6fa]">
+        <aside className="flex flex-col border-r border-[var(--color-border)] bg-[var(--color-panel-soft)]">
           <div className="p-4">
             <div className="mb-6">
               <div className={`mb-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between gap-3"}`}>
@@ -159,7 +192,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                   <button
                     type="button"
                     onClick={() => persistSidebarCollapsed(true)}
-                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white text-slate-500 hover:text-slate-700"
+                    className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-slate-500 hover:text-slate-700"
                     aria-label="Recolher menu lateral"
                     title="Recolher menu"
                   >
@@ -177,7 +210,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                 <button
                   type="button"
                   onClick={() => persistSidebarCollapsed(false)}
-                  className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-white text-slate-500 hover:text-slate-700"
+                  className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-slate-500 hover:text-slate-700"
                   aria-label="Expandir menu lateral"
                   title="Expandir menu"
                 >
@@ -196,7 +229,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                     className={`flex h-11 items-center rounded-xl ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} text-[12px] font-black uppercase tracking-[0.08em] transition ${
                       active
                         ? "bg-[var(--color-brand)] text-white shadow-lg shadow-blue-200"
-                        : "text-slate-500 hover:bg-white"
+                        : "text-slate-500 hover:bg-[var(--color-surface)]"
                     }`}
                     title={item.label}
                   >
@@ -211,9 +244,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                         {item.icon}
                       </span>
                     )}
-                    {!sidebarCollapsed && (
-                      <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.label}</span>
-                    )}
+                    {!sidebarCollapsed && <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.shortLabel}</span>}
                   </Link>
                 );
               })}
@@ -223,11 +254,11 @@ export function WebShell({ title, subtitle, children }: Props) {
         </aside>
 
         <main>
-          <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-white px-8">
+          <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 md:px-8">
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
               >
                 <TruckIcon className="h-4 w-4" />
                 {translations.backToStart}
@@ -235,11 +266,27 @@ export function WebShell({ title, subtitle, children }: Props) {
               {/* Titulos removidos por decisao de UX: navegacao principal ja identifica a pagina. */}
             </div>
 
-            <div className="relative flex items-center gap-4 text-right">
+            <div className="relative flex items-center gap-2 md:gap-4 text-right">
+              <button
+                type="button"
+                onClick={() =>
+                  persistThemeMode(themeMode === "auto" ? "dark" : themeMode === "dark" ? "light" : "auto")
+                }
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                title={
+                  themeMode === "auto"
+                    ? "Tema automatico (navegador)"
+                    : themeMode === "dark"
+                      ? "Tema escuro"
+                      : "Tema claro"
+                }
+              >
+                {themeMode === "auto" ? "Tema: Auto" : themeMode === "dark" ? "Tema: Escuro" : "Tema: Claro"}
+              </button>
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((current) => !current)}
-                className="relative rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                className="relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
                 title="Notificacoes"
               >
                 Notificacoes
@@ -252,7 +299,7 @@ export function WebShell({ title, subtitle, children }: Props) {
               <button className="text-slate-400" title="Indicador">
                 {"*"}
               </button>
-              <div className="h-8 w-px bg-[var(--color-border)]"></div>
+              <div className="hidden h-8 w-px bg-[var(--color-border)] md:block"></div>
               <div>
                 <p className="text-xs font-black">{authSession?.name || "Visitante"}</p>
                 <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">
@@ -261,7 +308,7 @@ export function WebShell({ title, subtitle, children }: Props) {
               </div>
 
               {notificationsOpen && (
-                <div className="absolute right-0 top-12 z-30 w-[360px] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-xl">
+                <div className="absolute right-0 top-12 z-30 w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
                   <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Notificacoes</p>
                     <button
@@ -304,7 +351,7 @@ export function WebShell({ title, subtitle, children }: Props) {
             </div>
           </header>
 
-          <section className="p-5">{children}</section>
+          <section className="p-3 md:p-5">{children}</section>
         </main>
       </div>
     </div>

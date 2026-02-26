@@ -137,6 +137,9 @@ Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api 
 - Usar `node dist/main` causa loop de reinicio (`MODULE_NOT_FOUND`) no container da API.
 - Na tela `Cadastro de Planos de Manutencao` (`/web/preventive-items`), a geracao de IDs locais no frontend
   deve usar fallback para ambientes HTTP (IP publico em teste EC2), pois `crypto.randomUUID()` pode falhar fora de contexto seguro.
+- `WebShell` recebeu suporte a tema (`claro/escuro/automatico`) com resolucao por `prefers-color-scheme`
+  e persistencia local, mantendo experiencia coerente em diferentes navegadores/clientes.
+- Rotulos da sidebar foram encurtados na exibicao expandida (`Gestao`, `Cadastro`, etc.) para evitar corte visual.
 
 ### Ambiente de teste validado
 

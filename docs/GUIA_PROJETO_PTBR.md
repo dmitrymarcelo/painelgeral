@@ -191,6 +191,10 @@ Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all
 - O comando `node dist/main` nao funciona neste projeto (Nest build gera `dist/src/main.js`).
 - Em testes por IP publico/HTTP (EC2 sem HTTPS), evite depender exclusivamente de `crypto.randomUUID()` em paginas client-side;
   use fallback de ID local para prevenir erro de runtime em navegadores fora de contexto seguro.
+- O shell web suporta tema `auto/claro/escuro` (persistido em `localStorage`) e modo `auto` segue
+  a configuracao de tema do navegador/cliente (`prefers-color-scheme`).
+- Para reduzir cortes de texto em sidebars compactas, prefira rotulos curtos na navegacao e mantenha o
+  nome completo no `title`/tooltip do item.
 
 ## Onde comentar/alterar sem risco alto
 
