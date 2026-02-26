@@ -64,6 +64,13 @@ Este documento consolida a arquitetura atual do projeto, as regras de negocio ja
 - Remocao de `any` no normalizador de cadastro preventivo.
 - Inclusao de docstrings de responsabilidade e comentarios de regra/contrato em modulos centrais.
 
+5. Correcao de build/prerender no Next.js (Netlify)
+- Corrigido erro de deploy em `/web/calendar` causado por `useSearchParams()` sem boundary de `Suspense`.
+- Solucao aplicada em `apps/web/app/web/calendar/page.tsx`:
+  - wrapper com `Suspense`
+  - componente interno contendo `useSearchParams`
+- Impacto: `next build` volta a prerenderizar `/web/calendar` corretamente em ambiente de CI/Netlify.
+
 ## Arquitetura Atual (Visao Pratica)
 
 ### Monorepo
@@ -353,10 +360,17 @@ corepack pnpm dev
 - idempotencia por `clientRequestId`
 - reprocessamento por lote
 
+## Observacoes de Deploy (Netlify / Next.js)
+
+- A rota `app/web/calendar/page.tsx` usa `useSearchParams` (hook client-only).
+- Em Next.js App Router, esse hook precisa estar dentro de um componente renderizado sob `Suspense`.
+- Esta regra ja foi aplicada no projeto para evitar falha de prerender em build CI/CD.
+- Validacao executada localmente:
+  - `corepack pnpm --filter @frota/web build` ✅
+
 ## Observacoes finais para diretoria
 
 - O frontend ja contem regras de negocio relevantes e validadas em UX.
 - O backend ja possui base estrutural forte (Nest + Prisma + entidades de dominio).
 - O risco principal agora nao e arquitetura, e sim alinhamento de contrato/ordem de entrega entre modulos.
 - A documentacao e os marcadores `CONTRATO BACKEND` foram adicionados para reduzir ambiguidade no handoff.
-

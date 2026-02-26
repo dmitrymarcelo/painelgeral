@@ -12,7 +12,7 @@
  *
  * CONTRATO BACKEND: a logica desta tela mapeia para `/calendar/events` + historico de justificativas.
  */
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { WebShell } from "@/components/layout/web-shell";
 import { translations } from "@/lib/i18n";
@@ -213,7 +213,7 @@ const buildDescriptionWithJustifications = (
   return sections.join("\n\n");
 };
 
-export default function WebCalendarPage() {
+function WebCalendarPageContent() {
   const searchParams = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
@@ -1317,5 +1317,21 @@ export default function WebCalendarPage() {
         </div>
       )}
     </WebShell>
+  );
+}
+
+export default function WebCalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <WebShell title={translations.calendar} subtitle="Calendario">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+            Carregando calendario...
+          </div>
+        </WebShell>
+      }
+    >
+      <WebCalendarPageContent />
+    </Suspense>
   );
 }
