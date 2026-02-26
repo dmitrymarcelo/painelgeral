@@ -1,4 +1,5 @@
 "use client";
+import { apiRequest } from "@/lib/api-client";
 
 /**
  * RESPONSABILIDADE:
@@ -24,9 +25,15 @@ export type LocalAuthUser = {
 };
 
 export type LocalAuthSession = {
+  authMode: "local" | "api";
+  userId?: string;
   username: string;
+  email?: string;
   name: string;
   role: string;
+  tenantId?: string;
+  accessToken?: string;
+  refreshToken?: string;
   loginAt: string;
 };
 
@@ -84,12 +91,89 @@ export const getAuthSession = (): LocalAuthSession | null => {
   }
 };
 
-export const loginWithCredentials = (username: string, password: string) => {
+export const isApiAuthSession = (
+  session: LocalAuthSession | null,
+): session is LocalAuthSession & { authMode: "api"; accessToken: string; tenantId: string } =>
+  Boolean(session && session.authMode === "api" && session.accessToken && session.tenantId);
+
+export const getAuthApiContext = () => {
+  const session = getAuthSession();
+  if (!isApiAuthSession(session)) return null;
+  return {
+    token: session.accessToken as string,
+    tenantId: session.tenantId as string,
+    session,
+  };
+};
+
+type ApiLoginResponse = {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    tenantId: string;
+    name: string;
+    email: string;
+    roles: string[];
+  };
+};
+
+export const loginWithCredentials = async (username: string, password: string) => {
   // Regra de negocio: normaliza login para evitar duplicidade por caixa/espacos.
   const normalizedUser = username.trim().toLowerCase();
   const normalizedPass = password.trim();
   if (!normalizedUser || !normalizedPass) {
     return { ok: false as const, message: "Informe usuario e senha." };
+  }
+
+  const wantsApiAuth =
+    normalizedUser.includes("@") ||
+    (typeof window !== "undefined" &&
+      window.localStorage.getItem("frota-pro.auth-mode") === "api");
+
+  if (wantsApiAuth) {
+    try {
+      const tenantSlug =
+        (typeof window !== "undefined" && window.localStorage.getItem("frota-pro.tenant-slug")) ||
+        process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG ||
+        "frota-pro";
+      const response = await apiRequest<ApiLoginResponse>("/auth/login", {
+        method: "POST",
+        tenantId: tenantSlug,
+        body: { email: normalizedUser, password: normalizedPass },
+      });
+
+      const primaryRole = response.user.roles?.[0] || "Usuario";
+      const session: LocalAuthSession = {
+        authMode: "api",
+        userId: response.user.id,
+        username: response.user.email,
+        email: response.user.email,
+        name: response.user.name,
+        role: primaryRole,
+        tenantId: response.user.tenantId,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        loginAt: new Date().toISOString(),
+      };
+
+      if (isBrowser()) {
+        window.localStorage.setItem("frota-pro.auth-mode", "api");
+        window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+        emitAuthChange();
+      }
+
+      return { ok: true as const, session };
+    } catch (error) {
+      // Se o login parece local (sem email), cai no fluxo local. Com email, retorna erro da API.
+      if (normalizedUser.includes("@")) {
+        return {
+          ok: false as const,
+          message:
+            error instanceof Error ? `Falha no login API: ${error.message}` : "Falha no login API.",
+        };
+      }
+    }
   }
 
   const user = getAuthUsers().find(
@@ -101,6 +185,7 @@ export const loginWithCredentials = (username: string, password: string) => {
   }
 
   const session: LocalAuthSession = {
+    authMode: "local",
     username: user.username,
     name: user.name,
     role: user.role,

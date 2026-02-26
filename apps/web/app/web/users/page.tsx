@@ -1,20 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { WebShell } from "@/components/layout/web-shell";
+import { apiRequest } from "@/lib/api-client";
 import {
   createAuthUser,
+  getAuthApiContext,
+  getAuthSession,
   getAuthUsers,
+  isApiAuthSession,
   removeAuthUser,
+  subscribeAuthSession,
   subscribeAuthUsers,
   updateAuthUser,
 } from "@/lib/auth-store";
 
 type FormState = {
+  id?: string;
   username: string;
   password: string;
   name: string;
   role: string;
+  active?: boolean;
+};
+
+type ApiUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  isActive: boolean;
+  userRoles?: { role?: { code?: string } }[];
+};
+
+type UsersTableRow = {
+  id?: string;
+  username: string;
+  name: string;
+  role: string;
+  active: boolean;
+  source: "local" | "api";
 };
 
 const emptyForm = (): FormState => ({
@@ -25,30 +49,143 @@ const emptyForm = (): FormState => ({
 });
 
 export default function WebUsersPage() {
-  const [users, setUsers] = useState(getAuthUsers());
+  const [authSession, setAuthSession] = useState(getAuthSession());
+  const [users, setUsers] = useState<UsersTableRow[]>(
+    getAuthUsers().map((user) => ({
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      active: true,
+      source: "local",
+    })),
+  );
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingUsername, setEditingUsername] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const apiMode = useMemo(() => isApiAuthSession(authSession), [authSession]);
+
+  const mapApiUserToRow = (user: ApiUserRow): UsersTableRow => ({
+    id: user.id,
+    username: user.email,
+    name: user.name,
+    role: user.userRoles?.[0]?.role?.code || "TECNICO",
+    active: Boolean(user.isActive),
+    source: "api",
+  });
+
+  const refreshLocalUsers = () =>
+    setUsers(
+      getAuthUsers().map((user) => ({
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        active: true,
+        source: "local",
+      })),
+    );
+
+  const refreshApiUsers = async () => {
+    const ctx = getAuthApiContext();
+    if (!ctx) return;
+    setLoading(true);
+    try {
+      const apiUsers = await apiRequest<ApiUserRow[]>("/users", {
+        method: "GET",
+        tenantId: ctx.tenantId,
+        token: ctx.token,
+      });
+      setUsers(apiUsers.map(mapApiUserToRow));
+    } catch (error) {
+      setMessage(error instanceof Error ? `Falha ao carregar usuarios da API: ${error.message}` : "Falha ao carregar usuarios da API.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const refresh = () => setUsers(getAuthUsers());
-    refresh();
-    return subscribeAuthUsers(refresh);
+    const refreshSession = () => setAuthSession(getAuthSession());
+    refreshSession();
+    return subscribeAuthSession(refreshSession);
   }, []);
+
+  useEffect(() => {
+    if (apiMode) {
+      void refreshApiUsers();
+      return () => undefined;
+    }
+    refreshLocalUsers();
+    return subscribeAuthUsers(refreshLocalUsers);
+  }, [apiMode]);
 
   const resetForm = () => {
     setForm(emptyForm());
     setEditingUsername(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (apiMode) {
+      const ctx = getAuthApiContext();
+      if (!ctx) {
+        setMessage("Sessao API invalida. Faca login novamente.");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const roleMap: Record<string, string> = {
+          Administrador: "ADMIN",
+          Gestor: "GESTOR",
+          Operacoes: "GESTOR",
+          Tecnico: "TECNICO",
+        };
+        if (editingUsername && form.id) {
+          await apiRequest(`/users/${form.id}`, {
+            method: "PATCH",
+            tenantId: ctx.tenantId,
+            token: ctx.token,
+            body: {
+              name: form.name,
+              email: form.username,
+              password: form.password || undefined,
+              roles: [roleMap[form.role] || "TECNICO"],
+              isActive: form.active ?? true,
+            },
+          });
+          setMessage("Usuario atualizado na API com sucesso.");
+        } else {
+          await apiRequest("/users", {
+            method: "POST",
+            tenantId: ctx.tenantId,
+            token: ctx.token,
+            body: {
+              name: form.name,
+              email: form.username,
+              password: form.password,
+              roles: [roleMap[form.role] || "TECNICO"],
+              isActive: true,
+            },
+          });
+          setMessage("Usuario cadastrado na API com sucesso.");
+        }
+        resetForm();
+        await refreshApiUsers();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Falha ao salvar usuario na API.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const result = editingUsername
       ? updateAuthUser(editingUsername, {
           name: form.name,
           role: form.role,
           password: form.password || undefined,
         })
-      : createAuthUser(form);
+      : createAuthUser(form as FormState);
 
     if (!result.ok) {
       setMessage(result.message);
@@ -57,7 +194,7 @@ export default function WebUsersPage() {
 
     setMessage(editingUsername ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso.");
     resetForm();
-    setUsers(getAuthUsers());
+    refreshLocalUsers();
   };
 
   return (
@@ -67,7 +204,7 @@ export default function WebUsersPage() {
           <div className="kpi-card border-l-4 border-l-slate-400 bg-gradient-to-b from-white to-slate-50">
             <p className="stat-label">Usuarios</p>
             <p className="text-4xl font-black">{users.length}</p>
-            <p className="text-xs text-slate-500">Cadastros locais</p>
+            <p className="text-xs text-slate-500">{apiMode ? "Cadastros via API" : "Cadastros locais"}</p>
           </div>
           <div className="kpi-card border-l-4 border-l-blue-500 bg-gradient-to-b from-white to-blue-50/30">
             <p className="stat-label">Perfis</p>
@@ -77,7 +214,7 @@ export default function WebUsersPage() {
           <div className="kpi-card border-l-4 border-l-emerald-500 bg-gradient-to-b from-white to-emerald-50/30">
             <p className="stat-label">Modo</p>
             <p className="text-2xl font-black text-emerald-700">Local</p>
-            <p className="text-xs text-slate-500">Base em localStorage (demo)</p>
+            <p className="text-xs text-slate-500">{apiMode ? "Base backend (API)" : "Base em localStorage (demo)"}</p>
           </div>
         </div>
 
@@ -88,7 +225,9 @@ export default function WebUsersPage() {
                 Cadastro de Usuario
               </p>
               <p className="text-sm text-slate-500">
-                Cadastre ou edite usuarios para acesso ao sistema (login local).
+                {apiMode
+                  ? "Cadastre ou edite usuarios reais na API (tenant autenticado)."
+                  : "Cadastre ou edite usuarios para acesso ao sistema (login local)."}
               </p>
             </div>
             {editingUsername && (
@@ -104,7 +243,7 @@ export default function WebUsersPage() {
               disabled={Boolean(editingUsername)}
               onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))}
               className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-100"
-              placeholder="Usuario (login)"
+              placeholder={apiMode ? "E-mail do usuario" : "Usuario (login)"}
             />
             <input
               type="password"
@@ -137,7 +276,7 @@ export default function WebUsersPage() {
               onClick={handleSubmit}
               className="rounded-xl bg-blue-600 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white hover:bg-blue-700"
             >
-              {editingUsername ? "Salvar Alteracoes" : "Cadastrar Usuario"}
+              {loading ? "Salvando..." : editingUsername ? "Salvar Alteracoes" : "Cadastrar Usuario"}
             </button>
             <button
               type="button"
@@ -172,6 +311,11 @@ export default function WebUsersPage() {
                     <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase text-blue-700">
                       {user.role}
                     </span>
+                    {!user.active && (
+                      <span className="ml-2 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-black uppercase text-rose-700">
+                        Inativo
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">
@@ -180,10 +324,12 @@ export default function WebUsersPage() {
                         onClick={() => {
                           setEditingUsername(user.username);
                           setForm({
+                            id: user.id,
                             username: user.username,
                             password: "",
                             name: user.name,
                             role: user.role,
+                            active: user.active,
                           });
                           setMessage("");
                         }}
@@ -194,14 +340,41 @@ export default function WebUsersPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const result = removeAuthUser(user.username);
-                          setMessage(result.ok ? "Usuario removido com sucesso." : result.message);
-                          setUsers(getAuthUsers());
-                          if (editingUsername === user.username) resetForm();
+                          void (async () => {
+                            if (apiMode) {
+                              const ctx = getAuthApiContext();
+                              if (!ctx || !user.id) {
+                                setMessage("Sessao API invalida.");
+                                return;
+                              }
+                              try {
+                                setLoading(true);
+                                await apiRequest(`/users/${user.id}/status`, {
+                                  method: "PATCH",
+                                  tenantId: ctx.tenantId,
+                                  token: ctx.token,
+                                  body: { isActive: false },
+                                });
+                                setMessage("Usuario inativado com sucesso.");
+                                await refreshApiUsers();
+                                if (editingUsername === user.username) resetForm();
+                              } catch (error) {
+                                setMessage(error instanceof Error ? error.message : "Falha ao inativar usuario.");
+                              } finally {
+                                setLoading(false);
+                              }
+                              return;
+                            }
+
+                            const result = removeAuthUser(user.username);
+                            setMessage(result.ok ? "Usuario removido com sucesso." : result.message);
+                            refreshLocalUsers();
+                            if (editingUsername === user.username) resetForm();
+                          })();
                         }}
                         className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black uppercase text-red-700 hover:bg-red-50"
                       >
-                        Remover
+                        {apiMode ? "Inativar" : "Remover"}
                       </button>
                     </div>
                   </td>
@@ -214,4 +387,3 @@ export default function WebUsersPage() {
     </WebShell>
   );
 }
-

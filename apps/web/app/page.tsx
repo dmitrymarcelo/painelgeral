@@ -33,14 +33,16 @@ export default function PortalPage() {
     return subscribeAuthSession(refresh);
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Regra de negocio: o portal valida o acesso e delega autorizacao fina aos modulos/API.
-    const result = loginWithCredentials(authUser, authPassword);
+    const result = await loginWithCredentials(authUser, authPassword);
     if (!result.ok) {
       setAuthFeedback(result.message);
       return;
     }
-    setAuthFeedback(`Login realizado: ${result.session.name} (${result.session.role})`);
+    setAuthFeedback(
+      `Login realizado: ${result.session.name} (${result.session.role}) [${result.session.authMode.toUpperCase()}]`,
+    );
     setAuthPassword("");
   };
 
@@ -124,7 +126,7 @@ export default function PortalPage() {
 
             <p className="mt-3 text-sm text-slate-600">
               {authSession
-                ? `Usuario ativo: ${authSession.name} (${authSession.role})`
+                ? `Usuario ativo: ${authSession.name} (${authSession.role}) - modo ${authSession.authMode}`
                 : "Faça login para liberar o acesso aos modulos Web e App."}
             </p>
             {authFeedback && <p className="mt-1 text-xs font-semibold text-slate-500">{authFeedback}</p>}
