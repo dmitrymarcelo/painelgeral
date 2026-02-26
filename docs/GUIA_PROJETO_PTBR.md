@@ -166,6 +166,30 @@ Para testes e demonstracao, a forma mais rapida e publicar somente `apps/web` no
 - Em monorepo (`appRoot = apps/web`), no `amplify.yml` use `artifacts.baseDirectory: .next` (relativo ao app root).
 - Nao use `apps/web/.next` no `baseDirectory`, pois o Amplify falha com `Artifact directory doesn't exist`.
 
+## Deploy rapido fullstack (AWS EC2 + Docker Compose)
+
+Para teste integrado rapido (web + api + banco + redis), existe um bootstrap all-in-one para EC2:
+
+- `infra/aws/ec2-user-data.sh`
+
+### O que o bootstrap faz
+
+1. Instala Docker no host
+2. Clona o repositorio
+3. Gera `.env` da API e `.env.production` do web
+4. Gera Dockerfiles de deploy (`web` e `api`)
+5. Sobe `postgres`, `redis`, `api` e `web` via `docker compose`
+
+### Comandos AWS CLI de apoio
+
+- `infra/aws/ec2-bdm.json` (EBS 30GB)
+- `infra/aws/ec2-assume-role.json` (trust policy para role SSM da EC2)
+
+### Observacoes
+
+- O entrypoint da API em container deve usar `node apps/api/dist/src/main.js`.
+- O comando `node dist/main` nao funciona neste projeto (Nest build gera `dist/src/main.js`).
+
 ## Onde comentar/alterar sem risco alto
 
 - Layout e navegacao: `apps/web/components/layout/*`

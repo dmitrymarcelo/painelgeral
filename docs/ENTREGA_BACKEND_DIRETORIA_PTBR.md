@@ -107,6 +107,41 @@ Objetivo desta etapa: publicar apenas `apps/web` rapidamente para validacao func
 - O frontend atualmente suporta fluxo local/mock e tambem pontes para backend (`auth`, `calendar`, `maintenance-plans`).
 - Para teste executivo/UI, o deploy do frontend sozinho e suficiente.
 - Para operacao real multiusuario, ainda e necessario publicar a API + banco + redis.
+
+## Deploy Rapido Fullstack para Testes (AWS EC2 all-in-one)
+
+Objetivo: disponibilizar rapidamente um ambiente funcional completo (`web + api + postgres + redis`) para testes integrados, sem depender de servicos separados.
+
+### Estrategia aplicada
+
+- EC2 com Docker + Docker Compose
+- Containers:
+  - `web` (Next.js)
+  - `api` (NestJS + Prisma)
+  - `postgres`
+  - `redis`
+- Bootstrap automatizado via `user-data`:
+  - `infra/aws/ec2-user-data.sh`
+
+### Artefatos de suporte adicionados
+
+- `infra/aws/ec2-user-data.sh`: provisionamento automatico da EC2 e subida da stack
+- `infra/aws/ec2-bdm.json`: configuracao de volume EBS (30GB gp3) para `run-instances`
+- `infra/aws/ec2-assume-role.json`: trust policy do role EC2 (SSM) para suporte operacional
+
+### Observacoes tecnicas importantes
+
+- O build da API Nest gera artefatos em `apps/api/dist/src/*` neste projeto.
+- No bootstrap/container da API, o entrypoint correto para producao e:
+  - `node apps/api/dist/src/main.js`
+- Usar `node dist/main` causa loop de reinicio (`MODULE_NOT_FOUND`) no container da API.
+
+### Ambiente de teste validado
+
+- Regiao: `us-east-1` (N. Virginia)
+- Modelo: all-in-one para agilidade de teste
+- Frontend publico validado em porta `3000`
+- API validada com login (`POST /api/v1/auth/login`)
 - `infra`: reservado para infraestrutura/suporte
 
 ### Fluxo atual de dados (frontend)
