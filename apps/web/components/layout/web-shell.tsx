@@ -14,9 +14,10 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
-import { CarIcon, TruckIcon } from "@/components/ui/icons";
+import { TruckIcon } from "@/components/ui/icons";
 import { translations } from "@/lib/i18n";
 import { getAuthSession, subscribeAuthSession } from "@/lib/auth-store";
 import {
@@ -190,9 +191,9 @@ export function WebShell({ title, subtitle, children }: Props) {
                 <div
                   className={`${
                     sidebarCollapsed ? "h-12 w-12 rounded-2xl" : "h-14 w-14 rounded-2xl"
-                  } grid place-items-center border border-white/60 bg-[linear-gradient(160deg,#0f4ea8,#137fec)] text-white shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
+                  } relative overflow-hidden border border-white/60 bg-white shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
                 >
-                  <CarIcon className={sidebarCollapsed ? "h-5 w-5" : "h-6 w-6"} />
+                  <Image src="/norte-tech-jf.svg" alt="Norte Tech" fill className="object-cover" priority />
                 </div>
                 {!sidebarCollapsed && (
                   <button
@@ -210,8 +211,7 @@ export function WebShell({ title, subtitle, children }: Props) {
               {!sidebarCollapsed ? (
                 <>
                   <div className="rounded-2xl border border-white/80 bg-white/70 p-3 backdrop-blur">
-                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Plataforma</p>
-                    <p className="mt-1 text-sm font-black tracking-[0.02em] text-slate-800">Frota Pro</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-700">Agendamento de Preventiva</p>
                     <div className="mt-3 h-1 w-16 rounded-full bg-[var(--color-brand)]/55"></div>
                   </div>
                 </>
