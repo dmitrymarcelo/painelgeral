@@ -23,6 +23,7 @@ import {
 import { translations } from "@/lib/i18n";
 
 type DashboardRow = {
+  rowId: string;
   id: string;
   model: string;
   action: string;
@@ -109,6 +110,7 @@ export default function WebDashboardPage() {
         }
 
         return {
+          rowId: event.id,
           id: parsed.id,
           model: parsed.model,
           action: event.title || "Manutencao Preventiva",
@@ -261,7 +263,7 @@ export default function WebDashboardPage() {
               </thead>
               <tbody>
                 {urgencyRows.map((row) => (
-                  <tr key={`${row.id}-${row.action}`} className="table-row">
+                  <tr key={row.rowId} className="table-row">
                     <td className="table-cell font-mono font-bold">{row.id}</td>
                     <td className="table-cell">
                       <p className="font-semibold">{row.model}</p>
