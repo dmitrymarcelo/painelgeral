@@ -19,6 +19,7 @@ export type MaintenanceStatus =
   | "completed"
   | "no_show"
   | "tolerance";
+export type MaintenancePriority = "Alta" | "Media" | "Baixa";
 
 export type MaintenanceEvent = {
   id: string;
@@ -33,6 +34,7 @@ export type MaintenanceEvent = {
   technician: string;
   schedulerName?: string | null;
   schedulerMatricula?: string | null;
+  priority?: MaintenancePriority;
   status: MaintenanceStatus;
   completedAt?: string | null;
   currentMaintenanceKm?: number | null;
@@ -41,7 +43,7 @@ export type MaintenanceEvent = {
 // CONTRATO BACKEND: payload funcional minimo esperado pela UI de calendario/OS:
 // {
 //   id, day, month, year, time, type, title, asset, description,
-//   schedulerName, schedulerMatricula, technician, status, completedAt, currentMaintenanceKm
+//   schedulerName, schedulerMatricula, technician, priority, status, completedAt, currentMaintenanceKm
 // }
 
 export type MaintenanceOperationalStatus =
@@ -142,6 +144,7 @@ const buildDefaultEvents = (): MaintenanceEvent[] => {
       technician: "Marcos Silva",
       schedulerName: "Ana Paula",
       schedulerMatricula: "1001",
+      priority: "Media",
       status: "completed",
       completedAt: new Date(
         yesterday.getFullYear(),
@@ -162,6 +165,7 @@ const buildDefaultEvents = (): MaintenanceEvent[] => {
       technician: "Definido no checklist",
       schedulerName: "Joao Santos",
       schedulerMatricula: "1002",
+      priority: "Alta",
       status: "in_progress",
       completedAt: null,
     },
@@ -176,6 +180,7 @@ const buildDefaultEvents = (): MaintenanceEvent[] => {
       technician: "Definido no checklist",
       schedulerName: "Ricardo Almeida",
       schedulerMatricula: "1003",
+      priority: "Baixa",
       status: "scheduled",
       completedAt: null,
     },
@@ -190,6 +195,7 @@ const buildDefaultEvents = (): MaintenanceEvent[] => {
       technician: "Definido no checklist",
       schedulerName: "Ana Paula",
       schedulerMatricula: "1001",
+      priority: "Media",
       status: "scheduled",
       completedAt: null,
     },

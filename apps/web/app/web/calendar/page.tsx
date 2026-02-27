@@ -21,6 +21,7 @@ import {
   getEffectiveMaintenanceStatus,
   getMaintenanceEvents,
   MaintenanceEvent,
+  MaintenancePriority,
   MaintenanceStatus,
   MaintenanceType,
   saveMaintenanceEvents,
@@ -231,6 +232,7 @@ function WebCalendarPageContent() {
   const [formType] = useState<MaintenanceType>("preventive");
   const [formDescription, setFormDescription] = useState("");
   const [formTime, setFormTime] = useState("07:30");
+  const [formPriority, setFormPriority] = useState<MaintenancePriority>("Media");
   const [formJustification, setFormJustification] = useState("");
   const [formStatus, setFormStatus] = useState<MaintenanceStatus>("scheduled");
   const [formCurrentMaintenanceKm, setFormCurrentMaintenanceKm] = useState("");
@@ -324,6 +326,7 @@ function WebCalendarPageContent() {
     setFormAsset("");
     setFormDescription("");
     setFormTime("07:30");
+    setFormPriority("Media");
     setFormJustification("");
     setFormStatus("scheduled");
     setFormCurrentMaintenanceKm("");
@@ -368,6 +371,7 @@ function WebCalendarPageContent() {
     setFormAsset(event.asset);
     setFormDescription(parseDescriptionWithJustifications(event.description).baseDescription);
     setFormTime(event.time);
+    setFormPriority(event.priority ?? "Media");
     setFormJustification("");
     setFormStatus(getEffectiveMaintenanceStatus(event));
     setFormCurrentMaintenanceKm(event.currentMaintenanceKm != null ? String(event.currentMaintenanceKm) : "");
@@ -436,6 +440,7 @@ function WebCalendarPageContent() {
       technician: "Definido no checklist",
       schedulerName: schedulerSession?.name ?? "Nao informado",
       schedulerMatricula: schedulerSession?.matricula ?? null,
+      priority: formPriority,
       status: "scheduled",
       completedAt: null,
       currentMaintenanceKm: null,
@@ -486,6 +491,7 @@ function WebCalendarPageContent() {
     const previousParts = parseDescriptionWithJustifications(selectedEvent.description);
     const scheduleMetadataChanged =
       selectedEvent.asset !== formAsset ||
+      (selectedEvent.priority ?? "Media") !== formPriority ||
       previousParts.baseDescription.trim() !== formDescription.trim();
     const schedulingFieldsChanged = scheduleMetadataChanged || isRescheduling;
     const selectedEffectiveStatus = getEffectiveMaintenanceStatus(selectedEvent);
@@ -560,6 +566,7 @@ function WebCalendarPageContent() {
               title: "Manutencao Preventiva",
               description: nextDescription,
               technician: "Definido no checklist",
+              priority: formPriority,
               time: formTime,
               day: selectedDate,
               month: currentMonth,
@@ -816,6 +823,7 @@ function WebCalendarPageContent() {
     setFormAsset(target.asset);
     setFormDescription(parseDescriptionWithJustifications(target.description).baseDescription);
     setFormTime(target.time);
+    setFormPriority(target.priority ?? "Media");
     setFormJustification("");
     setFormStatus(getEffectiveMaintenanceStatus(target));
     setFormCurrentMaintenanceKm(target.currentMaintenanceKm != null ? String(target.currentMaintenanceKm) : "");
@@ -1204,6 +1212,22 @@ function WebCalendarPageContent() {
                       {asset}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                  Prioridade *
+                </label>
+                <select
+                  disabled={selectedEvent ? !canEditScheduleMetadataFields : !canCreateScheduleFields}
+                  value={formPriority}
+                  onChange={(event) => setFormPriority(event.target.value as MaintenancePriority)}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:bg-slate-50"
+                >
+                  <option value="Alta">Alta</option>
+                  <option value="Media">Media</option>
+                  <option value="Baixa">Baixa</option>
                 </select>
               </div>
 

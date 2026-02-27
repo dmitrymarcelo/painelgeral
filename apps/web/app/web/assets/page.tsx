@@ -257,7 +257,19 @@ type AssetComputedRow = AssetRow & {
 const getEventDate = (event: MaintenanceEvent) =>
   new Date(event.year, event.month, event.day, ...event.time.split(":").map(Number));
 
-const getPriorityStatus = (row: AssetRow): AssetPriorityStatus => {
+const getPriorityStatus = (row: AssetRow, relatedEvents: MaintenanceEvent[]): AssetPriorityStatus => {
+  // Regra de negocio: quando existir prioridade informada no agendamento/OS do calendario,
+  // ela passa a ser a fonte principal da coluna "Prioridade" em Gestao de Preventivas.
+  const eventPriorities = relatedEvents
+    .map((event) => event.priority)
+    .filter((priority): priority is AssetPriorityStatus => Boolean(priority));
+
+  if (eventPriorities.length > 0) {
+    if (eventPriorities.includes("Alta")) return "Alta";
+    if (eventPriorities.includes("Media")) return "Media";
+    return "Baixa";
+  }
+
   const kmGap = row.nextKm - row.currentKm;
   const latestExecutedService = row.services
     .filter((service) => service.executedAt)
@@ -438,7 +450,7 @@ export default function WebAssetsPage() {
 
       return {
         ...row,
-        priorityStatus: getPriorityStatus(row),
+        priorityStatus: getPriorityStatus(row, relatedEvents),
         schedulingStatus: getSchedulingStatusFromEvents(relatedEvents),
         lastMaintenanceDate: getLastMaintenanceDateFromRow(row, relatedEvents),
         presenceStatus: getPresenceStatusFromRow(row),
