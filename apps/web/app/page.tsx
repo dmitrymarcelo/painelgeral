@@ -93,8 +93,8 @@ export default function PortalPage() {
       <section className="relative mx-auto flex min-h-screen max-w-xl items-center px-7 py-10">
         <div className="w-full rounded-[22px] border border-slate-200/70 bg-[#f8fafc]/95 px-6 py-7 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
           <div className="mb-4 flex items-center justify-center">
-            <div className="relative h-28 w-28 overflow-hidden rounded-full bg-[#122b6e] shadow-[0_10px_24px_rgba(15,35,95,0.28)]">
-              <Image src="/norte-tech-circle.svg" alt="Norte Tech" fill className="object-cover" priority />
+            <div className="relative h-[7.5rem] w-[7.5rem] overflow-hidden rounded-full bg-[#122b6e] shadow-[0_10px_24px_rgba(15,35,95,0.28)]">
+              <Image src="/norte-tech-circle.svg" alt="Norte Tech" fill className="object-contain p-1" priority />
             </div>
           </div>
 

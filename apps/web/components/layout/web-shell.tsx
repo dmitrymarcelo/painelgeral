@@ -190,14 +190,14 @@ export function WebShell({ title, subtitle, children }: Props) {
               >
                 <div
                   className={`${
-                    sidebarCollapsed ? "h-12 w-12 rounded-full" : "h-14 w-14 rounded-full"
+                    sidebarCollapsed ? "h-12 w-12 rounded-full" : "h-16 w-16 rounded-full"
                   } relative overflow-hidden border border-white/60 bg-[#122b6e] shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
                 >
                   <Image
                     src="/norte-tech-circle.svg"
                     alt="Norte Tech"
                     fill
-                    className="object-cover"
+                    className="object-contain p-1"
                     priority
                   />
                 </div>
