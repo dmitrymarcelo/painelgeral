@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="36" y1="36" x2="476" y2="476" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#132E7A"/>
+      <stop offset="1" stop-color="#071A4C"/>
+    </linearGradient>
+    <linearGradient id="brandYellow" x1="84" y1="0" x2="172" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE36A"/>
+      <stop offset="1" stop-color="#E1B800"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="220" fill="url(#bg)"/>
+
+  <path
+    d="M100 210C125 178 160 186 188 214C212 238 230 250 246 248C263 245 275 228 288 188L292 176L293 292C277 326 252 340 220 338C183 335 156 313 134 280C122 260 111 246 100 238V210Z"
+    fill="url(#brandYellow)"
+  />
+
+  <text x="248" y="240" fill="#F3F7FF" font-family="Inter, Arial, sans-serif" font-size="74" font-weight="800">
+    NORTE
+  </text>
+  <text x="248" y="302" fill="#F3CC16" font-family="Inter, Arial, sans-serif" font-size="74" font-weight="800">
+    TECH
+  </text>
+</svg>

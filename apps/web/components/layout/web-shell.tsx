@@ -194,10 +194,10 @@ export function WebShell({ title, subtitle, children }: Props) {
                   } relative overflow-hidden border border-white/60 bg-[#122b6e] shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
                 >
                   <Image
-                    src="/norte-tech-jf.svg"
+                    src="/norte-tech-circle.svg"
                     alt="Norte Tech"
                     fill
-                    className="object-contain p-1.5"
+                    className="object-cover"
                     priority
                   />
                 </div>
