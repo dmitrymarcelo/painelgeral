@@ -172,6 +172,8 @@ export function WebShell({ title, subtitle, children }: Props) {
   }, []);
 
   const notificationCount = notificationItems.length;
+  const headerIconButtonClass =
+    "rounded-full p-2 text-slate-400 transition-colors hover:text-slate-700 active:scale-95";
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)]">
@@ -316,7 +318,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                   onClick={() =>
                     persistThemeMode(themeMode === "auto" ? "dark" : themeMode === "dark" ? "light" : "auto")
                   }
-                  className="inline-flex items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                  className={headerIconButtonClass}
                   title={
                     themeMode === "auto"
                       ? "Tema automatico (navegador)"
@@ -324,17 +326,52 @@ export function WebShell({ title, subtitle, children }: Props) {
                         ? "Tema escuro"
                         : "Tema claro"
                   }
+                  aria-label={
+                    themeMode === "auto"
+                      ? "Tema automatico"
+                      : themeMode === "dark"
+                        ? "Tema escuro"
+                        : "Tema claro"
+                  }
                 >
-                  {themeMode === "auto" ? "Auto" : themeMode === "dark" ? "Escuro" : "Claro"}
+                  {themeMode === "dark" ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 3V5M12 19V21M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M3 12H5M19 12H21M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93M12 16A4 4 0 1 0 12 8A4 4 0 0 0 12 16Z"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M21 12.79A9 9 0 1 1 11.21 3A7 7 0 0 0 21 12.79Z"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setNotificationsOpen((current) => !current)}
-                  className="relative inline-flex items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand-ink)]"
+                  className={`relative ${headerIconButtonClass}`}
                   title="Notificacoes"
+                  aria-label="Notificacoes"
                 >
-                  <span className="hidden sm:inline">Notificacoes</span>
-                  <span className="sm:hidden">Avisos</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M15 17H20L18.6 15.6C18.2 15.2 18 14.6 18 14V11C18 7.69 15.76 4.91 12.75 4.13C12.9 3.8 13 3.41 13 3C13 1.9 12.1 1 11 1C9.9 1 9 1.9 9 3C9 3.41 9.1 3.8 9.25 4.13C6.24 4.91 4 7.69 4 11V14C4 14.6 3.8 15.2 3.4 15.6L2 17H7M15 17V18C15 20.21 13.21 22 11 22C8.79 22 7 20.21 7 18V17M15 17H7"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                   {notificationCount > 0 && (
                     <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
                       {notificationCount > 9 ? "9+" : notificationCount}
@@ -394,9 +431,7 @@ export function WebShell({ title, subtitle, children }: Props) {
             </div>
           </header>
 
-          <section className="p-3 md:p-5 lg:p-6">
-            <div className="mx-auto w-full max-w-[1320px] 2xl:max-w-[1440px]">{children}</div>
-          </section>
+          <section className="p-3 md:p-5 lg:p-6">{children}</section>
         </main>
       </div>
     </div>

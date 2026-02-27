@@ -8,7 +8,7 @@ Ambiente de teste rapido em AWS EC2 para validar Web, API e integracao basica an
 - API base: `http://44.202.245.110:4000/api/v1` ✅
 - PostgreSQL: ✅
 - Redis: ✅
-- Ultima atualizacao de contexto: `2026-02-27` (logo interna do WebShell alinhada ao mesmo padrao visual da tela inicial, usando `norte-tech-circle.png` sem recorte/deformacao; sem deploy executado neste passo)
+- Ultima atualizacao de contexto: `2026-02-27` (layout Web em largura total, botoes de tema/notificacoes padronizados e deploy aplicado via SSM com sucesso no EC2)
 
 ## AWS
 - Regiao: `us-east-1`
@@ -41,6 +41,17 @@ Atualizar este arquivo sempre que houver:
 - Endpoint validado (Web ou API)
 - Resultado registrado (ex.: `200`, login OK)
 - Observacao de estado (ex.: SSM `InProgress`)
+
+## Ultimo Deploy Executado
+- Data: `2026-02-27`
+- SSM Command ID: `154e24df-afa8-48d2-9423-fa90cfe27b45`
+- Resultado SSM: `Success`
+- Passos executados no host:
+  - `git pull --ff-only origin main`
+  - `docker compose -f docker-compose.ec2.yml build web`
+  - `docker compose -f docker-compose.ec2.yml up -d web`
+- Validacao HTTP:
+  - `http://44.202.245.110:3000` -> `200`
 
 ## Seguranca
 - Se qualquer `Secret Access Key` for exposta em conversa/log, revogar imediatamente no IAM e gerar nova.
