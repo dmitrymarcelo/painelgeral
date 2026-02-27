@@ -8,7 +8,7 @@ Ambiente de teste rapido em AWS EC2 para validar Web, API e integracao basica an
 - API base: `http://44.202.245.110:4000/api/v1` ✅
 - PostgreSQL: ✅
 - Redis: ✅
-- Ultima atualizacao de contexto: `2026-02-27` (logo padronizada com `norte-tech-circle.png` nas duas telas sem distorcao e ajuste de largura maxima do conteudo Web para melhor proporcao; sem deploy executado neste passo)
+- Ultima atualizacao de contexto: `2026-02-27` (logo interna do WebShell alinhada ao mesmo padrao visual da tela inicial, usando `norte-tech-circle.png` sem recorte/deformacao; sem deploy executado neste passo)
 
 ## AWS
 - Regiao: `us-east-1`

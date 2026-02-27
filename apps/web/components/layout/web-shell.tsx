@@ -186,11 +186,11 @@ export function WebShell({ title, subtitle, children }: Props) {
                 className={`mb-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between gap-3"
                   }`}
               >
-                <div
-                  className={`${sidebarCollapsed ? "h-12 w-12" : "h-16 w-16"} relative rounded-full overflow-hidden`}
-                >
-                  <img src="/norte-tech-circle.png" alt="Norte Tech Logo" className="h-full w-full object-contain" />
-                </div>
+                <img
+                  src="/norte-tech-circle.png"
+                  alt="Norte Tech Logo"
+                  className={`${sidebarCollapsed ? "h-12" : "h-24"} w-auto drop-shadow-2xl transition-all duration-500 hover:scale-105`}
+                />
                 {!sidebarCollapsed && (
                   <button
                     type="button"
