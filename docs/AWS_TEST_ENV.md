@@ -8,7 +8,7 @@ Ambiente de teste rapido em AWS EC2 para validar Web, API e integracao basica an
 - API base: `http://44.202.245.110:4000/api/v1` (OK)
 - PostgreSQL: (OK)
 - Redis: (OK)
-- Ultima atualizacao de contexto: `2026-02-27` (campo de prioridade da OS incluido no calendario e refletindo na coluna Prioridade da Gestao de Preventivas, com deploy aplicado em producao de teste)
+- Ultima atualizacao de contexto: `2026-02-27` (colunas Prioridade e Presenca na Gestao de Preventivas ficam vazias quando nao ha agendamento/OS vinculado no calendario, com deploy aplicado em producao de teste)
 
 ## AWS
 - Regiao: `us-east-1`
@@ -44,8 +44,8 @@ Atualizar este arquivo sempre que houver:
 
 ## Ultimo Deploy Executado
 - Data: `2026-02-27`
-- Commit aplicado: `31e2abc`
-- SSM Command ID: `bd103e11-db94-4f32-b1f7-895c39de14fc`
+- Commit aplicado: `0cdbb29`
+- SSM Command ID: `82989fa1-a5a8-4820-9f9e-a9b67e82a7fb`
 - Resultado SSM: `Success`
 - Passos executados no host:
   - `git fetch origin`
@@ -55,7 +55,6 @@ Atualizar este arquivo sempre que houver:
   - `docker compose -f docker-compose.ec2.yml up -d web`
 - Validacao HTTP:
   - `http://44.202.245.110:3000` -> `200`
-  - `http://44.202.245.110:3000/web/calendar` -> `200`
   - `http://44.202.245.110:3000/web/assets` -> `200`
 
 ## Seguranca
