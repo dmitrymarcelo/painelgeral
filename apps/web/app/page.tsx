@@ -12,7 +12,6 @@
  * esta tela continua como ponto unico de autenticacao e roteamento inicial.
  */
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   getAuthSession,
@@ -95,16 +94,11 @@ export default function PortalPage() {
       <section className="relative mx-auto flex min-h-screen max-w-xl items-center px-7 py-10">
         <div className="w-full rounded-[22px] border border-slate-200/70 bg-[#f8fafc]/95 px-6 py-7 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
           <div className="mb-6 flex items-center justify-center">
-            <div className="relative h-40 w-40 overflow-hidden rounded-full">
-              <Image
-                src="/logo-norte-tech.svg"
-                alt="Norte Tech"
-                width={160}
-                height={160}
-                className="h-full w-full object-contain"
-                priority
-              />
-            </div>
+            <img
+              src="/norte-tech-circle.png"
+              alt="Norte Tech Logo"
+              className="h-40 w-auto drop-shadow-2xl transition-all duration-700 hover:scale-105"
+            />
           </div>
 
           <div className="flex items-center justify-center gap-3">

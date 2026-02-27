@@ -14,7 +14,6 @@
  */
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { TruckIcon } from "@/components/ui/icons";
@@ -190,14 +189,7 @@ export function WebShell({ title, subtitle, children }: Props) {
                 <div
                   className={`${sidebarCollapsed ? "h-12 w-12" : "h-16 w-16"} relative rounded-full overflow-hidden`}
                 >
-                  <Image
-                    src="/logo-norte-tech.svg"
-                    alt="Norte Tech"
-                    width={64}
-                    height={64}
-                    className="h-full w-full object-contain"
-                    priority
-                  />
+                  <img src="/norte-tech-circle.png" alt="Norte Tech Logo" className="h-full w-full object-contain" />
                 </div>
                 {!sidebarCollapsed && (
                   <button
@@ -403,7 +395,7 @@ export function WebShell({ title, subtitle, children }: Props) {
           </header>
 
           <section className="p-3 md:p-5 lg:p-6">
-            <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+            <div className="mx-auto w-full max-w-[1320px] 2xl:max-w-[1440px]">{children}</div>
           </section>
         </main>
       </div>
