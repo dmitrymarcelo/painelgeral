@@ -127,42 +127,42 @@ export function WebShell({ title, subtitle, children }: Props) {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
       const items = getMaintenanceEvents().reduce<NotificationItem[]>((acc, event) => {
-          const eventDate = new Date(event.year, event.month, event.day).getTime();
-          const effectiveStatus = getEffectiveMaintenanceStatus(event, now);
-          const label = `${event.asset} - ${event.time}`;
+        const eventDate = new Date(event.year, event.month, event.day).getTime();
+        const effectiveStatus = getEffectiveMaintenanceStatus(event, now);
+        const label = `${event.asset} - ${event.time}`;
 
-          if (effectiveStatus === "no_show") {
-            acc.push({
-              id: `no-show-${event.id}`,
-              eventId: event.id,
-              label: `Nao Compareceu: ${label}`,
-              type: "urgent",
-            });
-            return acc;
-          }
-
-          if (effectiveStatus === "tolerance") {
-            acc.push({
-              id: `tolerance-${event.id}`,
-              eventId: event.id,
-              label: `Em tolerancia (15 min): ${label}`,
-              type: "warning",
-            });
-            return acc;
-          }
-
-          if (effectiveStatus !== "completed" && eventDate < todayStart) {
-            acc.push({ id: `late-${event.id}`, eventId: event.id, label: `Atrasado: ${label}`, type: "urgent" });
-            return acc;
-          }
-
-          if (eventDate === todayStart) {
-            acc.push({ id: `today-${event.id}`, eventId: event.id, label: `Hoje: ${label}`, type: "today" });
-            return acc;
-          }
-
+        if (effectiveStatus === "no_show") {
+          acc.push({
+            id: `no-show-${event.id}`,
+            eventId: event.id,
+            label: `Nao Compareceu: ${label}`,
+            type: "urgent",
+          });
           return acc;
-        }, [])
+        }
+
+        if (effectiveStatus === "tolerance") {
+          acc.push({
+            id: `tolerance-${event.id}`,
+            eventId: event.id,
+            label: `Em tolerancia (15 min): ${label}`,
+            type: "warning",
+          });
+          return acc;
+        }
+
+        if (effectiveStatus !== "completed" && eventDate < todayStart) {
+          acc.push({ id: `late-${event.id}`, eventId: event.id, label: `Atrasado: ${label}`, type: "urgent" });
+          return acc;
+        }
+
+        if (eventDate === todayStart) {
+          acc.push({ id: `today-${event.id}`, eventId: event.id, label: `Hoje: ${label}`, type: "today" });
+          return acc;
+        }
+
+        return acc;
+      }, [])
         .slice(0, 8);
 
       setNotificationItems(items);
@@ -184,14 +184,11 @@ export function WebShell({ title, subtitle, children }: Props) {
           <div className="p-4">
             <div className="mb-6">
               <div
-                className={`mb-3 flex items-center ${
-                  sidebarCollapsed ? "justify-center" : "justify-between gap-3"
-                }`}
+                className={`mb-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between gap-3"
+                  }`}
               >
                 <div
-                  className={`${
-                    sidebarCollapsed ? "h-12 w-12 rounded-full" : "h-16 w-16 rounded-full"
-                  } relative overflow-hidden border border-white/60 bg-[#122b6e] shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
+                  className={`${sidebarCollapsed ? "h-12 w-12" : "h-16 w-16"} relative rounded-full overflow-hidden`}
                 >
                   <Image
                     src="/norte-tech-circle.svg"
@@ -244,29 +241,25 @@ export function WebShell({ title, subtitle, children }: Props) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`group relative flex h-11 items-center rounded-xl ${
-                      sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"
-                    } text-[12px] font-black uppercase tracking-[0.06em] transition ${
-                      active
+                    className={`group relative flex h-11 items-center rounded-xl ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"
+                      } text-[12px] font-black uppercase tracking-[0.06em] transition ${active
                         ? "border border-blue-200 bg-white text-[var(--color-brand-ink)] shadow-sm"
                         : "border border-transparent text-slate-500 hover:border-white/80 hover:bg-white/80"
-                    }`}
+                      }`}
                     title={item.label}
                   >
                     {!sidebarCollapsed && (
                       <span
                         aria-hidden="true"
-                        className={`absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full transition ${
-                          active ? "bg-[var(--color-brand)]" : "bg-transparent group-hover:bg-blue-100"
-                        }`}
+                        className={`absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full transition ${active ? "bg-[var(--color-brand)]" : "bg-transparent group-hover:bg-blue-100"
+                          }`}
                       />
                     )}
                     {sidebarCollapsed && (
                       // Icones ilustrativos aparecem apenas no modo recolhido.
                       <span
-                        className={`grid h-7 w-7 place-items-center rounded-md text-sm ${
-                          active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-ink)]" : "bg-slate-200 text-slate-600"
-                        }`}
+                        className={`grid h-7 w-7 place-items-center rounded-md text-sm ${active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-ink)]" : "bg-slate-200 text-slate-600"
+                          }`}
                         aria-hidden="true"
                       >
                         {item.icon}
@@ -275,9 +268,8 @@ export function WebShell({ title, subtitle, children }: Props) {
                     {!sidebarCollapsed && (
                       <>
                         <span
-                          className={`grid h-7 w-7 place-items-center rounded-lg text-[11px] ${
-                            active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-ink)]" : "bg-slate-100 text-slate-500"
-                          }`}
+                          className={`grid h-7 w-7 place-items-center rounded-lg text-[11px] ${active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-ink)]" : "bg-slate-100 text-slate-500"
+                            }`}
                           aria-hidden="true"
                         >
                           {item.icon}
@@ -390,13 +382,12 @@ export function WebShell({ title, subtitle, children }: Props) {
                           >
                             <div className="flex items-start gap-2">
                               <span
-                                className={`mt-1 inline-block h-2 w-2 rounded-full ${
-                                  item.type === "urgent"
-                                    ? "bg-red-500"
-                                    : item.type === "warning"
-                                      ? "bg-amber-500"
-                                      : "bg-blue-500"
-                                }`}
+                                className={`mt-1 inline-block h-2 w-2 rounded-full ${item.type === "urgent"
+                                  ? "bg-red-500"
+                                  : item.type === "warning"
+                                    ? "bg-amber-500"
+                                    : "bg-blue-500"
+                                  }`}
                               />
                               <p className="text-sm leading-snug text-slate-700">{item.label}</p>
                             </div>
@@ -416,5 +407,4 @@ export function WebShell({ title, subtitle, children }: Props) {
     </div>
   );
 }
-
 
