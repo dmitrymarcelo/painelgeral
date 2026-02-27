@@ -27,11 +27,13 @@ export default function PortalPage() {
   const [authUser, setAuthUser] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authFeedback, setAuthFeedback] = useState("");
-  const [authSession, setAuthSession] = useState(getAuthSession());
+  const [authSession, setAuthSession] = useState<ReturnType<typeof getAuthSession>>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [recommendedMode, setRecommendedMode] = useState<"web" | "app">("web");
   const [isAccessing, setIsAccessing] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
     const refresh = () => setAuthSession(getAuthSession());
     refresh();
     return subscribeAuthSession(refresh);
@@ -114,10 +116,10 @@ export default function PortalPage() {
           <div className="mt-5 flex items-center justify-between gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Acesso ao Sistema</p>
             <span
-              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${authSession ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${hydrated && authSession ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                 }`}
             >
-              {authSession ? "Autenticado" : "Nao autenticado"}
+              {hydrated && authSession ? "Autenticado" : "Nao autenticado"}
             </span>
           </div>
 
