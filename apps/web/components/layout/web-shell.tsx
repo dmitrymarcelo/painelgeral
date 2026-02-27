@@ -190,10 +190,16 @@ export function WebShell({ title, subtitle, children }: Props) {
               >
                 <div
                   className={`${
-                    sidebarCollapsed ? "h-12 w-12 rounded-2xl" : "h-14 w-14 rounded-2xl"
+                    sidebarCollapsed ? "h-12 w-12 rounded-full" : "h-14 w-14 rounded-full"
                   } relative overflow-hidden border border-white/60 bg-white shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
                 >
-                  <Image src="/norte-tech-jf.svg" alt="Norte Tech" fill className="object-cover" priority />
+                  <Image
+                    src="/norte-tech-jf.svg"
+                    alt="Norte Tech"
+                    fill
+                    className="scale-[1.55] object-cover object-left"
+                    priority
+                  />
                 </div>
                 {!sidebarCollapsed && (
                   <button
