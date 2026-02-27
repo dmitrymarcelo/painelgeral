@@ -86,16 +86,8 @@ export default function PortalPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)]">
       <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute inset-0 opacity-[0.64]"
-          style={{
-            backgroundImage: "url('/norte-tech-jf.svg')",
-            backgroundSize: "120% 120%",
-            backgroundPosition: "center",
-            filter: "saturate(0.9) contrast(0.95)",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-[#f6f7f8]/76 to-[#f6f7f8]/92" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#e8f1ff_0%,transparent_52%),radial-gradient(circle_at_bottom_right,#e7eef8_0%,transparent_46%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-[#f6f7f8]/84 to-[#f6f7f8]/96" />
       </div>
 
       <section className="relative mx-auto flex min-h-screen max-w-3xl items-center px-4 py-8">
@@ -145,7 +137,7 @@ export default function PortalPage() {
           </p>
           {authFeedback && <p className="mt-1 text-xs font-semibold text-slate-500">{authFeedback}</p>}
           <p className="mt-2 text-xs text-slate-500">
-            Usuarios de teste: {getAuthUsers().map((user) => `${user.username}/${user.password}`).join(" • ")}
+            Usuarios de teste: {getAuthUsers().map((user) => `${user.username}/${user.password}`).join(" | ")}
           </p>
           <p className="mt-1 text-xs text-slate-500">
             Deteccao automatica: {recommendedMode === "app" ? "Smartphone/Tablet -> App" : "Desktop/Notebook -> Web"}.
