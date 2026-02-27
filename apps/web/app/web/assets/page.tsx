@@ -454,13 +454,16 @@ export default function WebAssetsPage() {
         const eventAsset = normalizeValue(event.asset);
         return eventAsset.includes(rowModel) || eventAsset.includes(rowCode);
       });
+      const schedulingStatus = getSchedulingStatusFromEvents(relatedEvents);
+      const presenceStatus = getPresenceStatusFromEvents(relatedEvents);
+      const priorityStatus = getPriorityStatus(row, relatedEvents);
 
       return {
         ...row,
-        priorityStatus: getPriorityStatus(row, relatedEvents),
-        schedulingStatus: getSchedulingStatusFromEvents(relatedEvents),
+        priorityStatus: schedulingStatus === "Nao Agendado" ? null : priorityStatus,
+        schedulingStatus,
         lastMaintenanceDate: getLastMaintenanceDateFromRow(row, relatedEvents),
-        presenceStatus: getPresenceStatusFromEvents(relatedEvents),
+        presenceStatus: schedulingStatus === "Nao Agendado" ? "Sem registro" : presenceStatus,
         kmProgress: getKmProgress(row),
       };
     });
@@ -669,6 +672,7 @@ export default function WebAssetsPage() {
                 <option value="">Todos</option>
                 <option value="Compareceu">Compareceu</option>
                 <option value="Nao Compareceu">Nao Compareceu</option>
+                <option value="Sem registro">Sem registro</option>
               </select>
             </div>
           </div>
