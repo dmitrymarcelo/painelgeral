@@ -4,11 +4,11 @@
 Ambiente de teste rapido em AWS EC2 para validar Web, API e integracao basica antes da revisao de diretoria e handoff para Backend.
 
 ## Status Atual (referencia oficial desta thread)
-- Web: `http://44.202.245.110:3000` ✅
-- API base: `http://44.202.245.110:4000/api/v1` ✅
-- PostgreSQL: ✅
-- Redis: ✅
-- Ultima atualizacao de contexto: `2026-02-27` (layout Web em largura total, botoes de tema/notificacoes padronizados e deploy aplicado via SSM com sucesso no EC2)
+- Web: `http://44.202.245.110:3000` (OK)
+- API base: `http://44.202.245.110:4000/api/v1` (OK)
+- PostgreSQL: (OK)
+- Redis: (OK)
+- Ultima atualizacao de contexto: `2026-02-27` (layout Web em largura total, botoes de tema/notificacoes padronizados, schema documentado e deploy aplicado via SSM com sucesso no EC2)
 
 ## AWS
 - Regiao: `us-east-1`
@@ -44,7 +44,7 @@ Atualizar este arquivo sempre que houver:
 
 ## Ultimo Deploy Executado
 - Data: `2026-02-27`
-- SSM Command ID: `154e24df-afa8-48d2-9423-fa90cfe27b45`
+- SSM Command ID: `bb4067d5-b4b6-429f-95e4-34742a3dea46`
 - Resultado SSM: `Success`
 - Passos executados no host:
   - `git pull --ff-only origin main`
