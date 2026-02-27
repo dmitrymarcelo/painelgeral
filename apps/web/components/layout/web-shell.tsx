@@ -191,13 +191,13 @@ export function WebShell({ title, subtitle, children }: Props) {
                 <div
                   className={`${
                     sidebarCollapsed ? "h-12 w-12 rounded-full" : "h-14 w-14 rounded-full"
-                  } relative overflow-hidden border border-white/60 bg-white shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
+                  } relative overflow-hidden border border-white/60 bg-[#122b6e] shadow-[0_12px_30px_rgba(19,127,236,0.22)]`}
                 >
                   <Image
                     src="/norte-tech-jf.svg"
                     alt="Norte Tech"
                     fill
-                    className="scale-[1.55] object-cover object-left"
+                    className="object-contain p-1.5"
                     priority
                   />
                 </div>

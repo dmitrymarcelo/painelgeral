@@ -94,7 +94,7 @@ export default function PortalPage() {
         <div className="w-full rounded-[22px] border border-slate-200/70 bg-[#f8fafc]/95 px-6 py-7 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
           <div className="mb-4 flex items-center justify-center">
             <div className="relative h-28 w-28 overflow-hidden rounded-full bg-[#122b6e] shadow-[0_10px_24px_rgba(15,35,95,0.28)]">
-              <Image src="/norte-tech-jf.svg" alt="Norte Tech" fill className="scale-[1.18] object-cover object-left" priority />
+              <Image src="/norte-tech-jf.svg" alt="Norte Tech" fill className="object-contain p-2" priority />
             </div>
           </div>
 
