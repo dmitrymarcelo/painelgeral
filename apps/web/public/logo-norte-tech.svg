@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" fill="none">
+  <!-- Fundo Circular Original -->
+  <circle cx="400" cy="400" r="400" fill="#0A183D"/>
+  
+  <!-- Símbolo 'N' (Estilizado e Centralizado à esquerda do texto) -->
+  <path 
+    d="M120 380C160 300 230 320 280 400C320 470 360 490 400 470C440 450 470 380 490 300L500 280V560C460 610 400 630 340 620C270 610 220 570 180 500C160 460 140 410 120 390V380Z" 
+    fill="#F3CD0F"
+  />
+
+  <!-- Tipografia NORTE TECH (Alinhada à direita do símbolo) -->
+  <g transform="translate(420, 390)">
+    <text 
+      x="0" 
+      y="0" 
+      fill="white" 
+      font-family="Arial Black, sans-serif" 
+      font-size="110" 
+      font-weight="900" 
+      style="letter-spacing: -4px;"
+    >NORTE</text>
+    <text 
+      x="0" 
+      y="100" 
+      fill="#F3CD0F" 
+      font-family="Arial Black, sans-serif" 
+      font-size="110" 
+      font-weight="900" 
+      style="letter-spacing: -4px;"
+    >TECH</text>
+  </g>
+</svg>

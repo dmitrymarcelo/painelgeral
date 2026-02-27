@@ -191,10 +191,11 @@ export function WebShell({ title, subtitle, children }: Props) {
                   className={`${sidebarCollapsed ? "h-12 w-12" : "h-16 w-16"} relative rounded-full overflow-hidden`}
                 >
                   <Image
-                    src="/norte-tech-circle.svg"
+                    src="/logo-norte-tech.svg"
                     alt="Norte Tech"
-                    fill
-                    className="object-contain p-1"
+                    width={64}
+                    height={64}
+                    className="h-full w-full object-contain"
                     priority
                   />
                 </div>
@@ -401,10 +402,11 @@ export function WebShell({ title, subtitle, children }: Props) {
             </div>
           </header>
 
-          <section className="p-3 md:p-5 lg:p-6">{children}</section>
+          <section className="p-3 md:p-5 lg:p-6">
+            <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+          </section>
         </main>
       </div>
     </div>
   );
 }
-
