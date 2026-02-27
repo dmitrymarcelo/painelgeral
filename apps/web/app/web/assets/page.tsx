@@ -242,10 +242,10 @@ type AssetSchedulingStatus =
 type AssetPresenceStatus = "Compareceu" | "Nao Compareceu" | "Sem registro";
 
 type AssetComputedRow = AssetRow & {
-  priorityStatus: AssetPriorityStatus;
+  priorityStatus: AssetPriorityStatus | null;
   schedulingStatus: AssetSchedulingStatus;
   lastMaintenanceDate: string | null;
-  presenceStatus: AssetPresenceStatus;
+  presenceStatus: AssetPresenceStatus | null;
   kmProgress: {
     ratioPercent: number;
     kmGap: number;
@@ -257,9 +257,14 @@ type AssetComputedRow = AssetRow & {
 const getEventDate = (event: MaintenanceEvent) =>
   new Date(event.year, event.month, event.day, ...event.time.split(":").map(Number));
 
-const getPriorityStatus = (row: AssetRow, relatedEvents: MaintenanceEvent[]): AssetPriorityStatus => {
+const getPriorityStatus = (
+  row: AssetRow,
+  relatedEvents: MaintenanceEvent[],
+): AssetPriorityStatus | null => {
   // Regra de negocio: quando existir prioridade informada no agendamento/OS do calendario,
   // ela passa a ser a fonte principal da coluna "Prioridade" em Gestao de Preventivas.
+  if (relatedEvents.length === 0) return null;
+
   const eventPriorities = relatedEvents
     .map((event) => event.priority)
     .filter((priority): priority is AssetPriorityStatus => Boolean(priority));
@@ -283,14 +288,16 @@ const getPriorityStatus = (row: AssetRow, relatedEvents: MaintenanceEvent[]): As
   return "Baixa";
 };
 
-const getPresenceStatusFromRow = (row: AssetRow): AssetPresenceStatus => {
-  const latestBySchedule = [...row.services].sort(
-    (a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
-  )[0];
-  if (!latestBySchedule) return "Sem registro";
-  const attendance = getServiceAttendanceStatus(latestBySchedule);
-  if (attendance === "Compareceu") return "Compareceu";
-  if (attendance === "Nao compareceu ao servico") return "Nao Compareceu";
+const getPresenceStatusFromEvents = (
+  relatedEvents: MaintenanceEvent[],
+): AssetPresenceStatus | null => {
+  // Regra de negocio: sem agendamento/OS no calendario nao exibimos presenca.
+  if (relatedEvents.length === 0) return null;
+
+  const latest = [...relatedEvents].sort((a, b) => getEventDate(b).getTime() - getEventDate(a).getTime())[0];
+  if (!latest) return null;
+  if (latest.status === "no_show") return "Nao Compareceu";
+  if (latest.status === "completed" || latest.status === "in_progress") return "Compareceu";
   return "Sem registro";
 };
 
@@ -453,7 +460,7 @@ export default function WebAssetsPage() {
         priorityStatus: getPriorityStatus(row, relatedEvents),
         schedulingStatus: getSchedulingStatusFromEvents(relatedEvents),
         lastMaintenanceDate: getLastMaintenanceDateFromRow(row, relatedEvents),
-        presenceStatus: getPresenceStatusFromRow(row),
+        presenceStatus: getPresenceStatusFromEvents(relatedEvents),
         kmProgress: getKmProgress(row),
       };
     });
@@ -732,17 +739,19 @@ export default function WebAssetsPage() {
                     </div>
                   </td>
                   <td className="table-cell">
-                    <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                        row.priorityStatus === "Alta"
-                          ? "bg-red-100 text-red-700"
-                          : row.priorityStatus === "Media"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-emerald-100 text-emerald-700"
-                      }`}
-                    >
-                      {row.priorityStatus}
-                    </span>
+                    {row.priorityStatus ? (
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                          row.priorityStatus === "Alta"
+                            ? "bg-red-100 text-red-700"
+                            : row.priorityStatus === "Media"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {row.priorityStatus}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="table-cell">
                     <span
@@ -760,17 +769,19 @@ export default function WebAssetsPage() {
                     </span>
                   </td>
                   <td className="table-cell">
-                    <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                        row.presenceStatus === "Compareceu"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : row.presenceStatus === "Nao Compareceu"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {row.presenceStatus}
-                    </span>
+                    {row.presenceStatus ? (
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                          row.presenceStatus === "Compareceu"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : row.presenceStatus === "Nao Compareceu"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {row.presenceStatus}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="table-cell">
                     <span
