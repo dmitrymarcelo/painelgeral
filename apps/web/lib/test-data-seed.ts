@@ -29,7 +29,7 @@ const PREVENTIVE_LAST_KEY = "frota-pro.preventive-items-registration:last";
 const PREVENTIVE_LIST_KEY = "frota-pro.preventive-items-registrations";
 const SEED_MARKER_KEY = "frota-pro.test-seed.version";
 
-const TEST_SEED_VERSION = "2026-02-26.v1";
+const TEST_SEED_VERSION = "2026-02-27.v2";
 
 const id = (prefix: string, n: number) => `${prefix}-${n.toString().padStart(3, "0")}`;
 
@@ -63,6 +63,7 @@ const schedulers = [
 ];
 
 const timeSlots = ["07:30", "09:00", "10:30", "13:00", "14:30", "16:00"];
+const priorities: Array<NonNullable<MaintenanceEvent["priority"]>> = ["Alta", "Media", "Baixa"];
 
 const eventDateParts = (date: Date) => ({
   day: date.getDate(),
@@ -76,35 +77,58 @@ const addDays = (base: Date, days: number) => {
   return next;
 };
 
-const startOfHour = (base: Date, h: number, m = 0) =>
-  new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m, 0, 0);
-
 const buildSeedMaintenanceEvents = (): MaintenanceEvent[] => {
   const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const events: MaintenanceEvent[] = [];
   let counter = 1;
 
   // Regra de negocio: massa precisa cobrir estados, passado/presente/futuro e volume
   // suficiente para estressar dashboard, calendario, filtros, ativos e ordens.
-  for (let offset = -15; offset <= 20; offset += 1) {
+  for (let offset = -30; offset <= 45; offset += 1) {
     const date = addDays(now, offset);
-    const itemsPerDay = offset % 3 === 0 ? 3 : 2;
+    const itemsPerDay = offset % 5 === 0 ? 4 : offset % 2 === 0 ? 3 : 2;
     for (let i = 0; i < itemsPerDay; i += 1) {
       const asset = assetCatalog[(counter + i) % assetCatalog.length];
       const scheduler = schedulers[(counter + i) % schedulers.length];
       const slot = timeSlots[(counter + i) % timeSlots.length];
-      const status: MaintenanceEvent["status"] =
-        offset < -2
-          ? (["completed", "completed", "in_progress", "scheduled"][counter % 4] as MaintenanceEvent["status"])
-          : offset === 0
-            ? (["scheduled", "in_progress", "scheduled", "scheduled"][counter % 4] as MaintenanceEvent["status"])
-            : (["scheduled", "scheduled", "scheduled", "in_progress"][counter % 4] as MaintenanceEvent["status"]);
+      const priority = priorities[(counter + i) % priorities.length];
+
+      // Regra de negocio: distribuicao de status para exercitar toda a matriz de telas.
+      let status: MaintenanceEvent["status"] = "scheduled";
+      if (offset <= -8) {
+        status = (["completed", "completed", "in_progress", "no_show", "scheduled"][
+          (counter + i) % 5
+        ] ?? "scheduled") as MaintenanceEvent["status"];
+      } else if (offset <= -1) {
+        status = (["completed", "in_progress", "no_show", "scheduled"][
+          (counter + i) % 4
+        ] ?? "scheduled") as MaintenanceEvent["status"];
+      } else if (offset === 0) {
+        status = (["scheduled", "in_progress", "tolerance", "scheduled"][
+          (counter + i) % 4
+        ] ?? "scheduled") as MaintenanceEvent["status"];
+      } else {
+        status = (["scheduled", "scheduled", "in_progress"][
+          (counter + i) % 3
+        ] ?? "scheduled") as MaintenanceEvent["status"];
+      }
 
       const isCompleted = status === "completed";
+      const isInProgress = status === "in_progress";
+      const plannedAt = new Date(date.getFullYear(), date.getMonth(), date.getDate(), ...slot.split(":").map(Number));
       const completedAt =
-        isCompleted && offset <= 0
-          ? startOfHour(date, 17, 0).toISOString()
+        isCompleted
+          ? new Date(plannedAt.getTime() + (45 + ((counter % 4) * 25)) * 60 * 1000).toISOString()
           : null;
+      const currentMaintenanceKm =
+        isCompleted || isInProgress ? 85000 + counter * 123 + i * 17 : null;
+
+      // Regra de negocio: anexa historico textual para testar render de auditoria no modal.
+      const justificationSnippet =
+        offset <= -1 && (counter + i) % 6 === 0
+          ? `\n\n[JUSTIFICATIVA REAGENDAMENTO ${todayStart.toLocaleDateString("pt-BR")} 09:20:00]\n[REAGENDAMENTO] Mudanca operacional de patio.`
+          : "";
 
       events.push({
         id: id("evt", counter),
@@ -115,14 +139,15 @@ const buildSeedMaintenanceEvents = (): MaintenanceEvent[] => {
         time: slot,
         description:
           counter % 5 === 0
-            ? "Preventiva programada com troca de filtros e verificacao de fluido."
-            : "Preventiva programada conforme plano e gatilhos de manutencao.",
+            ? `Preventiva programada com troca de filtros e verificacao de fluido. Prioridade operacional: ${priority}.${justificationSnippet}`
+            : `Preventiva programada conforme plano e gatilhos de manutencao. Prioridade operacional: ${priority}.${justificationSnippet}`,
         technician: technicians[counter % technicians.length] ?? "Definido no checklist",
         schedulerName: scheduler.name,
         schedulerMatricula: scheduler.matricula,
+        priority,
         status,
         completedAt,
-        currentMaintenanceKm: isCompleted ? 120000 + counter * 137 : null,
+        currentMaintenanceKm,
       });
 
       counter += 1;
@@ -344,4 +369,3 @@ export function getLocalDemoSeedInfo() {
     hasSeed: Boolean(window.localStorage.getItem(SEED_MARKER_KEY)),
   };
 }
-
