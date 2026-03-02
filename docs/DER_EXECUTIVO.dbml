@@ -1,0 +1,160 @@
+Project painelgeral_exec {
+  database_type: "SQLite"
+  Note: "DER executivo (reduzido para leitura rapida)"
+}
+
+Enum AssetType {
+  CARRO
+  CAMINHAO
+  LANCHA
+  MOTO
+  MAQUINARIO
+}
+
+Enum AssetStatus {
+  DISPONIVEL
+  EM_SERVICO
+  EM_MANUTENCAO
+  PARADO
+}
+
+Enum TriggerType {
+  KM
+  HORAS
+  DATA
+}
+
+Enum WorkOrderStatus {
+  ABERTA
+  EM_ANDAMENTO
+  AGUARDANDO
+  CONCLUIDA
+  CANCELADA
+}
+
+Enum WorkOrderPriority {
+  BAIXA
+  NORMAL
+  ALTA
+  URGENTE
+  CRITICA
+}
+
+Enum CalendarEventType {
+  PREVENTIVA
+  CORRETIVA
+  VISTORIA
+}
+
+Enum CalendarEventStatus {
+  PROGRAMADA
+  EM_EXECUCAO
+  CONCLUIDA
+  CANCELADA
+}
+
+Enum UserRole {
+  ADMIN
+  GESTOR
+  TECNICO
+}
+
+Table tenants {
+  id bigint [pk, increment]
+  slug varchar [not null, unique]
+  name varchar [not null]
+}
+
+Table users {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  email varchar [not null]
+  name varchar [not null]
+  isActive boolean [not null]
+}
+
+Table roles {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  code UserRole [not null]
+}
+
+Table user_roles {
+  id bigint [pk, increment]
+  userId bigint [not null]
+  roleId bigint [not null]
+}
+
+Table assets {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  code varchar [not null]
+  type AssetType [not null]
+  model varchar [not null]
+  status AssetStatus [not null]
+}
+
+Table maintenance_plans {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  assetId bigint [not null]
+  title varchar [not null]
+  isActive boolean [not null]
+}
+
+Table maintenance_rules {
+  id bigint [pk, increment]
+  planId bigint [not null]
+  triggerType TriggerType [not null]
+  intervalValue float [not null]
+}
+
+Table maintenance_executions {
+  id bigint [pk, increment]
+  planId bigint [not null]
+  assetId bigint [not null]
+  status WorkOrderStatus [not null]
+}
+
+Table work_orders {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  code varchar [not null]
+  assetId bigint [not null]
+  service varchar [not null]
+  priority WorkOrderPriority [not null]
+  status WorkOrderStatus [not null]
+  openedById bigint [not null]
+}
+
+Table work_order_assignments {
+  id bigint [pk, increment]
+  workOrderId bigint [not null]
+  userId bigint [not null]
+}
+
+Table calendar_events {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  title varchar [not null]
+  type CalendarEventType [not null]
+  status CalendarEventStatus [not null]
+  startAt datetime [not null]
+  assetId bigint
+  workOrderId bigint
+}
+
+Ref: users.tenantId > tenants.id
+Ref: roles.tenantId > tenants.id
+Ref: assets.tenantId > tenants.id
+Ref: user_roles.userId > users.id
+Ref: user_roles.roleId > roles.id
+Ref: maintenance_plans.assetId > assets.id
+Ref: maintenance_rules.planId > maintenance_plans.id
+Ref: maintenance_executions.planId > maintenance_plans.id
+Ref: maintenance_executions.assetId > assets.id
+Ref: work_orders.assetId > assets.id
+Ref: work_orders.openedById > users.id
+Ref: work_order_assignments.workOrderId > work_orders.id
+Ref: work_order_assignments.userId > users.id
+Ref: calendar_events.assetId > assets.id

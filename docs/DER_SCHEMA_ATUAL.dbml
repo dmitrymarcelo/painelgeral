@@ -1,0 +1,487 @@
+Project painelgeral {
+  database_type: "SQLite"
+  Note: "DER completo, alinhado ao apps/api/prisma/schema.prisma (2026-03-02)"
+}
+
+Enum AssetType {
+  CARRO
+  CAMINHAO
+  LANCHA
+  MOTO
+  MAQUINARIO
+}
+
+Enum TriggerType {
+  KM
+  HORAS
+  DATA
+}
+
+Enum AssetStatus {
+  DISPONIVEL
+  EM_SERVICO
+  EM_MANUTENCAO
+  PARADO
+}
+
+Enum WorkOrderStatus {
+  ABERTA
+  EM_ANDAMENTO
+  AGUARDANDO
+  CONCLUIDA
+  CANCELADA
+}
+
+Enum WorkOrderPriority {
+  BAIXA
+  NORMAL
+  ALTA
+  URGENTE
+  CRITICA
+}
+
+Enum NotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+}
+
+Enum UserRole {
+  ADMIN
+  GESTOR
+  TECNICO
+}
+
+Enum CalendarEventType {
+  PREVENTIVA
+  CORRETIVA
+  VISTORIA
+}
+
+Enum CalendarEventStatus {
+  PROGRAMADA
+  EM_EXECUCAO
+  CONCLUIDA
+  CANCELADA
+}
+
+Enum ImportStatus {
+  PENDENTE
+  PROCESSANDO
+  CONCLUIDO
+  COM_ERROS
+  FALHA
+}
+
+Table tenants {
+  id bigint [pk, increment]
+  slug varchar [not null, unique]
+  name varchar [not null]
+  timezone varchar [not null, default: 'America/Sao_Paulo']
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+}
+
+Table users {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  email varchar [not null]
+  name varchar [not null]
+  passwordHash varchar [not null]
+  refreshTokenHash varchar
+  isActive boolean [not null, default: true]
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, email) [unique]
+    (tenantId, isActive)
+  }
+}
+
+Table roles {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  code UserRole [not null]
+  name varchar [not null]
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, code) [unique]
+    (tenantId)
+  }
+}
+
+Table user_roles {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  userId bigint [not null]
+  roleId bigint [not null]
+  assignedAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, userId, roleId) [unique]
+    (tenantId, userId)
+  }
+}
+
+Table audit_logs {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  userId bigint
+  action varchar [not null]
+  resource varchar [not null]
+  resourceId varchar
+  payload json
+  ipAddress varchar
+  userAgent varchar
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, resource, createdAt)
+    (tenantId, userId)
+  }
+}
+
+Table audit_log_attributes {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  auditLogId bigint [not null]
+  "key" varchar [not null]
+  stringVal varchar
+  numberVal float
+  boolVal boolean
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, auditLogId, "key")
+  }
+}
+
+Table notifications {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  userId bigint [not null]
+  title varchar [not null]
+  body varchar [not null]
+  isRead boolean [not null, default: false]
+  readAt datetime
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, userId, isRead)
+  }
+}
+
+Table notification_deliveries {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  notificationId bigint [not null]
+  channel NotificationChannel [not null]
+  status varchar [not null]
+  providerId varchar
+  sentAt datetime
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, channel, status)
+  }
+}
+
+Table assets {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  code varchar [not null]
+  plate varchar
+  type AssetType [not null]
+  model varchar [not null]
+  manufacturer varchar
+  status AssetStatus [not null, default: 'DISPONIVEL']
+  odometerKm float
+  engineHours float
+  locationName varchar
+  qrCode varchar [unique]
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, code) [unique]
+    (tenantId, type, status)
+    (tenantId, plate)
+  }
+}
+
+Table asset_status_history {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  assetId bigint [not null]
+  status AssetStatus [not null]
+  reason varchar
+  changedById bigint
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, assetId, createdAt)
+  }
+}
+
+Table maintenance_plans {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  assetId bigint [not null]
+  title varchar [not null]
+  description varchar
+  isActive boolean [not null, default: true]
+  nextDueAt datetime
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, assetId, isActive)
+  }
+}
+
+Table maintenance_rules {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  planId bigint [not null]
+  triggerType TriggerType [not null]
+  intervalValue float [not null]
+  warningValue float
+  lastValue float
+  nextValue float
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, planId)
+  }
+}
+
+Table maintenance_executions {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  planId bigint [not null]
+  assetId bigint [not null]
+  dueAt datetime
+  dueValue float
+  executedAt datetime
+  status WorkOrderStatus [not null, default: 'ABERTA']
+  workOrderId bigint
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, planId, status)
+  }
+}
+
+Table calendar_events {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  title varchar [not null]
+  description varchar
+  type CalendarEventType [not null]
+  status CalendarEventStatus [not null, default: 'PROGRAMADA']
+  startAt datetime [not null]
+  endAt datetime
+  assetId bigint
+  workOrderId bigint
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, startAt, type)
+    (tenantId, status)
+  }
+}
+
+Table work_orders {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  code varchar [not null]
+  assetId bigint [not null]
+  service varchar [not null]
+  description varchar
+  priority WorkOrderPriority [not null, default: 'NORMAL']
+  status WorkOrderStatus [not null, default: 'ABERTA']
+  dueAt datetime
+  openedById bigint [not null]
+  startedAt datetime
+  completedAt datetime
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, code) [unique]
+    (tenantId, status, priority)
+    (tenantId, assetId)
+  }
+}
+
+Table work_order_tasks {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  workOrderId bigint [not null]
+  title varchar [not null]
+  isDone boolean [not null, default: false]
+  sortOrder int [not null, default: 0]
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, workOrderId)
+  }
+}
+
+Table work_order_assignments {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  workOrderId bigint [not null]
+  userId bigint [not null]
+  assignedAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, workOrderId, userId) [unique]
+    (tenantId, userId)
+  }
+}
+
+Table work_order_history {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  workOrderId bigint [not null]
+  fromStatus WorkOrderStatus
+  toStatus WorkOrderStatus [not null]
+  note varchar
+  createdById bigint
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, workOrderId, createdAt)
+  }
+}
+
+Table import_jobs {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  resource varchar [not null]
+  status ImportStatus [not null, default: 'PENDENTE']
+  totalRows int [not null, default: 0]
+  successRows int [not null, default: 0]
+  errorRows int [not null, default: 0]
+  createdById bigint
+  createdAt datetime [not null, default: `now()`]
+  updatedAt datetime [not null]
+
+  indexes {
+    (tenantId, resource, status)
+  }
+}
+
+Table import_rows {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  importJobId bigint [not null]
+  rowNumber int [not null]
+  payload json [not null]
+  status ImportStatus [not null, default: 'PENDENTE']
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, importJobId, rowNumber)
+  }
+}
+
+Table import_errors {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  importJobId bigint [not null]
+  importRowId bigint
+  code varchar [not null]
+  message varchar [not null]
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, importJobId)
+  }
+}
+
+Table import_row_fields {
+  id bigint [pk, increment]
+  tenantId bigint [not null]
+  importRowId bigint [not null]
+  "key" varchar [not null]
+  stringVal varchar
+  numberVal float
+  boolVal boolean
+  createdAt datetime [not null, default: `now()`]
+
+  indexes {
+    (tenantId, importRowId, "key")
+  }
+}
+
+TableGroup "01_Identity_Access" {
+  tenants
+  users
+  roles
+  user_roles
+}
+
+TableGroup "02_Fleet_Maintenance" {
+  assets
+  asset_status_history
+  maintenance_plans
+  maintenance_rules
+  maintenance_executions
+  calendar_events
+  work_orders
+  work_order_tasks
+  work_order_assignments
+  work_order_history
+}
+
+TableGroup "03_Notifications_Audit" {
+  notifications
+  notification_deliveries
+  audit_logs
+  audit_log_attributes
+}
+
+TableGroup "04_Import_Process" {
+  import_jobs
+  import_rows
+  import_errors
+  import_row_fields
+}
+
+Ref: users.tenantId > tenants.id
+Ref: roles.tenantId > tenants.id
+Ref: assets.tenantId > tenants.id
+
+Ref: user_roles.userId > users.id
+Ref: user_roles.roleId > roles.id
+
+Ref: audit_logs.userId > users.id
+Ref: audit_log_attributes.auditLogId > audit_logs.id
+
+Ref: notifications.userId > users.id
+Ref: notification_deliveries.notificationId > notifications.id
+
+Ref: asset_status_history.assetId > assets.id
+Ref: maintenance_plans.assetId > assets.id
+Ref: maintenance_rules.planId > maintenance_plans.id
+Ref: maintenance_executions.planId > maintenance_plans.id
+Ref: maintenance_executions.assetId > assets.id
+Ref: calendar_events.assetId > assets.id
+
+Ref: work_orders.assetId > assets.id
+Ref: work_orders.openedById > users.id
+Ref: work_order_tasks.workOrderId > work_orders.id
+Ref: work_order_assignments.workOrderId > work_orders.id
+Ref: work_order_assignments.userId > users.id
+Ref: work_order_history.workOrderId > work_orders.id
+
+Ref: import_rows.importJobId > import_jobs.id
+Ref: import_errors.importJobId > import_jobs.id
+Ref: import_errors.importRowId > import_rows.id
+Ref: import_row_fields.importRowId > import_rows.id

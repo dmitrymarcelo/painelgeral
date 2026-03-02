@@ -22,10 +22,7 @@ import { AssetsModule } from './modules/assets/assets.module';
 import { MaintenancePlansModule } from './modules/maintenance-plans/maintenance-plans.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { WorkOrdersModule } from './modules/work-orders/work-orders.module';
-import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { QrModule } from './modules/qr/qr.module';
-import { TelemetryModule } from './modules/integrations/telemetry/telemetry.module';
-import { FuelEntriesModule } from './modules/fuel-entries/fuel-entries.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
@@ -49,10 +46,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     MaintenancePlansModule,
     CalendarModule,
     WorkOrdersModule,
-    ChecklistsModule,
     QrModule,
-    TelemetryModule,
-    FuelEntriesModule,
     ReportsModule,
     NotificationsModule,
     AuditLogsModule,

@@ -1,29 +1,22 @@
-﻿# Frota Pro Monorepo
+# Frota Pro Monorepo
 
 Monorepo fullstack com:
 - `apps/web`: Next.js (Web Console + Mobile PWA)
 - `apps/api`: NestJS + Prisma (API REST)
 - `packages/types`: enums e tipos compartilhados
 
-## Pré-requisitos
+## Pre-requisitos
 - Node.js 24+
 - pnpm 10+
-- Docker (para PostgreSQL/Redis local)
 
-## Subir infraestrutura local
-```bash
-docker compose up -d
-```
-
-## Configurar ambientes
+## Configurar ambiente
 ```bash
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-## Banco de dados
+## Banco (estado atual: SQLite)
 ```bash
-pnpm --filter @frota/api prisma:migrate --name init
 pnpm --filter @frota/api prisma:generate
 pnpm --filter @frota/api seed
 ```
@@ -36,7 +29,7 @@ pnpm dev
 - API: `http://localhost:4000/api/v1`
 - Web/PWA: `http://localhost:3000`
 
-## Usuário inicial
+## Usuario inicial
 - E-mail: `admin@frotapro.local`
 - Senha: `Admin@123`
 
@@ -47,15 +40,13 @@ pnpm dev
 - Maintenance Plans: `/maintenance-plans`, `/maintenance-plans/:id/rules`
 - Calendar: `/calendar/events`
 - Work Orders: `/work-orders`, `/work-orders/:id/assign`, `/work-orders/:id/start`, `/work-orders/:id/complete`
-- Checklists: `/checklists/templates`, `/checklists/tasks`, `/checklists/runs`, `/checklists/runs/:id/*`
 - QR: `/qr/resolve`
-- Telemetry: `/integrations/telemetry/:provider/webhook`, `/integrations/telemetry/sync-status`, `/integrations/telemetry/backfill`
-- Fuel: `/fuel-entries`, `/fuel-entries/summary`
 - Reports: `/reports/dashboard`, `/reports/performance`, `/reports/export/csv`, `/reports/export/pdf`
 - Notifications: `/notifications`, `/notifications/:id/read`
 - Audit: `/audit-logs`
 
-## Observações
-- Arquitetura preparada para multi-tenant (campos `tenant_id` em tabelas de domínio).
-- Modo offline-first no app móvel via Dexie (fila local + sincronização).
-- Scanner QR integrado via endpoint de resolução de ativo/ações.
+## Documentacao
+- Persistencia: `docs/DOCUMENTACAO_PERSISTENCIA_PTBR.md`
+- Relacoes: `docs/RELACOES_BD.md`
+- DER completo: `docs/DER_SCHEMA_ATUAL.dbml`
+- DER executivo: `docs/DER_EXECUTIVO.dbml`
