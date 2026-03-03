@@ -1,0 +1,60 @@
+Project ordens_agenda {
+  database_type: "PostgreSQL"
+  Note: "DER setorial para visualizacao clara no dbdiagram"
+}
+
+Table users {
+  id bigint [pk]
+  email varchar [not null]
+}
+
+Table assets {
+  id bigint [pk]
+  code varchar [not null]
+}
+
+Table work_orders {
+  id bigint [pk]
+  tenantId bigint [not null]
+  assetId bigint [not null]
+  openedById bigint [not null]
+  code varchar [not null]
+  status varchar [not null]
+}
+
+Table work_order_tasks {
+  id bigint [pk]
+  tenantId bigint [not null]
+  workOrderId bigint [not null]
+  title varchar [not null]
+}
+
+Table work_order_assignments {
+  id bigint [pk]
+  tenantId bigint [not null]
+  workOrderId bigint [not null]
+  userId bigint [not null]
+}
+
+Table work_order_history {
+  id bigint [pk]
+  tenantId bigint [not null]
+  workOrderId bigint [not null]
+  toStatus varchar [not null]
+}
+
+Table calendar_events {
+  id bigint [pk]
+  tenantId bigint [not null]
+  assetId bigint
+  workOrderId bigint
+  status varchar [not null]
+}
+
+Ref: work_orders.assetId > assets.id
+Ref: work_orders.openedById > users.id
+Ref: work_order_tasks.workOrderId > work_orders.id
+Ref: work_order_assignments.workOrderId > work_orders.id
+Ref: work_order_assignments.userId > users.id
+Ref: work_order_history.workOrderId > work_orders.id
+Ref: calendar_events.assetId > assets.id

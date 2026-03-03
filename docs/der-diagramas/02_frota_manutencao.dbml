@@ -1,0 +1,52 @@
+Project frota_manutencao {
+  database_type: "PostgreSQL"
+  Note: "DER setorial para visualizacao clara no dbdiagram"
+}
+
+Table tenants {
+  id bigint [pk]
+  slug varchar [not null, unique]
+}
+
+Table assets {
+  id bigint [pk]
+  tenantId bigint [not null]
+  code varchar [not null]
+  status varchar [not null]
+}
+
+Table asset_status_history {
+  id bigint [pk]
+  tenantId bigint [not null]
+  assetId bigint [not null]
+  status varchar [not null]
+}
+
+Table maintenance_plans {
+  id bigint [pk]
+  tenantId bigint [not null]
+  assetId bigint [not null]
+  title varchar [not null]
+}
+
+Table maintenance_rules {
+  id bigint [pk]
+  tenantId bigint [not null]
+  planId bigint [not null]
+  triggerType varchar [not null]
+}
+
+Table maintenance_executions {
+  id bigint [pk]
+  tenantId bigint [not null]
+  planId bigint [not null]
+  assetId bigint [not null]
+  status varchar [not null]
+}
+
+Ref: assets.tenantId > tenants.id
+Ref: asset_status_history.assetId > assets.id
+Ref: maintenance_plans.assetId > assets.id
+Ref: maintenance_rules.planId > maintenance_plans.id
+Ref: maintenance_executions.planId > maintenance_plans.id
+Ref: maintenance_executions.assetId > assets.id

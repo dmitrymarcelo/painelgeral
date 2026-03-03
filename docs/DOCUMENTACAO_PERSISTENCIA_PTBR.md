@@ -75,3 +75,10 @@
 ## DERs oficiais
 - Completo: `docs/DER_SCHEMA_ATUAL.dbml`
 - Executivo (reduzido): `docs/DER_EXECUTIVO.dbml`
+- Visual (sem sobreposicao, por dominio): `docs/DER_DIAGRAMAS_PTBR.md`
+- DBML setorial para dbdiagram:
+  - `docs/der-diagramas/01_auth_acesso.dbml`
+  - `docs/der-diagramas/02_frota_manutencao.dbml`
+  - `docs/der-diagramas/03_ordens_agenda.dbml`
+  - `docs/der-diagramas/04_notificacoes_auditoria.dbml`
+  - `docs/der-diagramas/05_importacao.dbml`

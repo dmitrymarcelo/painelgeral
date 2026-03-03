@@ -1,6 +1,6 @@
 Project painelgeral {
   database_type: "PostgreSQL"
-  Note: "DER completo, alinhado ao apps/api/prisma/schema.prisma (2026-03-02)"
+  Note: "DER completo (fonte oficial). Para visual sem sobreposicao, usar docs/DER_DIAGRAMAS_PTBR.md e docs/der-diagramas/*.dbml"
 }
 
 Enum AssetType {

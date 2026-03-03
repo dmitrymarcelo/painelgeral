@@ -1,0 +1,41 @@
+Project notificacoes_auditoria {
+  database_type: "PostgreSQL"
+  Note: "DER setorial para visualizacao clara no dbdiagram"
+}
+
+Table users {
+  id bigint [pk]
+  email varchar [not null]
+}
+
+Table notifications {
+  id bigint [pk]
+  tenantId bigint [not null]
+  userId bigint [not null]
+  title varchar [not null]
+}
+
+Table notification_deliveries {
+  id bigint [pk]
+  tenantId bigint [not null]
+  notificationId bigint [not null]
+  channel varchar [not null]
+}
+
+Table audit_logs {
+  id bigint [pk]
+  tenantId bigint [not null]
+  userId bigint
+  action varchar [not null]
+}
+
+Table audit_log_attributes {
+  id bigint [pk]
+  tenantId bigint [not null]
+  auditLogId bigint [not null]
+}
+
+Ref: notifications.userId > users.id
+Ref: notification_deliveries.notificationId > notifications.id
+Ref: audit_logs.userId > users.id
+Ref: audit_log_attributes.auditLogId > audit_logs.id

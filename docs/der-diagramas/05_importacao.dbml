@@ -1,0 +1,38 @@
+Project importacao {
+  database_type: "PostgreSQL"
+  Note: "DER setorial para visualizacao clara no dbdiagram"
+}
+
+Table import_jobs {
+  id bigint [pk]
+  tenantId bigint [not null]
+  resource varchar [not null]
+  status varchar [not null]
+}
+
+Table import_rows {
+  id bigint [pk]
+  tenantId bigint [not null]
+  importJobId bigint [not null]
+  rowNumber int [not null]
+  status varchar [not null]
+}
+
+Table import_errors {
+  id bigint [pk]
+  tenantId bigint [not null]
+  importJobId bigint [not null]
+  importRowId bigint
+  code varchar [not null]
+}
+
+Table import_row_fields {
+  id bigint [pk]
+  tenantId bigint [not null]
+  importRowId bigint [not null]
+}
+
+Ref: import_rows.importJobId > import_jobs.id
+Ref: import_errors.importJobId > import_jobs.id
+Ref: import_errors.importRowId > import_rows.id
+Ref: import_row_fields.importRowId > import_rows.id

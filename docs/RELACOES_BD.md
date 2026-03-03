@@ -3,6 +3,15 @@
 Fonte: `apps/api/prisma/schema.prisma` (estado atual).
 Banco alvo: `PostgreSQL`.
 
+## Diagramas visuais
+- Visao consolidada por dominios (mermaid): `docs/DER_DIAGRAMAS_PTBR.md`
+- Visoes setoriais para dbdiagram (sem sobreposicao):
+  - `docs/der-diagramas/01_auth_acesso.dbml`
+  - `docs/der-diagramas/02_frota_manutencao.dbml`
+  - `docs/der-diagramas/03_ordens_agenda.dbml`
+  - `docs/der-diagramas/04_notificacoes_auditoria.dbml`
+  - `docs/der-diagramas/05_importacao.dbml`
+
 ## Auth e acesso
 - Tenant 1:N User
 - Tenant 1:N Role

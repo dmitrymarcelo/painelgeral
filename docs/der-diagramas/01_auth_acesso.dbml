@@ -1,0 +1,35 @@
+Project auth_acesso {
+  database_type: "PostgreSQL"
+  Note: "DER setorial para visualizacao clara no dbdiagram"
+}
+
+Table tenants {
+  id bigint [pk]
+  slug varchar [not null, unique]
+  name varchar [not null]
+}
+
+Table users {
+  id bigint [pk]
+  tenantId bigint [not null]
+  email varchar [not null]
+  isActive boolean [not null]
+}
+
+Table roles {
+  id bigint [pk]
+  tenantId bigint [not null]
+  code varchar [not null]
+}
+
+Table user_roles {
+  id bigint [pk]
+  tenantId bigint [not null]
+  userId bigint [not null]
+  roleId bigint [not null]
+}
+
+Ref: users.tenantId > tenants.id
+Ref: roles.tenantId > tenants.id
+Ref: user_roles.userId > users.id
+Ref: user_roles.roleId > roles.id
