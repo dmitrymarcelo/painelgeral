@@ -52,7 +52,7 @@ Consolidar o estado atual do projeto e registrar o contrato tecnico para continu
 - QR: `/qr/resolve`
 
 ## Banco e DER
-- Motor atual no schema: `SQLite`
+- Motor atual no schema: `PostgreSQL`
 - DER completo: `docs/DER_SCHEMA_ATUAL.dbml`
 - DER executivo: `docs/DER_EXECUTIVO.dbml`
 - Dicionario de persistencia: `docs/DOCUMENTACAO_PERSISTENCIA_PTBR.md`

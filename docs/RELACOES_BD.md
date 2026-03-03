@@ -1,6 +1,7 @@
 # Relacoes do Banco e Tipos
 
 Fonte: `apps/api/prisma/schema.prisma` (estado atual).
+Banco alvo: `PostgreSQL`.
 
 ## Auth e acesso
 - Tenant 1:N User

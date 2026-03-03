@@ -4,9 +4,9 @@
 Ambiente de validacao para Web + API em EC2.
 
 ## Status registrado
-- Ultima revisao documental: `2026-03-02`
+- Ultima revisao documental: `2026-03-03`
 - Escopo atual da API: sem checklist, sem combustivel e sem telemetria.
-- Referencia de banco no schema atual: `SQLite` (Prisma).
+- Referencia de banco no schema atual: `PostgreSQL` (Prisma).
 - GitHub atualizado: commit `16f738e` em `origin/main`.
 - Validacao HTTP realizada em `2026-03-02`:
   - `http://44.202.245.110:3000` => `200`

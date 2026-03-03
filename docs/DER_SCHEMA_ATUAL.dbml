@@ -1,5 +1,5 @@
 Project painelgeral {
-  database_type: "SQLite"
+  database_type: "PostgreSQL"
   Note: "DER completo, alinhado ao apps/api/prisma/schema.prisma (2026-03-02)"
 }
 

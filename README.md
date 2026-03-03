@@ -8,6 +8,7 @@ Monorepo fullstack com:
 ## Pre-requisitos
 - Node.js 24+
 - pnpm 10+
+- Docker (PostgreSQL local)
 
 ## Configurar ambiente
 ```bash
@@ -15,8 +16,10 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-## Banco (estado atual: SQLite)
+## Banco (estado atual: PostgreSQL)
 ```bash
+docker compose up -d
+pnpm --filter @frota/api prisma:migrate --name init
 pnpm --filter @frota/api prisma:generate
 pnpm --filter @frota/api seed
 ```

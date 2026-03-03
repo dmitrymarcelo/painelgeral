@@ -2,8 +2,8 @@
 
 ## Escopo
 - Fonte oficial: `apps/api/prisma/schema.prisma`
-- Motor atual: `SQLite` (Prisma)
-- Ultima revisao: `2026-03-02`
+- Motor atual: `PostgreSQL` (Prisma)
+- Ultima revisao: `2026-03-03`
 
 ## Situacao do dominio
 - Multi-tenant com `tenantId` nas entidades operacionais.

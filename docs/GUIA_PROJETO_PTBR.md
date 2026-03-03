@@ -13,7 +13,7 @@ Monorepo fullstack para gestao de frota/manutencao preventiva.
 ## Stack atual
 - Frontend: Next.js + React + Tailwind
 - Backend: NestJS
-- Banco: SQLite via Prisma
+- Banco: PostgreSQL via Prisma
 - Monorepo: pnpm + Turborepo
 
 ## Backend (modulos ativos)
@@ -44,6 +44,8 @@ corepack pnpm --filter @frota/web typecheck
 
 ## Run local
 ```powershell
+docker compose up -d
+corepack pnpm --filter @frota/api prisma:migrate --name init
 corepack pnpm --filter @frota/api prisma:generate
 corepack pnpm --filter @frota/api seed
 corepack pnpm dev

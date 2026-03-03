@@ -1,5 +1,5 @@
 Project painelgeral_exec {
-  database_type: "SQLite"
+  database_type: "PostgreSQL"
   Note: "DER executivo (reduzido para leitura rapida)"
 }
 
