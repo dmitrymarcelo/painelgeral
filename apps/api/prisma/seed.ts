@@ -2,6 +2,7 @@ import {
   PrismaClient,
   AssetType,
   AssetStatus,
+  ImportStatus,
   UserRole,
   WorkOrderPriority,
   WorkOrderStatus,
@@ -359,6 +360,114 @@ async function main() {
     },
   });
 
+  const assetStatusSeed = [
+    {
+      assetId: assetA.id,
+      status: AssetStatus.DISPONIVEL,
+      reason: 'Cadastro inicial do ativo',
+      changedById: admin.id,
+    },
+    {
+      assetId: assetB.id,
+      status: AssetStatus.EM_MANUTENCAO,
+      reason: 'Ativo em revisao eletrica',
+      changedById: gestor.id,
+    },
+  ];
+  for (const entry of assetStatusSeed) {
+    const exists = await prisma.assetStatusHistory.findFirst({
+      where: {
+        tenantId: tenant.id,
+        assetId: entry.assetId,
+        status: entry.status,
+        reason: entry.reason,
+      },
+      select: { id: true },
+    });
+    if (!exists) {
+      await prisma.assetStatusHistory.create({
+        data: {
+          id: nextId(),
+          tenantId: tenant.id,
+          assetId: entry.assetId,
+          status: entry.status,
+          reason: entry.reason,
+          changedById: entry.changedById,
+        },
+      });
+    }
+  }
+
+  const woTasksSeed = [
+    { workOrderId: wo1.id, title: 'Conferir nivel e especificacao do oleo', sortOrder: 1 },
+    { workOrderId: wo1.id, title: 'Substituir filtro de oleo', sortOrder: 2 },
+    { workOrderId: wo2.id, title: 'Testar circuito de iluminacao', sortOrder: 1 },
+    { workOrderId: wo2.id, title: 'Inspecionar chicote principal', sortOrder: 2 },
+  ];
+  for (const task of woTasksSeed) {
+    const exists = await prisma.workOrderTask.findFirst({
+      where: {
+        tenantId: tenant.id,
+        workOrderId: task.workOrderId,
+        title: task.title,
+      },
+      select: { id: true },
+    });
+    if (!exists) {
+      await prisma.workOrderTask.create({
+        data: {
+          id: nextId(),
+          tenantId: tenant.id,
+          workOrderId: task.workOrderId,
+          title: task.title,
+          sortOrder: task.sortOrder,
+          isDone: false,
+        },
+      });
+    }
+  }
+
+  const woHistorySeed = [
+    {
+      workOrderId: wo1.id,
+      fromStatus: WorkOrderStatus.ABERTA,
+      toStatus: WorkOrderStatus.EM_ANDAMENTO,
+      note: 'OS iniciada pelo tecnico',
+      createdById: tecnico.id,
+    },
+    {
+      workOrderId: wo2.id,
+      fromStatus: WorkOrderStatus.ABERTA,
+      toStatus: WorkOrderStatus.AGUARDANDO,
+      note: 'Aguardando peca eletrica',
+      createdById: gestor.id,
+    },
+  ];
+  for (const hist of woHistorySeed) {
+    const exists = await prisma.workOrderHistory.findFirst({
+      where: {
+        tenantId: tenant.id,
+        workOrderId: hist.workOrderId,
+        toStatus: hist.toStatus,
+        note: hist.note,
+      },
+      select: { id: true },
+    });
+    if (!exists) {
+      await prisma.workOrderHistory.create({
+        data: {
+          id: nextId(),
+          tenantId: tenant.id,
+          workOrderId: hist.workOrderId,
+          fromStatus: hist.fromStatus,
+          toStatus: hist.toStatus,
+          note: hist.note,
+          createdById: hist.createdById,
+        },
+      });
+    }
+  }
+
   // Checklists removidos do domínio; nenhum seed criado para templates ou runs.
 
   const mp = await prisma.maintenancePlan.upsert({
@@ -384,6 +493,27 @@ async function main() {
     },
   });
 
+  const kmRuleExists = await prisma.maintenanceRule.findFirst({
+    where: {
+      tenantId: tenant.id,
+      planId: mp.id,
+      triggerType: 'KM',
+    },
+    select: { id: true },
+  });
+  if (!kmRuleExists) {
+    await prisma.maintenanceRule.create({
+      data: {
+        id: nextId(),
+        tenantId: tenant.id,
+        planId: mp.id,
+        triggerType: 'KM',
+        intervalValue: 10000,
+        warningValue: 9500,
+      },
+    });
+  }
+
   await prisma.maintenanceExecution.upsert({
     where: { id: 1n as any },
     update: {},
@@ -398,7 +528,7 @@ async function main() {
     },
   });
 
-  await prisma.auditLog.upsert({
+  const audit1 = await prisma.auditLog.upsert({
     where: { id: 1n as any },
     update: {},
     create: {
@@ -411,7 +541,7 @@ async function main() {
       payload: { code: 'FRO-012' } as any,
     },
   });
-  await prisma.auditLog.upsert({
+  const audit2 = await prisma.auditLog.upsert({
     where: { id: 2n as any },
     update: {},
     create: {
@@ -424,6 +554,35 @@ async function main() {
       payload: { code: 'WO-002' } as any,
     },
   });
+
+  const auditAttributes = [
+    { auditLogId: audit1.id, key: 'asset_code', stringVal: 'FRO-012' },
+    { auditLogId: audit1.id, key: 'source', stringVal: 'seed' },
+    { auditLogId: audit2.id, key: 'work_order_code', stringVal: 'WO-002' },
+    { auditLogId: audit2.id, key: 'is_open_event', boolVal: true },
+  ];
+  for (const attr of auditAttributes) {
+    const exists = await prisma.auditLogAttribute.findFirst({
+      where: {
+        tenantId: tenant.id,
+        auditLogId: attr.auditLogId,
+        key: attr.key,
+      },
+      select: { id: true },
+    });
+    if (!exists) {
+      await prisma.auditLogAttribute.create({
+        data: {
+          id: nextId(),
+          tenantId: tenant.id,
+          auditLogId: attr.auditLogId,
+          key: attr.key,
+          stringVal: attr.stringVal,
+          boolVal: attr.boolVal,
+        },
+      });
+    }
+  }
 
   const extraAssets = [
     { code: 'CAR-101', type: AssetType.CARRO, model: 'Fiat Argo', manufacturer: 'Fiat' },
@@ -519,7 +678,135 @@ async function main() {
     });
   }
 
-  console.log('Seed concluído: admin@frotapro.local / Admin@123');
+  let importJob = await prisma.importJob.findFirst({
+    where: { tenantId: tenant.id, resource: 'assets_csv_demo_reuniao' },
+  });
+  if (!importJob) {
+    importJob = await prisma.importJob.create({
+      data: {
+        id: nextId(),
+        tenantId: tenant.id,
+        resource: 'assets_csv_demo_reuniao',
+        status: ImportStatus.PROCESSANDO,
+        totalRows: 0,
+        successRows: 0,
+        errorRows: 0,
+        createdById: admin.id,
+      },
+    });
+  }
+
+  const importRowsSeed = [
+    {
+      rowNumber: 1,
+      payload: { code: 'ASSET-900', model: 'Demo Van', status: 'DISPONIVEL' },
+      status: ImportStatus.CONCLUIDO,
+      fields: [
+        { key: 'code', stringVal: 'ASSET-900' },
+        { key: 'model', stringVal: 'Demo Van' },
+      ],
+    },
+    {
+      rowNumber: 2,
+      payload: { code: '', model: 'Broken Asset', status: 'DISPONIVEL' },
+      status: ImportStatus.COM_ERROS,
+      fields: [
+        { key: 'code', stringVal: '' },
+        { key: 'model', stringVal: 'Broken Asset' },
+      ],
+      error: {
+        code: 'REQUIRED_FIELD',
+        message: 'Campo code e obrigatorio',
+      },
+    },
+  ];
+
+  for (const rowSeed of importRowsSeed) {
+    let row = await prisma.importRow.findFirst({
+      where: {
+        tenantId: tenant.id,
+        importJobId: importJob.id,
+        rowNumber: rowSeed.rowNumber,
+      },
+    });
+
+    if (!row) {
+      row = await prisma.importRow.create({
+        data: {
+          id: nextId(),
+          tenantId: tenant.id,
+          importJobId: importJob.id,
+          rowNumber: rowSeed.rowNumber,
+          payload: rowSeed.payload as any,
+          status: rowSeed.status,
+        },
+      });
+    }
+
+    for (const field of rowSeed.fields) {
+      const fieldExists = await prisma.importRowField.findFirst({
+        where: {
+          tenantId: tenant.id,
+          importRowId: row.id,
+          key: field.key,
+        },
+        select: { id: true },
+      });
+      if (!fieldExists) {
+        await prisma.importRowField.create({
+          data: {
+            id: nextId(),
+            tenantId: tenant.id,
+            importRowId: row.id,
+            key: field.key,
+            stringVal: field.stringVal,
+          },
+        });
+      }
+    }
+
+    if (rowSeed.error) {
+      const errorExists = await prisma.importError.findFirst({
+        where: {
+          tenantId: tenant.id,
+          importJobId: importJob.id,
+          importRowId: row.id,
+          code: rowSeed.error.code,
+        },
+        select: { id: true },
+      });
+      if (!errorExists) {
+        await prisma.importError.create({
+          data: {
+            id: nextId(),
+            tenantId: tenant.id,
+            importJobId: importJob.id,
+            importRowId: row.id,
+            code: rowSeed.error.code,
+            message: rowSeed.error.message,
+          },
+        });
+      }
+    }
+  }
+
+  const totalRows = await prisma.importRow.count({
+    where: { tenantId: tenant.id, importJobId: importJob.id },
+  });
+  const errorRows = await prisma.importError.count({
+    where: { tenantId: tenant.id, importJobId: importJob.id },
+  });
+  await prisma.importJob.update({
+    where: { id: importJob.id },
+    data: {
+      totalRows,
+      errorRows,
+      successRows: Math.max(totalRows - errorRows, 0),
+      status: errorRows > 0 ? ImportStatus.COM_ERROS : ImportStatus.CONCLUIDO,
+    },
+  });
+
+  console.log('Seed concluido: admin@frotapro.local / Admin@123');
 }
 
 main()

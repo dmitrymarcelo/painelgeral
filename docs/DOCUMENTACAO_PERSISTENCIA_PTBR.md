@@ -28,3 +28,7 @@ Detalhamento de entidades, enums, campos e relacionamentos fica centralizado no 
 - `docs/der-diagramas/03_ordens_agenda.dbml`
 - `docs/der-diagramas/04_notificacoes_auditoria.dbml`
 - `docs/der-diagramas/05_importacao.dbml`
+
+## Apoio para reuniao executiva
+- Roteiro de demonstracao com Prisma + DER: `docs/REUNIAO_POPULACAO_TABELAS_PTBR.md`
+- SQL de contagem por tabela: `docs/sql/REUNIAO_CONTAGENS_TABELAS.sql`
