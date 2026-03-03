@@ -6,9 +6,31 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    return undefined;
+  }
+
+  private async resolveTenantId(tenantRef: string): Promise<bigint> {
+    if (/^\d+$/.test(tenantRef)) return BigInt(tenantRef);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug: tenantRef },
+      select: { id: true },
+    });
+    if (!tenant) throw new Error('Tenant inválido');
+    return tenant.id;
+  }
+
   async list(tenantId: string, userId: string) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     return this.prisma.notification.findMany({
-      where: { tenantId, userId },
+      where: { tenantId: tenantDbId, userId: this.toBigInt(userId)! },
       orderBy: { createdAt: 'desc' },
       include: { deliveries: true },
       take: 100,
@@ -16,8 +38,9 @@ export class NotificationsService {
   }
 
   async markRead(tenantId: string, notificationId: string, isRead: boolean) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const notification = await this.prisma.notification.findFirst({
-      where: { id: notificationId, tenantId },
+      where: { id: this.toBigInt(notificationId)!, tenantId: tenantDbId },
       select: { id: true },
     });
 
@@ -26,7 +49,7 @@ export class NotificationsService {
     }
 
     return this.prisma.notification.update({
-      where: { id: notificationId },
+      where: { id: this.toBigInt(notificationId)! },
       data: {
         isRead,
         readAt: isRead ? new Date() : null,
@@ -35,8 +58,8 @@ export class NotificationsService {
   }
 
   async create(input: {
-    tenantId: string;
-    userId: string;
+    tenantId: string | bigint;
+    userId: string | bigint;
     title: string;
     body: string;
     channels?: NotificationChannel[];
@@ -49,15 +72,16 @@ export class NotificationsService {
           NotificationChannel.EMAIL,
         ];
 
+    const tenantDbId = await this.resolveTenantId(String(input.tenantId));
     return this.prisma.notification.create({
       data: {
-        tenantId: input.tenantId,
-        userId: input.userId,
+        tenantId: tenantDbId,
+        userId: this.toBigInt(input.userId)!,
         title: input.title,
         body: input.body,
         deliveries: {
           create: channels.map((channel) => ({
-            tenantId: input.tenantId,
+            tenantId: tenantDbId,
             channel,
             status: 'PENDING',
           })),

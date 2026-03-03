@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
@@ -27,6 +27,17 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    return undefined;
+  }
 
   async login(tenantSlug: string, dto: LoginDto) {
     // Regra de negocio: login e resolvido por tenant + email.
@@ -66,10 +77,10 @@ export class AuthService {
 
     const roles = user.userRoles.map((entry) => entry.role.code);
     const payload = {
-      sub: user.id,
+      sub: user.id.toString(),
       email: user.email,
       name: user.name,
-      tenantId: tenant.id,
+      tenantId: tenant.id.toString(),
       roles,
     };
 
@@ -120,7 +131,7 @@ export class AuthService {
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: { id: this.toBigInt(payload.sub)! },
       include: {
         userRoles: {
           include: { role: true },
@@ -139,10 +150,10 @@ export class AuthService {
 
     const roles = user.userRoles.map((entry) => entry.role.code);
     const nextPayload = {
-      sub: user.id,
+      sub: user.id.toString(),
       email: user.email,
       name: user.name,
-      tenantId: user.tenantId,
+      tenantId: user.tenantId.toString(),
       roles,
     };
 
@@ -174,11 +185,10 @@ export class AuthService {
     }
 
     await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: this.toBigInt(userId)! },
       data: { refreshTokenHash: null },
     });
 
     return { success: true };
   }
 }
-

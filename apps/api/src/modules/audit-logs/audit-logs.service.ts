@@ -7,15 +7,27 @@ import { AuditLogsQueryDto } from './dto/audit-logs-query.dto';
 export class AuditLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    return undefined;
+  }
+
   async findAll(
     tenantId: string,
     query: AuditLogsQueryDto,
     pagination: PaginationDto,
   ) {
+    const tenantDbId = this.toBigInt(tenantId)!;
     const where = {
-      tenantId,
+      tenantId: tenantDbId,
       resource: query.resource,
-      userId: query.userId,
+      userId: this.toBigInt(query.userId),
     };
 
     const [items, total] = await Promise.all([
@@ -37,22 +49,25 @@ export class AuditLogsService {
   }
 
   async record(input: {
-    tenantId: string;
-    userId?: string;
+    tenantId: string | bigint;
+    userId?: string | bigint;
     action: string;
     resource: string;
-    resourceId?: string;
+    resourceId?: string | bigint;
     payload?: unknown;
     ipAddress?: string;
     userAgent?: string;
   }) {
     return this.prisma.auditLog.create({
       data: {
-        tenantId: input.tenantId,
-        userId: input.userId,
+        tenantId: this.toBigInt(input.tenantId)!,
+        userId: this.toBigInt(input.userId),
         action: input.action,
         resource: input.resource,
-        resourceId: input.resourceId,
+        resourceId:
+          input.resourceId !== undefined && input.resourceId !== null
+            ? String(input.resourceId)
+            : undefined,
         payload: input.payload as object | undefined,
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,

@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AddMaintenanceRuleDto } from './dto/add-maintenance-rule.dto';
@@ -25,10 +25,31 @@ export class MaintenancePlansService {
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    return undefined;
+  }
+
+  private async resolveTenantId(tenantRef: string): Promise<bigint> {
+    if (/^\d+$/.test(tenantRef)) return BigInt(tenantRef);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug: tenantRef },
+      select: { id: true },
+    });
+    if (!tenant) throw new NotFoundException('Tenant não encontrado.');
+    return tenant.id;
+  }
+
   async findAll(tenantId: string) {
-    // CONTRATO BACKEND: incluir `rules` e `asset` reduz round-trips no frontend de planejamento.
+    const tenantDbId = await this.resolveTenantId(tenantId);
     return this.prisma.maintenancePlan.findMany({
-      where: { tenantId },
+      where: { tenantId: tenantDbId },
       include: { rules: true, asset: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -39,10 +60,11 @@ export class MaintenancePlansService {
     userId: string | undefined,
     dto: CreateMaintenancePlanDto,
   ) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const plan = await this.prisma.maintenancePlan.create({
       data: {
-        tenantId,
-        assetId: dto.assetId,
+        tenantId: tenantDbId,
+        assetId: this.toBigInt(dto.assetId)!,
         title: dto.title,
         description: dto.description,
         isActive: dto.isActive ?? true,
@@ -51,7 +73,7 @@ export class MaintenancePlansService {
     });
 
     await this.auditLogsService.record({
-      tenantId,
+      tenantId: tenantDbId,
       userId,
       action: 'CREATE',
       resource: 'maintenance_plans',
@@ -71,13 +93,21 @@ export class MaintenancePlansService {
     await this.ensureExists(tenantId, id);
 
     const plan = await this.prisma.maintenancePlan.update({
-      where: { id },
-      data: dto,
+      where: { id: this.toBigInt(id)! },
+      data: {
+        title: dto.title,
+        description: dto.description,
+        isActive: dto.isActive,
+        assetId:
+          dto.assetId !== undefined
+            ? (this.toBigInt(dto.assetId) as bigint | undefined)
+            : undefined,
+      },
       include: { rules: true },
     });
 
     await this.auditLogsService.record({
-      tenantId,
+      tenantId: await this.resolveTenantId(tenantId),
       userId,
       action: 'UPDATE',
       resource: 'maintenance_plans',
@@ -99,8 +129,8 @@ export class MaintenancePlansService {
 
     const rule = await this.prisma.maintenanceRule.create({
       data: {
-        tenantId,
-        planId: id,
+        tenantId: await this.resolveTenantId(tenantId),
+        planId: this.toBigInt(id)!,
         triggerType: dto.triggerType,
         intervalValue: dto.intervalValue,
         warningValue: dto.warningValue,
@@ -108,7 +138,7 @@ export class MaintenancePlansService {
     });
 
     await this.auditLogsService.record({
-      tenantId,
+      tenantId: await this.resolveTenantId(tenantId),
       userId,
       action: 'ADD_RULE',
       resource: 'maintenance_plans',
@@ -121,7 +151,10 @@ export class MaintenancePlansService {
 
   private async ensureExists(tenantId: string, id: string) {
     const exists = await this.prisma.maintenancePlan.findFirst({
-      where: { tenantId, id },
+      where: {
+        tenantId: await this.resolveTenantId(tenantId),
+        id: this.toBigInt(id)!,
+      },
       select: { id: true },
     });
 
@@ -130,4 +163,3 @@ export class MaintenancePlansService {
     }
   }
 }
-

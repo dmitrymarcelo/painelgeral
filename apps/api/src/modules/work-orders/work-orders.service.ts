@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -33,25 +33,50 @@ export class WorkOrdersService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    throw new BadRequestException('ID inválido');
+  }
+
+  private async resolveTenantId(tenantRef: string): Promise<bigint> {
+    if (/^\d+$/.test(tenantRef)) {
+      return BigInt(tenantRef);
+    }
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug: tenantRef },
+      select: { id: true },
+    });
+    if (!tenant) {
+      throw new BadRequestException('Tenant inválido');
+    }
+    return tenant.id;
+  }
+
   async findAll(tenantId: string, query: WorkOrderQueryDto) {
-    // Regra de negocio: busca textual atende codigo, servico e referencias do ativo.
+    const tenantDbId = await this.resolveTenantId(tenantId);
     return this.prisma.workOrder.findMany({
       where: {
-        tenantId,
+        tenantId: tenantDbId,
         status: query.status,
         priority: query.priority,
         OR: query.search
           ? [
-              { code: { contains: query.search, mode: 'insensitive' } },
-              { service: { contains: query.search, mode: 'insensitive' } },
+              { code: { contains: query.search } },
+              { service: { contains: query.search } },
               {
                 asset: {
-                  model: { contains: query.search, mode: 'insensitive' },
+                  model: { contains: query.search },
                 },
               },
               {
                 asset: {
-                  plate: { contains: query.search, mode: 'insensitive' },
+                  plate: { contains: query.search },
                 },
               },
             ]
@@ -72,17 +97,20 @@ export class WorkOrdersService {
     userId: string | undefined,
     dto: CreateWorkOrderDto,
   ) {
-    const openedById = userId ?? (await this.getSystemUserId(tenantId));
+    const tenantDbId = await this.resolveTenantId(tenantId);
+    const openedById =
+      this.toBigInt(userId) ?? (await this.getSystemUserId(tenantDbId));
 
-    // Regra de negocio: codigo de O.S. sequencial por tenant/ano para leitura operacional.
-    const sequence = await this.prisma.workOrder.count({ where: { tenantId } });
+    const sequence = await this.prisma.workOrder.count({
+      where: { tenantId: tenantDbId },
+    });
     const code = `OS-${new Date().getFullYear()}-${String(sequence + 1).padStart(4, '0')}`;
 
     const workOrder = await this.prisma.workOrder.create({
       data: {
-        tenantId,
+        tenantId: tenantDbId,
         code,
-        assetId: dto.assetId,
+        assetId: this.toBigInt(dto.assetId)!,
         service: dto.service,
         description: dto.description,
         priority: dto.priority,
@@ -95,7 +123,7 @@ export class WorkOrdersService {
 
     await this.prisma.workOrderHistory.create({
       data: {
-        tenantId,
+        tenantId: tenantDbId,
         workOrderId: workOrder.id,
         toStatus: workOrder.status,
         note: 'Abertura da ordem',
@@ -104,8 +132,8 @@ export class WorkOrdersService {
     });
 
     await this.auditLogsService.record({
-      tenantId,
-      userId: openedById,
+      tenantId: tenantDbId,
+      userId: openedById?.toString(),
       action: 'CREATE',
       resource: 'work_orders',
       resourceId: workOrder.id,
@@ -116,8 +144,9 @@ export class WorkOrdersService {
   }
 
   async findOne(tenantId: string, id: string) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const workOrder = await this.prisma.workOrder.findFirst({
-      where: { tenantId, id },
+      where: { tenantId: tenantDbId, id: this.toBigInt(id)! },
       include: {
         asset: true,
         tasks: true,
@@ -139,12 +168,22 @@ export class WorkOrdersService {
     id: string,
     dto: UpdateWorkOrderDto,
   ) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const current = await this.findOne(tenantId, id);
 
     const updated = await this.prisma.workOrder.update({
-      where: { id },
+      where: { id: this.toBigInt(id)! },
       data: {
-        ...dto,
+        ...{
+          service: dto.service,
+          description: dto.description,
+          priority: dto.priority,
+          status: dto.status,
+          assetId:
+            dto.assetId !== undefined
+              ? (this.toBigInt(dto.assetId) as bigint | undefined)
+              : undefined,
+        },
         dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
       },
     });
@@ -152,18 +191,18 @@ export class WorkOrdersService {
     if (dto.status && dto.status !== current.status) {
       await this.prisma.workOrderHistory.create({
         data: {
-          tenantId,
-          workOrderId: id,
+          tenantId: tenantDbId,
+          workOrderId: this.toBigInt(id)!,
           fromStatus: current.status,
           toStatus: dto.status,
           note: 'Mudanca de status manual',
-          createdById: userId,
+          createdById: this.toBigInt(userId),
         },
       });
     }
 
     await this.auditLogsService.record({
-      tenantId,
+      tenantId: tenantDbId,
       userId,
       action: 'UPDATE',
       resource: 'work_orders',
@@ -180,35 +219,36 @@ export class WorkOrdersService {
     id: string,
     dto: AssignWorkOrderDto,
   ) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     await this.findOne(tenantId, id);
 
     const assignment = await this.prisma.workOrderAssignment.upsert({
       where: {
         tenantId_workOrderId_userId: {
-          tenantId,
-          workOrderId: id,
-          userId: dto.userId,
+          tenantId: tenantDbId,
+          workOrderId: this.toBigInt(id)!,
+          userId: this.toBigInt(dto.userId)!,
         },
       },
       update: {},
       create: {
-        tenantId,
-        workOrderId: id,
-        userId: dto.userId,
+        tenantId: tenantDbId,
+        workOrderId: this.toBigInt(id)!,
+        userId: this.toBigInt(dto.userId)!,
       },
       include: { user: true },
     });
 
     // CONTRATO BACKEND: notificacao deve carregar referencia da O.S. para deep-link no frontend.
     await this.notificationsService.create({
-      tenantId,
+      tenantId: tenantDbId.toString(),
       userId: dto.userId,
       title: 'Nova O.S. atribuida',
       body: `Voce recebeu a ordem ${id}.`,
     });
 
     await this.auditLogsService.record({
-      tenantId,
+      tenantId: tenantDbId,
       userId,
       action: 'ASSIGN',
       resource: 'work_orders',
@@ -220,6 +260,7 @@ export class WorkOrdersService {
   }
 
   async start(tenantId: string, userId: string | undefined, id: string) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const current = await this.findOne(tenantId, id);
     // Regra de negocio: apenas O.S. abertas/aguardando podem iniciar execucao.
     if (
@@ -230,7 +271,7 @@ export class WorkOrdersService {
     }
 
     const updated = await this.prisma.workOrder.update({
-      where: { id },
+      where: { id: this.toBigInt(id)! },
       data: {
         status: WorkOrderStatus.EM_ANDAMENTO,
         startedAt: new Date(),
@@ -239,19 +280,19 @@ export class WorkOrdersService {
 
     await this.prisma.workOrderHistory.create({
       data: {
-        tenantId,
-        workOrderId: id,
+        tenantId: tenantDbId,
+        workOrderId: this.toBigInt(id)!,
         fromStatus: current.status,
         toStatus: WorkOrderStatus.EM_ANDAMENTO,
         note: 'Inicio da execucao',
-        createdById: userId,
+        createdById: this.toBigInt(userId),
       },
     });
 
     return updated;
   }
 
-  private async getSystemUserId(tenantId: string) {
+  private async getSystemUserId(tenantId: bigint) {
     // Regra de negocio: fallback para abertura automatica quando nenhuma sessao de usuario e enviada.
     const user = await this.prisma.user.findFirst({
       where: { tenantId, isActive: true },
@@ -274,6 +315,7 @@ export class WorkOrdersService {
     id: string,
     dto: CompleteWorkOrderDto,
   ) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const current = await this.findOne(tenantId, id);
     // Regra de negocio: conclusao exige O.S. em andamento para preservar trilha de status.
 
@@ -284,7 +326,7 @@ export class WorkOrdersService {
     }
 
     const updated = await this.prisma.workOrder.update({
-      where: { id },
+      where: { id: this.toBigInt(id)! },
       data: {
         status: WorkOrderStatus.CONCLUIDA,
         completedAt: new Date(),
@@ -293,17 +335,17 @@ export class WorkOrdersService {
 
     await this.prisma.workOrderHistory.create({
       data: {
-        tenantId,
-        workOrderId: id,
+        tenantId: tenantDbId,
+        workOrderId: this.toBigInt(id)!,
         fromStatus: current.status,
         toStatus: WorkOrderStatus.CONCLUIDA,
         note: dto.note ?? 'Concluida',
-        createdById: userId,
+        createdById: this.toBigInt(userId),
       },
     });
 
     await this.auditLogsService.record({
-      tenantId,
+      tenantId: tenantDbId,
       userId,
       action: 'COMPLETE',
       resource: 'work_orders',
@@ -314,5 +356,3 @@ export class WorkOrdersService {
     return updated;
   }
 }
-
-

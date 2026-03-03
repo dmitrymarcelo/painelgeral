@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -30,6 +30,17 @@ export class AssetsService {
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    throw new BadRequestException('ID inválido');
+  }
+
   async findAll(tenantId: string, query: AssetQueryDto) {
     const tenantDbId = await this.resolveTenantId(tenantId);
     // Regra de negocio: busca textual cobre codigo, placa, modelo e fabricante.
@@ -40,10 +51,10 @@ export class AssetsService {
         status: query.status,
         OR: query.search
           ? [
-              { code: { contains: query.search, mode: 'insensitive' } },
-              { plate: { contains: query.search, mode: 'insensitive' } },
-              { model: { contains: query.search, mode: 'insensitive' } },
-              { manufacturer: { contains: query.search, mode: 'insensitive' } },
+              { code: { contains: query.search } },
+              { plate: { contains: query.search } },
+              { model: { contains: query.search } },
+              { manufacturer: { contains: query.search } },
             ]
           : undefined,
       },
@@ -80,7 +91,7 @@ export class AssetsService {
         assetId: asset.id,
         status: asset.status,
         reason: 'Cadastro inicial',
-        changedById: userId,
+        changedById: this.toBigInt(userId),
       },
     });
 
@@ -101,9 +112,9 @@ export class AssetsService {
     return this.findOneByResolvedTenantId(tenantDbId, id);
   }
 
-  private async findOneByResolvedTenantId(tenantDbId: string, id: string) {
+  private async findOneByResolvedTenantId(tenantDbId: bigint, id: string) {
     const asset = await this.prisma.asset.findFirst({
-      where: { tenantId: tenantDbId, id },
+      where: { tenantId: tenantDbId, id: this.toBigInt(id)! },
     });
 
     if (!asset) {
@@ -123,7 +134,7 @@ export class AssetsService {
     const current = await this.findOneByResolvedTenantId(tenantDbId, id);
 
     const updated = await this.prisma.asset.update({
-      where: { id },
+      where: { id: this.toBigInt(id)! },
       data: dto,
     });
 
@@ -131,10 +142,10 @@ export class AssetsService {
       await this.prisma.assetStatusHistory.create({
         data: {
           tenantId: tenantDbId,
-          assetId: id,
+          assetId: this.toBigInt(id)!,
           status: dto.status,
           reason: 'Atualização de ativo',
-          changedById: userId,
+          changedById: this.toBigInt(userId),
         },
       });
     }
@@ -144,7 +155,7 @@ export class AssetsService {
       userId,
       action: 'UPDATE',
       resource: 'assets',
-      resourceId: id,
+      resourceId: this.toBigInt(id)!,
       payload: dto,
     });
 
@@ -156,7 +167,7 @@ export class AssetsService {
     await this.findOneByResolvedTenantId(tenantDbId, id);
 
     return this.prisma.assetStatusHistory.findMany({
-      where: { tenantId: tenantDbId, assetId: id },
+      where: { tenantId: tenantDbId, assetId: this.toBigInt(id)! },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -197,7 +208,7 @@ export class AssetsService {
         resource: 'assets',
         status: ImportStatus.PROCESSANDO,
         totalRows: rows.length - 1,
-        createdById: userId,
+        createdById: this.toBigInt(userId),
       },
     });
 
@@ -315,15 +326,15 @@ export class AssetsService {
     };
   }
 
-  private async resolveTenantId(tenantRef: string) {
-    // Regra de negocio: aceita slug ou id para simplificar integracoes e testes.
-    const tenant = await this.prisma.tenant.findFirst({
-      where: {
-        OR: [{ id: tenantRef }, { slug: tenantRef }],
-      },
+  private async resolveTenantId(tenantRef: string): Promise<bigint> {
+    if (/^\d+$/.test(tenantRef)) return BigInt(tenantRef);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug: tenantRef },
       select: { id: true },
     });
-
-    return tenant?.id ?? tenantRef;
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado.');
+    }
+    return tenant.id;
   }
 }

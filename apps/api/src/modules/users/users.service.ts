@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -24,10 +24,33 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toBigInt(
+    v: string | number | bigint | null | undefined,
+  ): bigint | null | undefined {
+    if (v === null || v === undefined) return v as undefined;
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number') return BigInt(v);
+    const s = String(v).trim();
+    if (/^\d+$/.test(s)) return BigInt(s);
+    throw new BadRequestException('ID inválido');
+  }
+
+  private async resolveTenantId(tenantRef: string): Promise<bigint> {
+    if (/^\d+$/.test(tenantRef)) return BigInt(tenantRef);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug: tenantRef },
+      select: { id: true },
+    });
+    if (!tenant) {
+      throw new BadRequestException('Tenant inválido');
+    }
+    return tenant.id;
+  }
+
   async findAll(tenantId: string) {
-    // CONTRATO BACKEND: listagem administrativa precisa vir com roles expandidos (`userRoles.role`).
+    const tenantDbId = await this.resolveTenantId(tenantId);
     return this.prisma.user.findMany({
-      where: { tenantId },
+      where: { tenantId: tenantDbId },
       include: {
         userRoles: {
           include: {
@@ -40,10 +63,9 @@ export class UsersService {
   }
 
   async create(tenantId: string, dto: CreateUserDto) {
-    // CONTRATO BACKEND: `CreateUserDto` deve conter senha em texto apenas neste endpoint;
-    // persistencia sempre usa `passwordHash`.
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const existing = await this.prisma.user.findUnique({
-      where: { tenantId_email: { tenantId, email: dto.email } },
+      where: { tenantId_email: { tenantId: tenantDbId, email: dto.email } },
       select: { id: true },
     });
 
@@ -55,7 +77,7 @@ export class UsersService {
 
     const user = await this.prisma.user.create({
       data: {
-        tenantId,
+        tenantId: tenantDbId,
         email: dto.email,
         name: dto.name,
         passwordHash,
@@ -63,24 +85,23 @@ export class UsersService {
       },
     });
 
-    // Regra de negocio: tecnico e papel padrao quando nenhum role e enviado.
     const rolesToAttach = dto.roles?.length ? dto.roles : [UserRole.TECNICO];
 
     for (const roleCode of rolesToAttach) {
       const role = await this.prisma.role.findUnique({
-        where: { tenantId_code: { tenantId, code: roleCode } },
+        where: { tenantId_code: { tenantId: tenantDbId, code: roleCode } },
       });
       if (!role) continue;
       await this.prisma.userRoleMap.create({
         data: {
-          tenantId,
+          tenantId: tenantDbId,
           userId: user.id,
           roleId: role.id,
         },
       });
     }
 
-    return this.findById(tenantId, user.id);
+    return this.findById(tenantId, user.id.toString());
   }
 
   async update(tenantId: string, id: string, dto: UpdateUserDto) {
@@ -97,22 +118,33 @@ export class UsersService {
     }
 
     await this.prisma.user.update({
-      where: { id },
+      where: { id: this.toBigInt(id)! },
       data,
     });
 
     if (dto.roles?.length) {
-      // Regra de negocio: atualizacao de roles e substitutiva para simplificar consistencia.
       await this.prisma.userRoleMap.deleteMany({
-        where: { tenantId, userId: id },
+        where: {
+          tenantId: await this.resolveTenantId(tenantId),
+          userId: this.toBigInt(id)!,
+        },
       });
       for (const roleCode of dto.roles) {
         const role = await this.prisma.role.findUnique({
-          where: { tenantId_code: { tenantId, code: roleCode } },
+          where: {
+            tenantId_code: {
+              tenantId: await this.resolveTenantId(tenantId),
+              code: roleCode,
+            },
+          },
         });
         if (!role) continue;
         await this.prisma.userRoleMap.create({
-          data: { tenantId, userId: id, roleId: role.id },
+          data: {
+            tenantId: await this.resolveTenantId(tenantId),
+            userId: this.toBigInt(id)!,
+            roleId: role.id,
+          },
         });
       }
     }
@@ -123,14 +155,15 @@ export class UsersService {
   async updateStatus(tenantId: string, id: string, dto: UpdateUserStatusDto) {
     await this.findById(tenantId, id);
     return this.prisma.user.update({
-      where: { id },
+      where: { id: this.toBigInt(id)! },
       data: { isActive: dto.isActive },
     });
   }
 
   async findById(tenantId: string, id: string) {
+    const tenantDbId = await this.resolveTenantId(tenantId);
     const user = await this.prisma.user.findFirst({
-      where: { id, tenantId },
+      where: { id: this.toBigInt(id)!, tenantId: tenantDbId },
       include: {
         userRoles: {
           include: {
@@ -147,4 +180,3 @@ export class UsersService {
     return user;
   }
 }
-
