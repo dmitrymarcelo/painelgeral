@@ -7,10 +7,9 @@ Ambiente de validacao para Web + API em EC2.
 - Ultima revisao documental: `2026-03-03`
 - Escopo atual da API: sem checklist, sem combustivel e sem telemetria.
 - Referencia de banco no schema atual: `PostgreSQL` (Prisma).
-- GitHub atualizado: commit `16f738e` em `origin/main`.
-- Validacao HTTP realizada em `2026-03-02`:
-  - `http://44.202.245.110:3000` => `200`
-  - `POST http://44.202.245.110:4000/api/v1/auth/login` => `201`
+- GitHub atualizado: commit `a500cca` em `origin/main`.
+- Ultimo deploy remoto por SSM: `2026-03-03` (comando `8761fe17-8a88-40fc-bc4b-72610b875929`, status `Success`).
+- Resultado do deploy: `api` e `web` reconstruidos e containers iniciados.
 
 ## Infra de referencia
 - Regiao: `us-east-1`
@@ -24,16 +23,15 @@ Ambiente de validacao para Web + API em EC2.
 - Endpoint login API validado (`POST /api/v1/auth/login`)
 - Observacoes de incidente (se houver)
 
-## Log de deploy (modelo)
-- Data:
-- Commit:
-- Comando executado:
-- Resultado:
-- Validacao HTTP:
+## Log de deploy (execucoes)
+- `2026-03-03` | Commit `3dc0642` | SSM `571a558e-b610-4989-ba5a-4f0293387526`
+  - Resultado: `Failed` no build da API por modulo legado `checklists` fora do schema.
+- `2026-03-03` | Commit `a500cca` | SSM `8761fe17-8a88-40fc-bc4b-72610b875929`
+  - Comando: `git pull --ff-only origin main && docker compose -f docker-compose.ec2.yml up -d --build api web`
+  - Resultado: `Success` (API e Web no ar).
 
 ## Observacao operacional
-- Neste ambiente local de automacao nao ha `aws cli` instalado; o deploy remoto por SSM/EC2 nao foi disparado por comando AWS nesta execucao.
-- Como o commit ja esta em `origin/main`, basta executar o playbook de deploy no host EC2 para sincronizar a instancia com `16f738e`.
+- `python -m awscli sts get-caller-identity` validado com sucesso para a conta `389364614518` (usuario IAM `Dmitry`).
 
 ## Comando util para reduzir custo
 ```bash
