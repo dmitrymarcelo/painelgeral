@@ -7,6 +7,7 @@ Demonstrar, com dados reais, a funcao de cada tabela do schema atual.
 - Modelo do banco: `apps/api/prisma/schema.prisma`
 - DER completo: `docs/DER_SCHEMA_ATUAL.dbml`
 - DER visual por dominio: `docs/DER_DIAGRAMAS_PTBR.md`
+- Apresentacao visual pronta no VS Code: `docs/REUNIAO_VISUAL_VSCODE_PTBR.md`
 - Carga de dados da demo: `apps/api/prisma/seed.ts`
 
 ## Preparacao (5 min)
